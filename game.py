@@ -76,8 +76,8 @@ class Board:
         # self.p2_pos = (self.p2_row, self.p2_col)
         self.grid = [[GameObject('.') for _ in range(self.cols)] for _ in range(self.rows)]
 
-    def genBoard(self, elem_types):
-        self.genElems(elem_types)
+    # def genBoard(self, elem_types):
+    #     self.genElems(elem_types)
 
     # def genRandBoard(self):
     #     relem_type_total = 
@@ -141,7 +141,7 @@ class Board:
            
 
               
-              
+      
 
 
        
