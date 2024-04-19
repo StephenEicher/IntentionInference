@@ -28,6 +28,7 @@ class GameObject:
         self.occupied = False
 
 
+
 class Board:
     """
     Board class which stores the map representation
@@ -44,7 +45,9 @@ class Board:
         # self.p2_col = 1
         # self.p1_pos = (self.p1_row, self.p1_col)
         # self.p2_pos = (self.p2_row, self.p2_col)
+        self.all_elem_pos = set()
         self.grid = [[GameObject('.') for _ in range(self.cols)] for _ in range(self.rows)]
+        print(f'Created a Board instance with dimensions {rows} x {cols}')
 
     def genBoard(self, elem_types):
         self.genElems(elem_types)
@@ -67,9 +70,10 @@ class Board:
             print(rowtoprint)
 
     def genElems(self, elem_types):
-        print(f'Calling on genElems with {elem_types}') 
+        print("\n--- Starting genElems ---")
+        print(f'Input elem_types: {elem_types}')
+        
         elem_types = set(elem_types)
-        print(f'Elems included: {elem_types}')
         included_elems = {
             'water': False,
             'earth': False,
@@ -82,6 +86,7 @@ class Board:
             2: 'F',
             3: 'A',
         }
+        
         for elem in elem_types:
             if elem == 0:
                 included_elems['water'] = True
@@ -91,22 +96,34 @@ class Board:
                 included_elems['fire'] = True
             elif elem == 3:
                 included_elems['air'] = True
+            
             elem_symbol = GameObject(included_elems_symbols[elem])
-            print(f'Corresponding elem symbols: {elem_symbol}')
-            all_elem_pos = set()
-            rand_multiplier = random.randint(1,5)
+            print(f'Processing element type {elem} with symbol: {elem_symbol.symbol}')
+            
+            rand_multiplier = random.randint(1, 3)
+            print(f'Multiplier for element type {elem}: {rand_multiplier}')
+            
             for _ in range(rand_multiplier): 
                 while True:
                     rand_row = random.randint(0, self.rows - 1)
                     rand_col = random.randint(0, self.cols - 1)
                     rand_pos = (rand_row, rand_col)
                     
-                    if rand_pos not in all_elem_pos and self.grid[rand_pos[0]][rand_pos[1]].occupied == False:
-                        all_elem_pos.add(rand_pos)
-                        self.grid[rand_pos[0]][rand_pos[1]].symbol = elem_symbol
+                    if rand_pos not in self.all_elem_pos and self.grid[rand_pos[0]][rand_pos[1]].occupied == False:
+                        self.all_elem_pos.add(rand_pos)
+                        self.grid[rand_pos[0]][rand_pos[1]].symbol = elem_symbol.symbol
                         break
+                
+                print(f'Placed element type {elem} at position {rand_pos}')
+            
+            print(f'Current element positions: {self.all_elem_pos}')
+            
+        print("--- Finished genElems ---\n")
 
 
+    
+    
+    # def boardStats(self):
                 
 
         
@@ -137,12 +154,17 @@ def getActionSpace(self, board):
    """
     Return a list of all possible actions for the agent
    """
+
+
+
 class Game:
    """
    Manager class which oversees turns and game
    startGame()
    """
-   
+
+
+
 class Unit:
     """
     Manager class which oversees turns and game
