@@ -7,36 +7,6 @@ import random
 
 
 
-
-class Agent:
-  """
-    Methods: selectAction()
-    getActionSpace()
-  """
-def __init__(self, index=0):
-    self.index = index
-
-def selectAction(self, board):
-    """
-    The Agent will receive a GameState (from either) and
-    must return an action from the direction space
-    """
-    raiseNotDefined()
-
-def getActionSpace(self, board):
-   """
-    Return a list of all possible actions for the agent
-   """
-
-
-
-class Game:
-   """
-   Manager class which oversees turns and game
-   startGame()
-   """
-
-
 class GameObject:
     """
     In-game object class that manages symbols on the board representing agents,
@@ -96,8 +66,10 @@ class Board:
             rowtoprint = ''.join(currGO.symbol for currGO in row)
             print(rowtoprint)
 
-    def genElems(self, elem_types): 
+    def genElems(self, elem_types):
+        print(f'Calling on genElems with {elem_types}') 
         elem_types = set(elem_types)
+        print(f'Elems included: {elem_types}')
         included_elems = {
             'water': False,
             'earth': False,
@@ -120,6 +92,7 @@ class Board:
             elif elem == 3:
                 included_elems['air'] = True
             elem_symbol = GameObject(included_elems_symbols[elem])
+            print(f'Corresponding elem symbols: {elem_symbol}')
             all_elem_pos = set()
             rand_multiplier = random.randint(1,5)
             for _ in range(rand_multiplier): 
@@ -145,9 +118,31 @@ class Board:
 
 
        
+class Agent:
+  """
+    Methods: selectAction()
+    getActionSpace()
+  """
+def __init__(self, index=0):
+    self.index = index
 
+def selectAction(self, board):
+    """
+    The Agent will receive a GameState (from either) and
+    must return an action from the direction space
+    """
+    raiseNotDefined()
 
-
+def getActionSpace(self, board):
+   """
+    Return a list of all possible actions for the agent
+   """
+class Game:
+   """
+   Manager class which oversees turns and game
+   startGame()
+   """
+   
 class Unit:
     """
     Manager class which oversees turns and game
