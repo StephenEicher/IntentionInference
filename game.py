@@ -60,6 +60,14 @@ class Obstacles(Terrain):
     Choose seed which contains a class containing a function for "growing" from the seed
     
     """
+    #def genNeighbors(gb where gb is the game board that self lives on)
+        #Note: you may want to consider storing on GameObjects or children the location of each game object (row, col)
+        #Otherwise, you may need to pass in row, col as an input
+        #Query neighboring tiles to determine if the neighbors are valid points to insert new obstacles
+            #For the points that are valid, insert new Obstacle instances into the neighboring row, col
+                #Insert the obstances by assigning gb.grid[row][col]
+
+
 
 
 class Surface(Terrain):
@@ -83,6 +91,7 @@ class Board:
 
     def genBoard(self, elemTypes):
         self.genElems(elemTypes)
+        #Call self.genObstacles()
 
     def clearBoard(self):
         for row in self.grid:
@@ -101,6 +110,26 @@ class Board:
                 else:
                     row_to_print += self.emptySymbol
             print(row_to_print)
+    #def genObstacles()
+        #Choose some points to function as "centers" for the barriers
+        #  Make sure the points we've chosen are not occupied
+        #   For the points that are valid, insert a Obstacle instance at that Row, Col
+                #On the obstacle instance we just created, call newObstacle.genNeighbors(self (where self is this board class))
+                    #The newObstacle.genNeighbor function will modify in place the current grid
+                    #You may be able to modify the board in place but I"m not totally sure
+                    #If you cannot modify the board in place the output will look like this:
+                    #self.grid = newObstacle.genNeighbor(self.grid)
+
+
+    #Index becomes the prev value + 1
+    #index = index + 1 #Normal modification
+
+    #Index becomes the prev value +1
+    #incrementIndex(go.index) #Modification in place
+
+    #on your go:
+    # def incrementIndex(self.index)
+    #   self.index = self.index + 1
 
     def genElems(self, elemTypes):
         print("\n--- Starting genElems ---")
