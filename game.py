@@ -8,8 +8,9 @@ class GameObject:
     """
     occupied = False
 
-    def __init__(self, symbol):
+    def __init__(self, symbol, pos):
         self.symbol = symbol
+        self.pos = pos
         self.occupied = symbol != '.'
 
 
@@ -22,8 +23,8 @@ class Terrain(GameObject):
 
 class Water(Elements):
     debugName = 'Water'
-    def __init__(self):
-        super().__init__('W')
+    def __init__(self, pos):
+        super().__init__('W', pos)
 
 
 class Earth(Elements):
@@ -45,21 +46,13 @@ class Air(Elements):
 
 
 class Obstacles(Terrain):
-    def __init__(self, obstacleScale):
+    debugName = 'Obstacle'
+    def __init__(self):
         super().__init__('[]')
-        self.obstacleScale = obstacleScale
-    """
-    Shape generation
-        Randomly select a grid area on the board for obstacle generation
-        Determine which positions are already occupied by a instance of GameObject
-        Randomly select positions within grid area not already occupied
-        Store positions in a set
-    Placement
-        Send stored positions set to Board class for placement
-    
-    Choose seed which contains a class containing a function for "growing" from the seed
-    
-    """
+
+
+    def genNeighbors(self):
+        pass
     #def genNeighbors(gb where gb is the game board that self lives on)
         #Note: you may want to consider storing on GameObjects or children the location of each game object (row, col)
         #Otherwise, you may need to pass in row, col as an input
@@ -67,12 +60,9 @@ class Obstacles(Terrain):
             #For the points that are valid, insert new Obstacle instances into the neighboring row, col
                 #Insert the obstances by assigning gb.grid[row][col]
 
-
-
-
 class Surface(Terrain):
-    placeHolder = None
-
+    debugName = 'Surface'
+    pass
 
 class Board:
     """
@@ -86,12 +76,12 @@ class Board:
         self.rows = rows
         self.cols = cols
         self.all_elem_pos = set()
+        self.all_seed_pos = set()
         self.grid = [[None for _ in range(self.cols)] for _ in range(self.rows)]
-        print(f'Created a Board instance with dimensions {rows} x {cols}')
+        print(f'Created an empty Board instance with dimensions {self.rows} x {self.cols}')
 
     def genBoard(self, elemTypes):
         self.genElems(elemTypes)
-        #Call self.genObstacles()
 
     def clearBoard(self):
         for row in self.grid:
@@ -100,6 +90,13 @@ class Board:
 
     def getObject(self, row, col):
         return self.grid[row][col]
+    
+    def printObjectAttr(self, row, col):
+        object = self.grid[row][col]
+        print(f'\n--- Getting attributes for {object.debugName} ---') 
+        objectVars = object.__dict__
+        for varName, value in objectVars.items():
+            print(f'{varName} = {value}')
 
     def drawBoard(self):
         for row in self.grid:
@@ -110,7 +107,55 @@ class Board:
                 else:
                     row_to_print += self.emptySymbol
             print(row_to_print)
-    #def genObstacles()
+    
+    def genElems(self, elemTypes):
+        print('\n--- Starting genElems ---')
+        print(f'Input elem_types: {elemTypes}')
+        
+        if not isinstance(elemTypes, list):
+            elemTypes = [elemTypes]
+        elemTypes = list(set(elemTypes))
+
+        for elem in elemTypes:
+            ref_class_inst = elem(None)
+            print(f'Processing element type {ref_class_inst.debugName} with symbol: {ref_class_inst.symbol}')
+            randMultiplier = random.randint(ref_class_inst.elem_rand_multiplier_bounds[0], ref_class_inst.elem_rand_multiplier_bounds[1])
+            print(f'Multiplier for element type {ref_class_inst.debugName}: {randMultiplier}')
+
+            for _ in range(randMultiplier): 
+                while True:
+                    rand_elem_pos = (random.randint(0, self.rows - 1), random.randint(0, self.cols - 1))
+                    
+                    if rand_elem_pos not in self.all_elem_pos and self.getObject(rand_elem_pos[0], rand_elem_pos[1]) == None:
+                        self.all_elem_pos.add(rand_elem_pos)
+                        self.grid[rand_elem_pos[0]][rand_elem_pos[1]] = elem(rand_elem_pos)
+                        break
+                
+                print(f'Placed element type {elem(None).symbol} at position {rand_elem_pos}')
+            
+            print(f'Current element positions: {self.all_elem_pos}')
+            
+        print('--- Finished genElems ---\n')
+
+    def genObstacles(self, seedMultiplier):
+        print('\n--- Starting genObstacles ---')
+        print(f'Input seedMultiplier: {seedMultiplier}')
+        for _ in range(seedMultiplier):
+            while True:
+                rand_seed_pos = (random.randint(0, self.rows - 1), random.randint(0, self.cols - 1))
+               
+                if self.getObject(rand_seed_pos[0], rand_seed_pos[1]) == None:
+                    newObstacle = Obstacles()
+                    self.all_seed_pos.add(rand_seed_pos)
+                    self.grid[rand_seed_pos[0]][rand_seed_pos[1]] = newObstacle
+                    break
+
+            print(f'Placed seed at position {rand_seed_pos}')
+        
+        print(f'Current element positions: {self.all_seed_pos}')
+            
+        print('--- Finished genObstacles ---\n')
+
         #Choose some points to function as "centers" for the barriers
         #  Make sure the points we've chosen are not occupied
         #   For the points that are valid, insert a Obstacle instance at that Row, Col
@@ -131,36 +176,6 @@ class Board:
     # def incrementIndex(self.index)
     #   self.index = self.index + 1
 
-    def genElems(self, elemTypes):
-        print("\n--- Starting genElems ---")
-        print(f'Input elem_types: {elemTypes}')
-        
-        if not isinstance(elemTypes, list):
-            elemTypes = [elemTypes]
-        elemTypes = list(set(elemTypes))
-
-        for elem in elemTypes:
-            ref_class_inst = elem()
-            print(f'Processing element type {ref_class_inst.debugName} with symbol: {ref_class_inst.symbol}')
-            rand_multiplier = random.randint(ref_class_inst.elem_rand_multiplier_bounds[0], ref_class_inst.elem_rand_multiplier_bounds[1])
-            print(f'Multiplier for element type {ref_class_inst.debugName}: {rand_multiplier}')
-
-            for _ in range(rand_multiplier): 
-                while True:
-                    rand_pos = (random.randint(0, self.rows - 1), random.randint(0, self.cols - 1))
-                    
-                    if rand_pos not in self.all_elem_pos and self.getObject(rand_pos[0], rand_pos[1]) is None:
-                        self.all_elem_pos.add(rand_pos)
-                        self.grid[rand_pos[0]][rand_pos[1]] = elem()
-                        break
-                
-                print(f'Placed element type {elem().symbol} at position {rand_pos}')
-            
-            print(f'Current element positions: {self.all_elem_pos}')
-            
-        print("--- Finished genElems ---\n")
-
-
 
     # def boardStats(self):
                 
@@ -171,9 +186,8 @@ class Board:
 print("Constructing Gameboard as gb...")
 gb = Board(10, 10)
 gb.drawBoard()
-gb.genBoard([Fire, Water, Air, Earth])
+gb.genElems([Water])
 gb.drawBoard()
-
 
        
 # class Agent:
