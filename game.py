@@ -192,7 +192,7 @@ class Board:
         print(f'Input seedMultiplier: {seedMultiplier}')
         for _ in range(seedMultiplier):
            
-           while True:
+            while True:
                 randSeedPos = (random.randint(0, self.rows - 1), random.randint(0, self.cols - 1))
                
                 if self.getObject(randSeedPos[0], randSeedPos[1]) == None:
@@ -202,7 +202,7 @@ class Board:
                     self.grid[randSeedPos[0]][randSeedPos[1]] = newSeed
                     newSeed.proliferate()
                     break
-
+                
             print(f'Placed seed at position {randSeedPos}')
         
         print(f'Current seed positions: {self.allSeedPos}')
