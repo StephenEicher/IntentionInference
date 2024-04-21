@@ -1,17 +1,18 @@
 import random
 
 
+
 class GameObject:
     """
     In-game object class that represents a generic "game object" from which child classes
     for elements, obstacles, units manage corresponding symbols, behavior/interactions. 
     """
     occupied = False
+    symbol = None
 
-    def __init__(self, symbol, pos):
-        self.symbol = symbol
+    def __init__(self, pos):
         self.pos = pos
-        self.occupied = symbol != '.'
+        self.occupied = self.symbol != '.'
 
 
 class Elements(GameObject):
@@ -19,50 +20,93 @@ class Elements(GameObject):
     
 
 class Terrain(GameObject):
-    placeHolder = None
-
-class Water(Elements):
-    debugName = 'Water'
-    def __init__(self, pos):
-        super().__init__('W', pos)
-
-
-class Earth(Elements):
-    debugName = 'Earth'
-    def __init__(self):
-        super().__init__('E')
-
-
-class Fire(Elements):
-    debugName = 'Fire'
-    def __init__(self):
-        super().__init__('F')
-
-
-class Air(Elements):
-    debugName = 'Air'
-    def __init__(self):
-        super().__init__('A')
+    pass
 
 
 class Obstacles(Terrain):
-    debugName = 'Obstacle'
-    def __init__(self):
-        super().__init__('[]')
-
-
-    def genNeighbors(self):
-        pass
-    #def genNeighbors(gb where gb is the game board that self lives on)
+    pass
+  #def genNeighbors(gb where gb is the game board that self lives on)
         #Note: you may want to consider storing on GameObjects or children the location of each game object (row, col)
         #Otherwise, you may need to pass in row, col as an input
         #Query neighboring tiles to determine if the neighbors are valid points to insert new obstacles
             #For the points that are valid, insert new Obstacle instances into the neighboring row, col
                 #Insert the obstances by assigning gb.grid[row][col]
 
+
+class Water(Elements):
+    debugName = 'Water'
+    symbol = 'W'
+    def __init__(self, pos):
+        super().__init__(pos)
+
+
+class Earth(Elements):
+    debugName = 'Earth'
+    symbol = 'E'
+    def __init__(self, pos):
+        super().__init__(pos)
+
+
+class Fire(Elements):
+    debugName = 'Fire'
+    symbol = 'F'
+    def __init__(self, pos):
+        super().__init__(pos)
+
+
+class Air(Elements):
+    debugName = 'Air'
+    symbol = 'A'
+    def __init__(self, pos):
+        super().__init__(pos)
+
+
+class Seed(Obstacles):
+    debugName = 'Seed'
+    symbol = '[]'
+    def __init__(self, pos, board_class_instance):
+        self.pos = pos
+        self.board_class_instance = board_class_instance
+        super().__init__(pos)
+
+    def proliferate(self):
+        seedPos = self.pos
+        directions = [
+            (-1, 0),  # Top
+            (1, 0),   # Bottom
+            (0, -1),  # Left
+            (0, 1),   # Right
+        ]
+
+        for dRow, dCol in directions:
+            newRow = seedPos[0] + dRow
+            newCol = seedPos[1] + dCol
+            
+            # Check if the new position is within the grid bounds
+            if 0 <= newRow < self.board_class_instance.rows and 0 <= newCol < self.board_class_instance.cols:
+                new_root_pos = (newRow, newCol)
+                adjacentObject = self.board_class_instance.grid[newRow][newCol]
+                
+                # If the adjacent tile is unoccupied, create a new Root object
+                if adjacentObject is None or not adjacentObject.occupied:
+                    newRoot = Root(new_root_pos, self.board_class_instance)
+                    self.board_class_instance.grid[newRow][newCol] = newRoot
+
+
+class Root(Seed):
+    debugName = 'Root'
+    symbol = '~'
+    def __init__(self, new_root_pos, board_class_instance):
+        super().__init__(new_root_pos, None)
+        self.board_class_instance = board_class_instance
+
+    # def weightedProliferate(self):
+
+
 class Surface(Terrain):
     debugName = 'Surface'
     pass
+
 
 class Board:
     """
@@ -70,7 +114,7 @@ class Board:
     genBoard() - Procedural generation of game board at initial state
     genBoardForAgent() - Create a copy of the game board for the agent
     """
-    emptySymbol = '.'
+    emptySymbol = '.' 
 
     def __init__(self, rows, cols):
         self.rows = rows
@@ -110,8 +154,10 @@ class Board:
     
     def genElems(self, elemTypes):
         print('\n--- Starting genElems ---')
-        print(f'Input elem_types: {elemTypes}')
-        
+        elem_debug_name = ''
+        for elem in elemTypes:
+            elem_debug_name += elem.debugName + ' '
+        print(f'Input elemTypes: {elem_debug_name}')
         if not isinstance(elemTypes, list):
             elemTypes = [elemTypes]
         elemTypes = list(set(elemTypes))
@@ -145,14 +191,15 @@ class Board:
                 rand_seed_pos = (random.randint(0, self.rows - 1), random.randint(0, self.cols - 1))
                
                 if self.getObject(rand_seed_pos[0], rand_seed_pos[1]) == None:
-                    newObstacle = Obstacles()
+                    newSeed = Seed(rand_seed_pos, self)
                     self.all_seed_pos.add(rand_seed_pos)
-                    self.grid[rand_seed_pos[0]][rand_seed_pos[1]] = newObstacle
+                    self.grid[rand_seed_pos[0]][rand_seed_pos[1]] = newSeed
+                    newSeed.proliferate()
                     break
 
             print(f'Placed seed at position {rand_seed_pos}')
         
-        print(f'Current element positions: {self.all_seed_pos}')
+        print(f'Current seed positions: {self.all_seed_pos}')
             
         print('--- Finished genObstacles ---\n')
 
@@ -184,9 +231,10 @@ class Board:
 
            
 print("Constructing Gameboard as gb...")
-gb = Board(10, 10)
+gb = Board(20, 20)
 gb.drawBoard()
-gb.genElems([Water])
+gb.genElems([Water, Fire])
+gb.genObstacles(3)
 gb.drawBoard()
 
        
