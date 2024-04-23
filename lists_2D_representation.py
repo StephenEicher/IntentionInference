@@ -1,8 +1,4 @@
 import random
-import numpy as np
-from  opensimplex import OpenSimplex
-import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
 
 def boolWithProb(p):
     return random.random() < p
@@ -15,9 +11,8 @@ class GameObject:
     occupied = False
     symbol = None
 
-    def __init__(self, position, z):
+    def __init__(self, position):
         self.position = position
-        self.z = z
         self.occupied = self.symbol != '.'
 
 class Elements(GameObject):
@@ -25,7 +20,7 @@ class Elements(GameObject):
 
 class Terrain(GameObject):
     pass
-    
+
 class Obstacles(Terrain):
     pass
 
@@ -94,75 +89,27 @@ class Surface(Terrain):
     debugName = 'Surface'
     pass
 
-class HashTable:
-    def __init__(self, maxX, maxY):
-        self.maxX = maxX
-        self.maxY = maxY
-        self.area = maxX * maxY
-        self.table = [[] for _ in range(self.area)]
-    
-    def __setitem__(self, key, value):
-        h = self.getHash(key)
-        found = False
-        for index, element in enumerate(self.table[h]):
-            if len(element) == 2 and element[0] == key:
-                found = True
-                self.table[h][index] = (key, value)
-
-        if found == False:
-            self.table[h][index].append((key, value))
-
-    def __getitem__(self, key):
-        h = self.getHash(key)
-        for index in self.table[h]:
-            if index[0] == key:
-                return index[1]
-            
-    def __delitem__(self,key):
-        h = self.getHash(key)
-        for index in self.table[h]:
-            if index[0] == key:
-                del self.table[h][index]     
-        
-    def getHash(self, coord):
-        return hash(coord) % self.area
-
-class BoardDirector:
+class Board:
     """
-    Board Director class which interface with BoardMap to place GameObject seeds
+    Board class which stores the map representation.
+    genBoard() - Procedural generation of game board at initial state.
+    genBoardForAgent() - Create a copy of the game board for the agent.
     """
     emptySymbol = '.'
-    maxSymbolLen = 3
-    defaultMinPoint = (0,0)
+    maxSymbolLen = 3 
 
-    def __init__(self, maxY, maxX):
-        self.maxY = maxY
-        self.maxX = maxX
+    def __init__(self, rows, cols, stack = 4):
+        self.rows = rows
+        self.cols = cols
+        self.stack = stack
         self.allElemPositions = set()
         self.allSeedPositions = set()
-        
-    def initializeObjectTree(self):
-        ObjectTree(self.defaultMinPoint, self.maxPoint)
-        print(f'Intializing single node BoardMap with size {self.maxPoint[0]} x {self.maxPoint[1]}')
-
-    def genZMap(self):
-        simplex = OpenSimplex(seed = 0)
-        scale = 0.1
-        zMap = np.zeros((self.maxY, self.maxX))
-        for y in range(self.maxY):
-            for x in range(self.maxX):
-                noise = simplex.noise2(x * scale, y * scale)
-                zMap[y, x] = noise
-
-        zMap = (zMap - zMap.min())/(zMap.max() - zMap.min())
-        minHeight = 0
-        maxHeight = 10
-        scaledZMapFloat = zMap * (maxHeight - minHeight) + minHeight
-        scaledZMapInt = np.round(scaledZMapFloat).astype(int)
+        self.grid = [[[None for _ in range(self.stack)] for _ in range (self.cols)] for _ in range(self.rows)]
+        print(f'Created an empty Board instance with dimensions {self.rows} x {self.cols} x {self.stack}')
 
     def genBoard(self, elemTypes):
         self.genElems(elemTypes)
-        
+
     def clearBoard(self):
         for row in self.grid:
             for currentGameObject in row:
@@ -178,18 +125,15 @@ class BoardDirector:
         for varName, value in objectVars.items():
             print(f'{varName} = {value}')
 
-    def drawMatrix(self, matrix):
-        if matrix.genZMap:
-            colorMap = plt.cm.terrain
-            coloredZMap = colorMap(matrix)
-            for y in len(range(matrix)):
-                rowToPrint = ''
-                for x in len(matrix[y]):
-                        rowToPrint += '{: ^3}'.format(matrix[y][x])
-                print(rowToPrint)
-            plt.imshow(coloredZMap)
-            plt.colorbar()  
-            plt.show()    
+    def drawBoard(self):
+        for row in self.grid:
+            rowToPrint = ''
+            for entry in row:
+                if entry is not None:
+                    rowToPrint += '{: ^{}}'.format(entry.symbol, self.maxSymbolLen)
+                else:
+                    rowToPrint += '{: ^{}}'.format(self.emptySymbol, self.maxSymbolLen)
+            print(rowToPrint)
 
     def genElems(self, elemTypes):
         print('\n--- Starting genElems ---')
@@ -248,124 +192,18 @@ class BoardDirector:
     def spawnUnits(self):
         pass
 
-
-import random
-import numpy as np
-from  opensimplex import OpenSimplex
-import matplotlib.pyplot as plt
-from matplotlib.colors import Normalize
-
-class BoardDirector:
-    """
-    Board Director class which interface with BoardMap to place GameObject seeds
-    """
-    emptySymbol = '.'
-    maxSymbolLen = 3
-    defaultMinPoint = (0,0)
-
-    def __init__(self, maxY, maxX):
-        self.maxY = maxY
-        self.maxX = maxX
-        self.allElemPositions = set()
-        self.allSeedPositions = set()
-        
-    def initializeObjectTree(self):
-        ObjectTree(self.defaultMinPoint, self.maxPoint)
-        print(f'Intializing single node BoardMap with size {self.maxPoint[0]} x {self.maxPoint[1]}')
-
-    def genTerrainNoise(self, scales, amplis):
-        simplex = OpenSimplex(0)
-        noiseMap = np.zeros((self.maxY, self.maxX))
-
-        # Generate noise for the left triangular half of the grid (grid split across main diagonal)
-        for s, a in zip(scales, amplis):
-            for y in range(self.maxY):
-                for x in range(self.maxX):
-                    if y - x > 0:
-                        noise = simplex.noise2(x * s, y * s) * a
-                        noiseMap[y, x] += noise
-
-        # Calculate minimum noise value in the noiseMap
-        minNoise = noiseMap.min()
-        # Shift the entire noiseMap up by adding the absolute of the minimum value to exclude negative values
-        noiseMap += abs(minNoise)
-        print(f'After shifting, minZ = {noiseMap.min()}, maxZ = {noiseMap.max()}')
-
-        # Mirror the lower half of the left triangular half across the center of grid
-        for y in range(self.maxY):
-            for x in range(self.maxX):
-                if y > x and y + x > self.maxY - 1:  # Points within lower half of left triangular half
-                    newY = self.maxY - y - 1
-                    newX = self.maxX - x - 1
-                    noiseMap[newY, newX] = noiseMap[y, x]
-        
-        # Mirror the upper half of the left triangular half across center of grid
-        for y in range(self.maxY):
-            for x in range(self.maxX):
-                if y > x and y + x < self.maxY - 1: # Points within upper half of left triangular half
-                    newY = self.maxY - y - 1
-                    newX = self.maxX - x - 1
-                    noiseMap[newY, newX] = noiseMap[y, x]
-                    
-        # Normalize the mirrored map
-        noiseMapNormalized = (noiseMap - noiseMap.min()) / (noiseMap.max() - noiseMap.min())
-        print(f'minZ = {noiseMap.min()} maxZ = {noiseMap.max()}')
-        minZ = 0
-        maxZ = 10
-        scaledNoiseMapFloat = noiseMapNormalized * (maxZ - minZ)
-        scaledNoiseMapInt = np.round(scaledNoiseMapFloat).astype(int)
-        borderWidth = 3
-
-        for y in range(self.maxY):
-            for x in range(self.maxX):
-                # Calculate the distance from the diagonal and antidiagonal lines
-                distFromDiag = abs(y - x)
-                distFromAntidiag = abs((y + x) - (self.maxY - 1))
-                
-                # Check if the point is within the border width of the diagonal or antidiagonal lines
-                if (
-                    distFromDiag <= borderWidth or
-                    distFromAntidiag <= borderWidth
-                ):
-                    # Set the value to zero to create a border zone
-                    scaledNoiseMapInt[y, x] = 0
-
-        return scaledNoiseMapInt
-
-    def drawMatrix(self, matrix):
-            cMap = plt.cm.terrain
-            cMapMin = 0
-            cMapMax = 10
-            norm = Normalize(vmin = cMapMin, vmax = cMapMax)
-            coloredZMap = cMap(matrix)
-            for y in range(len(matrix)):
-                rowToPrint = ''
-                for x in range(len(matrix[y])):
-                        rowToPrint += '{: ^3}'.format(matrix[y][x])
-                print(rowToPrint)
-            plt.imshow(coloredZMap, cmap = cMap, norm = norm) 
-            plt.show()
-
-    def genTerrain(self, terrainType, maskSize):
-        
-        # Generating knolls and hills environment
-        baseTerrain = self.genTerrainNoise([0.1],[0.07])
+print("Constructing Gameboard as gb...")
+gb = Board(20, 20)
+gb.genElems([Water, Fire, Air, Earth])
+gb.genObstacles(6)
+gb.drawBoard()
 
 
-        cliffThreshold = 8
-        plateauThresholds = 4
-        dropOffThresholds = (0,8)
 
-        baseTerrain = self.genTerrainNoise([0.1], [0.05])
-        # Apply masking
-        baseTerrain
 
-a = BoardDirector(51,51)
-b = a.genTerrainNoise([0.1], [0.1])
-print(a)
-a.drawMatrix(b)
-        
-class ObjectTree:
+
+
+class BoardRectangle:
 
     defaultStackHeight = 4
     defaultStackLen = 1
@@ -380,11 +218,6 @@ class ObjectTree:
         self.isLeaf = self.defaultStackLen == (self.maxPoint[0] - self.minPoint[0]) and self.defaultStackWid == (self.maxPoint[1] - self.minPoint[1])
 
     def insert(self, gameObject):
-        """
-        Will fill stacks from bottom up with GameObjects regardless of identity. 
-        Rules of stacking order per GameObject identiy defined by BoardDirector.
-        """
-
         # Check if gameObject position is within limits of current node
         if not self.isWithinBounds(gameObject.position):
             return False
@@ -404,10 +237,10 @@ class ObjectTree:
         midY = (self.minPoint[1] + self.maxPoint[1]) / 2
 
         self.children = [
-        BoardMap([self.minPoint[0], self.minPoint[1]], [midX, midY]),
-        BoardMap([midX, self.minPoint[1]], [self.maxPoint[0], midY]),
-        BoardMap([self.minPoint[0], midY], [midX, self.maxPoint[1]]),
-        BoardMap([midX, midY], [self.maxPoint[0], self.maxPoint[1]]),
+        BoardRectangle([self.minPoint[0], self.minPoint[1]], [midX, midY]),
+        BoardRectangle([midX, self.minPoint[1]], [self.maxPoint[0], midY]),
+        BoardRectangle([self.minPoint[0], midY], [midX, self.maxPoint[1]]),
+        BoardRectangle([midX, midY], [self.maxPoint[0], self.maxPoint[1]]),
         ]
 
         # Relocate stack to iteration 0 of self.children
