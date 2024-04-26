@@ -3,6 +3,7 @@ import numpy as np
 from  opensimplex import OpenSimplex
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
+import abc
 
 def boolWithProb(p):
     return random.random() < p
@@ -20,10 +21,10 @@ class GameManager:
         self.allUnits = self.Board.initializeUnits()
         self.team0 = []
         self.team1 = []
-        self.team0.extend(self.allUnits[0], self.allUnits[1])
-        self.team1.extend(self.allUnits[2], self.allUnits[3])
-        self.p1 = Agent(0, self.team0)
-        self.p2 = Agent(1, self.team1)
+        self.team0.extend([self.allUnits[0], self.allUnits[1]])
+        self.team1.extend([self.allUnits[2], self.allUnits[3]])
+        self.p1 = humanAgent(0, self.team0)
+        self.p2 = humanAgent(1, self.team1)
         
     def gameLoop(self):
 
@@ -35,7 +36,7 @@ class GameManager:
             if self.agentTurnIndex == 0:
                 print("-------- Player 1's turn --------")
                 selectedUnit = self.p1.selectUnit()
-                while selectedUnit.currentHP > 0 or selectedUnit.currentMovement > 0 or selectedUnit.currentActionPoints > 0:
+                while selectedUnit.unitValidForTurn():
                     agentInput = self.getInput(selectedUnit)
                     self.createEvents(agentInput, selectedUnit)
                     self.dispatcher.dispatch(pendingEvents)
@@ -50,6 +51,7 @@ class GameManager:
     
 
     def getInput(self, unit):
+        # This kind of code should really live on the humanPlayer agent- only a human player needs to interface with the terminal for the input.
         self.validDirections = self.Board.getValidDirections(unit)
         self.validActions = self.Board.getValidActions(unit)[0]
         invalidActions = self.Board.getValidActions(unit)[1]
@@ -65,14 +67,14 @@ class GameManager:
             if agentInput in self.validDirections:
                 return ["move", input]
 
-            if agentInput in self.validActions.items():
-                allActions = unit.actions()
-                for _, actionDict in allActions.items():
-                    if agentInput in actionDict:
-                        for eventDict in actionDict["events"]:
-                            if "targetunit" in eventDict:
+            # if agentInput in self.validActions.items():
+            #     allActions = unit.actions()
 
-                return ["action", input]
+            #     for _, actionDict in allActions.items():
+            #         if agentInput in actionDict:
+            #             for eventDict in actionDict["events"]:
+            #                 if "targetunit" in eventDict:     
+            #     return ["action", input]
 
             if agentInput == "swap":
                 return ["None"]
@@ -99,11 +101,16 @@ class GameManager:
 
             return pendingEvents
  
-class Agent:
+class Agent(metaclass=abc.ABCMeta):
     def __init__(self, agentIndex, team):       
         self.agentIndex = agentIndex
         self.team = team
+    @abc.abstractmethod
+    def selectUnit(self):
+        pass
 
+
+class humanAgent(Agent):
     def selectUnit(self):
         waitingUnits = []
         for unit in self.team:
@@ -115,24 +122,28 @@ class Agent:
         return selectedUnit
 
 class Unit:
+    position = None
+    currentHp = None
+    currentMovement = None
+    currentActionPoints = None
+    currentJump = None
     def __init__(self, agentIndex, unitID):
         self.agentIndex = agentIndex
         self.unitID = unitID
 
-        self.position
+        
 
         self.Alive = True
         self.Avail = True # Available to select from team of units to move/act with
 
         self.startHp = 100
-        self.currentHp
         self.movement = 5
-        self.currentMovement
+        
         self.jump = 2
-        self.currentJump
+        
 
         self.actionPoints = 2
-        self.currentActionPoints
+       
 
     def actions(self):
         
@@ -161,7 +172,9 @@ class Unit:
             ]
 
         return uniqueActions # Return different combinations of events that GameManager can access and send on behalf of the unit in play
-
+    def unitValidForTurn(self):
+        #Put this into an accessor function because you may modify it with special "statuses" like "stunned"
+        return self.currentHP > 0 or self.currentMovement > 0 or self.currentActionPoints > 0
 class eMove:
     def __init__(self, unit, destination):
         self.unit = unit
@@ -309,7 +322,8 @@ class Noise:
                     noiseMap[newY, newX] = noiseMap[y, x]
                     
         # Normalize the mirrored map
-        noiseMapNormalized = (noiseMap - noiseMap.min()) / (noiseMap.max())
+        noiseMapNormalized = (noiseMap - noiseMap.min()) #Make smallest value 0
+        noiseMapNormalized = noiseMapNormalized/ noiseMapNormalized.max() #Scale all values from 0 to 1
         print(f"minZ = {noiseMap.min()} maxZ = {noiseMap.max()}")
         minZ = 0
         maxZ = 10
@@ -343,7 +357,7 @@ class zMap(Noise):
 
 class UnitsMap:
     def __init__(self, maxY, maxX):
-        np.zeroes((maxY, maxX))
+        np.zeros((maxY, maxX))
 
     def getDist(self):
         pass
@@ -461,10 +475,12 @@ class BoardDirector:
 
         return validActions, invalidActions
 
-    def rayCast(self, origin, target, ObjectTree, unitsMap, zMap):
-        line = bresenhamLine(origin, target)
+    # def bresenham_line(origin, target):
+    #     return 0
+    # def rayCast(self, origin, target, ObjectTree, unitsMap, zMap):
+    #     line = bresenham_line(origin, target)
 
-    def bresenham_line()
+ 
 
     def drawMatrix(self, matrix):
             cMap = plt.cm.terrain
@@ -625,3 +641,6 @@ class Seed(Obstacles):
 class Surface(Terrain):
     debugName = 'Surface'
     pass
+
+
+a = GameManager()
