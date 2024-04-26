@@ -53,8 +53,8 @@ class GameManager:
     def getInput(self, unit):
         # This kind of code should really live on the humanPlayer agent- only a human player needs to interface with the terminal for the input.
         self.validDirections = self.Board.getValidDirections(unit)
-        self.validActions = self.Board.getValidActions(unit)[0]
-        invalidActions = self.Board.getValidActions(unit)[1]
+        self.validActions = self.Board.getValidAbilities(unit)[0]
+        invalidActions = self.Board.getValidAbilities(unit)[1]
 
         while True:
             print(f"--- {unit.unitID} ---")
@@ -127,6 +127,7 @@ class Unit:
     currentMovement = None
     currentActionPoints = None
     currentJump = None
+    currentActionPoints = None
     def __init__(self, agentIndex, unitID):
         self.agentIndex = agentIndex
         self.unitID = unitID
@@ -143,28 +144,31 @@ class Unit:
         
 
         self.actionPoints = 2
-       
+        
 
-    def actions(self):
+    def abilities(self):
         
         uniqueActions = [
             
             {"name": "Unarmed Strike",
-           "cost": "1 action point",
+           "cost": 1,
+           "range": 1
             "events": [
                 {"type": "changeHP", "target": "targetunit", "value": -1},
                 {"type": "changeActionPoints", "target": "targetunit", "value": -1},
             ]},
 
             {"name": "Shove",
-           "cost": "1 action point",
+           "cost": 1,
+           "range": 1
             "events": [
                 {"type": "move", "target": "targetunit", "distance": 1},
                 {"type": "changeActionPoints", "target": "targetunit", "value": -1},
             ]},
             
             {"name": "Hide",
-           "cost": "1 action point",
+           "cost": 1,
+           "range": 1
             "events": [
                 {"type": "hide", "target": "self"}
             ]}
@@ -195,7 +199,7 @@ class EventDispatcher:
             for listener in self.listeners[eventType]:
                 listener(event)
 
-class ObjectTree:
+class GameObjectTree:
 
     defaultStackHeight = 4
     defaultStackLen = 1
@@ -212,7 +216,7 @@ class ObjectTree:
     def insert(self, gameObject):
         """
         Will fill stacks from bottom up with GameObjects regardless of identity. 
-        Rules of stacking order per GameObject identiy defined by BoardDirector.
+        Rules of stacking order per GameObject identiy to be defined by BoardDirector.
         """
 
         # Check if gameObject position is within limits of current node
@@ -234,10 +238,10 @@ class ObjectTree:
         midY = (self.minPoint[1] + self.maxPoint[1]) / 2
 
         self.children = [
-        ObjectTree([self.minPoint[0], self.minPoint[1]], [midX, midY]),
-        ObjectTree([midX, self.minPoint[1]], [self.maxPoint[0], midY]),
-        ObjectTree([self.minPoint[0], midY], [midX, self.maxPoint[1]]),
-        ObjectTree([midX, midY], [self.maxPoint[0], self.maxPoint[1]]),
+        gameObjectTree([self.minPoint[0], self.minPoint[1]], [midX, midY]),
+        gameObjectTree([midX, self.minPoint[1]], [self.maxPoint[0], midY]),
+        gameObjectTree([self.minPoint[0], midY], [midX, self.maxPoint[1]]),
+        gameObjectTree([midX, midY], [self.maxPoint[0], self.maxPoint[1]]),
         ]
 
         # Relocate stack to iteration 0 of self.children
@@ -347,7 +351,7 @@ class Noise:
 
         return scaledNoiseMapInt
 
-class zMap(Noise):
+class ZMap(Noise):
     def __init__(self):
         super().__init__()
         self.genNoise(self, 0.1, 1)
@@ -377,7 +381,7 @@ class BoardDirector:
         self.allSeedPositions = set()
 
     def initializeObjectTree(self):
-        self.GOtree = ObjectTree(self.defaultMinPoint, self.maxPoint)
+        self.gameObjectTree = gameObjectTree(self.defaultMinPoint, self.maxPoint)
 
     def initializeUnits(self):
         self.unitsMap = UnitsMap(self.maxY, self.maxX)
@@ -398,7 +402,7 @@ class BoardDirector:
     def getValidDirections(self, unit):
         unitY, unitX = unit.position
         validDirections = {}
-        adjGOStacks = {}
+        adjGameObjectStacks = {}
 
         adjPositions = {
             "N": (unitY - 1, unitX - 1),
@@ -412,15 +416,17 @@ class BoardDirector:
         }
 
         # Populate adjGOStacks with direction as key and the GOStack found at that position as value
-        minPoint = (unitX - 1, unitY - 1)
-        maxPoint = (unitX + 1, unitY + 1)
-        foundGOStacks = self.GOtree.querySpace(minPoint, maxPoint)
+        # Convert numpy Y value to quadtree Y value
+        gameObjectTreeY = self.unitsMap.shape[0] - 1 - unitY
+        minPoint = (unitX - 1, gameObjectTreeY - 1)
+        maxPoint = (unitX + 1, gameObjectTreeY + 1)
+        foundGOStacks = self.gameObjectTree.querySpace(minPoint, maxPoint)
         
         # Organize found GO stacks by direction
         for stack in foundGOStacks:
             for direction, position in adjPositions:
                 if position == stack[0].position:
-                    adjGOStacks[direction] = stack
+                    adjGameObjectStacks[direction] = stack
 
         for direction, (adjY, adjX) in adjPositions.items():
             # Check if the adjacent position is within bounds of the map
@@ -437,50 +443,146 @@ class BoardDirector:
                 takeFallDamage = False
                 surfaceModifier = []
 
-                for GO in adjGOStacks.get(direction, []):
-                    if isinstance(GO, Obstacles):
-                        obstZ = GO.height
-                    # Evaluate elevation differences with zMap z value and obstacle height
-                        if (adjZ + obstZ - unitZ) > unit.jump:
-                            continue
+                totalGameObjectsZ = 0
+                for gameObject in adjGameObjectStacks.get(direction, []):
+                    totalGameObjectsZ += gameObject.height
+                        
+                # Evaluate elevation differences with zMap z value and obstacle height
+                if (adjZ + totalGameObjectsZ - unitZ) > unit.jump:
+                    continue
 
-                    # Check for fall damage
-                    if (adjZ + obstZ - unitZ) < -abs(unit.jump):
-                        takeFallDamage = True
+                # Check for fall damage
+                if (adjZ + totalGameObjectsZ - unitZ) < -abs(unit.jump):
+                    takeFallDamage = True
 
                 # Check for surface modifications
-                if isinstance(GO, Surface):
-                    surfaceModifier.append(GO.type)
+                if isinstance(gameObject, Surface):
+                    surfaceModifier.append(gameObject.type)
 
             # If the position is valid, add it to the validDirections dictionary
             validDirections[direction] = ((adjY, adjX), takeFallDamage, surfaceModifier)
 
         return validDirections
     
-    def getValidActions(self, unit):
-        currentActionsPoints = unit.currentActionPoints
-        unitActions = unit.actions()
+    def getValidAbilities(self, unit):
+        unitAbilities = unit.abilities()
         # Access dictionary of class actions and their action points cost
         # Return all, but denote which are actually allowed by current action points
         # Highest level keys are 'name,''cost,' and 'events' which consists of type of events (dictionaries) involved in constructing the ability
 
-        validActions = {}
+        affordableAbilities = {}
         invalidActions = {}
-        for ability in unitActions:
-            for cost in unitActions.get("cost", ""):
+        for ability in unitAbilities:
+            for cost in unitAbilities.get("cost"):
                 if cost <= unit.currentActionPoints:
-                    validActions[ability["name"]] = cost
+                    affordableAbilities.append(ability)
                 if cost <= unit.currentActionPoints:
                     invalidActions[ability["name"]] = cost
 
+        for ability in affordableAbilities:
+            if affordableAbilities.get("range") > 1:
+                
+
+
         return validActions, invalidActions
 
-    # def bresenham_line(origin, target):
-    #     return 0
-    # def rayCast(self, origin, target, ObjectTree, unitsMap, zMap):
-    #     line = bresenham_line(origin, target)
+    def rayCast(self, origin, target, castingUnit, targetUnit, gameObjectTree, unitsMap, zMap):
+        
+        line = self.bresenhamLine(origin, target)
 
- 
+        # Define query box size which captures line (quadtree order of axes is X, Y not Y, X)
+        queryBoxMin = ()
+        queryBoxMax = ()
+        queryBoxStartX, initStartY = line[0]
+        queryBoxEndX, initEndY = line[-1]
+
+        # Convert numpy Y value to quadtree Y value
+        queryBoxStartY = unitsMap.shape[0] - 1 - initStartY
+        queryBoxEndY = unitsMap.shape[0] - 1 - initEndY
+
+        len = queryBoxEndX - queryBoxStartX
+        wid = queryBoxEndY - queryBoxStartY
+
+        if len < 0 and wid < 0:
+            queryBoxMin = (line[-1])
+            queryBoxMax = (line[0])
+
+        if len < 0:
+            queryBoxMin = (queryBoxEndX, queryBoxStartY)
+            queryBoxMax = (queryBoxStartX, queryBoxEndY)
+
+        if wid < 0:
+            queryBoxMin = (queryBoxStartX, queryBoxEndY)
+            queryBoxMax = (queryBoxEndX, queryBoxStartY)
+
+        # Return ALL gameObjectStacks found in that box 
+        allGameObjectStacks = gameObjectTree.querySpace(queryBoxMin, queryBoxMax)
+
+        # Include gameObjectStacks which fall on a point in the line
+        lineStacks = {}
+        for stack in allGameObjectStacks:
+            if stack[0].position in line:
+                lineStacks[stack[0].position] = stack
+
+        # Get overall height of GameObjects on each point
+        newLineStacks = {}
+        totalGameObjectsZ = 0
+        for position, stack in lineStacks.items():
+            for gameObject in stack:
+                totalGameObjectsZ += gameObject.height
+            newLineStacks[position] = totalGameObjectsZ
+
+        for point in line:
+            y, x =  point
+
+            # Check if other Units in line
+            if unitsMap[y, x] is not None:
+                return False
+            
+            # Combine totalGameObjectsZ with zMap values
+            z = zMap[y, x]
+            effectiveZ = z + newLineStacks[y, x]
+            if targetUnit.height > castingUnit.height:
+                targetUnit.height - castingUnit.height < effectiveZ
+                return False
+            if targetUnit.height < castingUnit.height:    
+                castingUnit.height - targetUnit.height < effectiveZ:
+                return False
+        
+        # If no units found, or view obstructed by terrain or obstacles with clearance of target in mind, return True for clear LOS
+        return True
+
+    def bresenhamLine(start, end):
+        # Bresenham's line algorithm to return a list of points from start to end
+        points = []
+        x1, y1 = start
+        x2, y2 = end
+        dx = abs(x2 - x1)
+        dy = abs(y2 - y1)
+        x, y = x1, y1
+        sx = -1 if x1 > x2 else 1
+        sy = -1 if y1 > y2 else 1
+        if dx > dy:
+            err = dx / 2.0
+            while x != x2:
+                points.append((y, x))
+                err -= dy
+                if err < 0:
+                    y += sy
+                    err += dx
+                x += sx
+        else:
+            err = dy / 2.0
+            while y != y2:
+                points.append((y, x))
+                err -= dx
+                if err < 0:
+                    x += sx
+                    err += dy
+                y += sy
+        points.append((y2, x2))
+
+        return points
 
     def drawMatrix(self, matrix):
             cMap = plt.cm.terrain
