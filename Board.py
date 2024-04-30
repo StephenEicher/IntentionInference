@@ -13,18 +13,29 @@ class UnitsMap:
 
     def UMhandleEvent(self, event):
         if isinstance(event, eMove):
-
             adjUnits = {}
             adjUnits[(event.unit.position[0], event.unit.position[1])] = event.unit
             for direction, (adjY, adjX) in self.board.validAdjPositions.items():
                 # Check if the adjacent position is within bounds of the map
                 if 0 <= adjY < len(self.map) and 0 <= adjX < len(self.map):
                     adjUnit = self.map[adjY][adjX]
-                                    
+
                     if isinstance(adjUnit, u.Unit):
                         adjUnits[(direction, (adjY, adjX))] = adjUnit
-
+                        
             return adjUnits
+
+        if isinstance(event, eMeleeRangeTargets):
+            targets = []
+            for direction, (adjY, adjX) in self.board.validAdjPositions.items():
+                # Check if the adjacent position is within bounds of the map
+                if 0 <= adjY < len(self.map) and 0 <= adjX < len(self.map):
+                    adjUnit = self.map[adjY][adjX]
+
+                    if isinstance(adjUnit, u.Unit):
+                        targets.append(adjUnit)
+
+            return targets
 
 class Noise:
     def __init__(self, maxY, maxX):
@@ -141,6 +152,10 @@ class eMove:
         self.minPoint = minPoint
         self.maxPoint = maxPoint
 
+class eMeleeRangeTargets:
+    def __init__(self, unit):
+        self.unit = unit
+
 class BoardDirector:
     """
     Board Director class which interface with ObjectTree to place GameObject seeds
@@ -158,8 +173,6 @@ class BoardDirector:
         self.createDummyGameObjects()
         self.initializeObjectTree()
         self.initializeZMap()
-        
-    
 
     def createDummyGameObjects(self):
         self.dummya = go.GameObject('a', (0,1), 0)
@@ -178,6 +191,7 @@ class BoardDirector:
     def initializeUnits(self):
         self.instUM = UnitsMap(self.maxY, self.maxX, self)
         self.dispatcher.addListener(eMove, self.instUM.UMhandleEvent)
+        self.dispatcher.addListener(eMeleeRangeTargets, self.instUM.UMhandleEvent)
         self.unitsMap = self.instUM.map
 
         p1a = u.Unit(0, 1, (0,0))
@@ -201,14 +215,12 @@ class BoardDirector:
         self.instZM = ZMap(self.maxY, self.maxX, self)
         self.dispatcher.addListener(eMove, self.instZM.ZMhandleEvent)
         self.zMap = self.instZM.map
-     
-
 
     def getValidDirections(self, unit):
         unitY, unitX = unit.position
         validDirections = {}
 
-        self.adjPositions = {
+        self.adjPositions = { 
             "NW": (unitY - 1, unitX - 1),
             "N": (unitY - 1, unitX),
             "NE": (unitY - 1, unitX + 1),
@@ -275,15 +287,15 @@ class BoardDirector:
                 if unitsMapR[(direction, position)] != None:
                     continue
 
-            # Calculate elevation difference and check if it's too great
+            # Calculate elevation difference and check if it's too great, parse out gameObjectTreeR
             if gameObjectTreeR != []:
                 for dict in gameObjectTreeR:
                     if position == dict.get("position"):
                         stackZ = dict.get("stackZ")
                         surfaces = dict.get("surfaces")
-                totalZ = zMapR[(direction, position)] + stackZ
-                if surfaces != None:
-                    addSurfaces.append(surfaces)
+                        totalZ = zMapR[(direction, position)] + stackZ
+                        if len(surfaces) != 0:
+                            addSurfaces.append(surfaces)
 
             totalZ = zMapR[direction, position]
             unitZ = zMapR[unit.position]
@@ -307,19 +319,57 @@ class BoardDirector:
         # Highest level keys are 'name,''cost,' and 'events' which consists of type of events (dictionaries) involved in constructing the ability
 
         affordableAbilities = []
+        validAbilities = []
         invalidAbilities = {}
         for ability in unitAbilities:
             if ability.get("cost") <= unit.currentActionPoints:
                 affordableAbilities.append(ability)
-            if ability.get("cost") <= unit.currentActionPoints:
+            if ability.get("cost") > unit.currentActionPoints:
                 invalidAbilities[ability["name"]] = ability.get("cost")
 
-        # for ability in affordableAbilities:
-        #     if affordableAbilities.get("range") > 1:
+        for ability in affordableAbilities:
+            for event in ability.get("events"):
                 
+                if "target" in event:
+                    if event.get("target") == "targetunit":
+                        range = ability.get("range")
+                        
+                        if range == 1:
+                            event = eMeleeRangeTargets(unit)
+                            responseTuple = (self.dispatcher.dispatch(event))
+                            self.meleeRangeTargets = responseTuple[0][1]
 
+                            if len(self.meleeRangeTargets) > 0: 
+                                validAbilities.append(ability)
+                            if len(self.meleeRangeTargets) == 0:
+                                invalidAbilities.append(ability)
+        
+        for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
+            if ability not in validAbilities:
+                validAbilities.append(ability)
 
-        return affordableAbilities, invalidAbilities
+        return (validAbilities, invalidAbilities)
+    
+    def getTarget(self, ability):
+        if ability.get("range") == 1:
+            print("\nAvailable targets:") 
+            unitIDs = [unit.unitID for unit in self.meleeRangeTargets]
+            targetUnitID = int(input(f"To select target, type its unitID: {unitIDs}\n"))
+            for unit in self.meleeRangeTargets:
+                if targetUnitID == unit.unitID:
+                    return unit
+
+    def cast(self, entity, dict):
+        target = dict.get("target")
+        ability = dict.get("ability")
+
+        events = ability.get("events")
+        for e in events:
+            for _, v in e.items():
+                if v == "changeHP":
+                    target.currentHP += e["value"]        
+                if v == "changeActionPoints":
+                    entity.currentActionPoints += e["value"]
 
     def rayCast(self, origin, target, castingUnit, targetUnit, gameObjectTree, unitsMap, zMap):
         
@@ -425,6 +475,11 @@ class BoardDirector:
             self.unitsMap[destination[1][1][0]][destination[1][1][1]] = self.unitsMap[entity.position[0]][entity.position[1]] # (Y, X) format
             self.unitsMap[entity.position[0]][entity.position[1]] = None
             entity.position = destination[1][1][0], destination[1][1][1]
+            entity.currentMovement -= 1
+
+            if entity.currentMovement == 0:
+                entity.canMove = False
+
             self.drawMap(self.unitsMap)
 
             # Apply fall damage
@@ -614,6 +669,25 @@ class GameObjectTree:
                         stackDict["surfaces"] = surfaces
 
                         queriedStacks.append(stackDict)
+
+                if event.unit.position == stack[0].position:
+                    stackDict = {}
+                    stackDict["direction"] = "UNIT"                        
+                    stackDict["position"] = event.unit.position
+                    stackDict["stack"] = stack
+                    
+                    stackZ = 0
+                    surfaces = []
+                    for gameObject in stack:
+                        if isinstance(gameObject, go.Surface):
+                            surfaces.append(gameObject)
+                        else:
+                            stackZ += gameObject.z
+
+                    stackDict["stackZ"] = stackZ
+                    stackDict["surfaces"] = surfaces
+
+                    queriedStacks.append(stackDict)
 
             return queriedStacks
 

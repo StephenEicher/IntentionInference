@@ -39,11 +39,17 @@ class GameManager:
             currentAgent = self.allAgents[self.agentTurnIndex]
 
             print(f"-------- {currentAgent.name}'s turn --------")
+            
             selectedUnit = currentAgent.selectUnit()
             while selectedUnit.unitValidForTurn():
                 moveDict = currentAgent.selectMove(selectedUnit, self.Board)
                 if moveDict.get("type") == "move":
                     self.Board.move(selectedUnit, moveDict)
+                if moveDict.get("type") == "castAbility":
+                    self.Board.cast(selectedUnit, moveDict)
+                if moveDict.get("type") == "swap":
+                    break
+
                 # else:
                 #     pendingEvents = self.createEvents(moveDict, selectedUnit)
                 #     self.dispatcher.dispatch(pendingEvents)
@@ -103,41 +109,64 @@ class HumanAgent(Agent):
                 return unit
 
     def selectMove(self, unit, board):
-        validDirections = board.getValidDirections(unit)
-        # validAbilities = board.getValidAbilities(unit)[0]
-        # invalidActions = board.getValidAbilities(unit)[1]
+        if unit.canMove:
+            validDirections = board.getValidDirections(unit)
+        if unit.canAct:
+            allAbilities = board.getValidAbilities(unit)
+            validAbilities = allAbilities[0] # Returns list of dictionaries
+            invalidAbilities = allAbilities[1]
 
         while True:
-            print(f"\nAvailable directions:\n")
-            for direction, value in validDirections.items():
-                fallDamage = value[0]
-                surfacesList = value[1]
-                allNames = []
-                for surface in surfacesList:
-                    if surface != []:
-                        surfaceName = surface.debugName
-                        allNames.append(surfaceName)
-
-                print("".join(f"{direction}: fall damage = {fallDamage}, surfaces = {allNames}\n"))
-
-            # print("Affordable actions:\n")
-            # for ability in validAbilities:
-            #     name = ability.get("name")
-            #     cost = ability.get("cost")
-            #     print("".join([f"{name}: {cost}\n"]))
-            # print("---")
-            # print(f"Unavailable actions:\n".join([f"{name}: {cost}" for name, cost in invalidActions.items()]))
-            agentInput = input("\n\nTo move in a available direction, type the direction. To swap, type 'swap'\n")
-
-            validDirectionNames = [direction[0] for direction in validDirections.keys()]
-
-            if agentInput in validDirectionNames:
-                returnDict = {"type" : "move"}
+            print(f"Current HP: {unit.currentHP}")
+            if unit.canMove:
+                print(f"\nMovement = {unit.currentMovement}. Available directions:\n")
                 for direction, value in validDirections.items():
-                    if agentInput == direction[0]:
-                        returnDict[direction] = value
+                    fallDamage = value[0]
+                    surfacesList = value[1]
+                    allNames = []
+                    for surface in surfacesList:
+                        if surface != []:
+                            surfaceName = surface.debugName
+                            allNames.append(surfaceName)
 
-                return returnDict
+                    print("".join(f"{direction}: fall damage = {fallDamage}, surfaces = {allNames}\n"))
+
+                validDirectionNames = [direction[0] for direction in validDirections.keys()]
+
+            if not unit.canMove:
+                print("\nOut of movement!\n")
+                returnDict = {"type" : "swap"}
+
+            if unit.canAct:
+                print(f"\nAction Points = {unit.currentActionPoints}. Affordable abilities:\n")
+                for ability in validAbilities:
+                    name = ability.get("name")
+                    cost = ability.get("cost")
+                    print("".join([f"{name}: {cost}\n"]))
+                print("--------------------------")
+                print("Unavailable abilities:\n")
+                print("".join([f"{name}: {cost}" for name, cost in invalidAbilities.items()]))
+            
+            if unit.canMove and unit.canAct:
+                agentInput = input("\nTo move in a available direction, type the direction. To cast ability, type the ability. To swap, type 'swap'\n")
+
+                if agentInput == "swap":
+                    returnDict = {"type" : "swap"}
+                    return returnDict
+
+                if agentInput in validDirectionNames:
+                    returnDict = {"type" : "move"}
+                    for direction, value in validDirections.items():
+                        if agentInput == direction[0]:
+                            returnDict[direction] = value
+                for ability in validAbilities:
+                    if agentInput in ability.get("name"):
+                        returnDict = {"type" : "castAbility"}
+                        target = board.getTarget(ability)
+                        returnDict["target"] = target
+                        returnDict["ability"] = ability
+
+            return returnDict
 
             # if agentInput in self.validActions.items():
             #     allActions = unit.actions()
