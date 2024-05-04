@@ -1,3 +1,4 @@
+import pygame
 import random
 import numpy as np
 from  opensimplex import OpenSimplex
@@ -12,47 +13,51 @@ import GameObjects as go
 class GameManager:
     def __init__(self):
         self.agentTurnIndex = 0
-        self.allAgents = []
-        self.gameState = 0 # gameState increases per completion of each agent's turn
         self.gameOver = False
+        pygame.init()
         self.start()
 
     def start(self):
-        self.Board = b.BoardDirector(50, 50)
-        self.allUnits = self.Board.initializeUnits()
-        self.team0 = []
-        self.team1 = []
-        self.team0.extend([self.allUnits[0], self.allUnits[1]])
-        self.team1.extend([self.allUnits[2], self.allUnits[3]])
-        self.p1 = HumanAgent('Ally', 0, self.team0)
-        self.p2 = HumanAgent('Bob', 1, self.team1)
+        self.Board = b.BoardDirector(25, 25)
+        allUnits = self.Board.initializeUnits()
+        team0 = []
+        team1 = []
+        team0.extend([allUnits[0]]) #, self.allUnits[1]
+        # self.team1.extend([self.allUnits[2], self.allUnits[3]])
+        self.p1 = HumanAgent('Ally', 0, team0)
+        self.p2 = HumanAgent('Bob', 1, team1)
+        self.allAgents = []
         self.allAgents.extend([self.p1, self.p2])
-        self.gameLoop()
+        # self.gameLoop()
         
     def gameLoop(self):
+        clock = pygame.time.Clock()
 
-        if len(self.p1.team) == 0 or len(self.p2.team) == 0:
+        if len(self.p1.team) == 0 and len(self.p2.team) == 0:
             self.gameOver = True
 
         while self.gameOver == False:
-    
-            currentAgent = self.allAgents[self.agentTurnIndex]
 
+            clock.tick(60)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.gameOver = True
+
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.gameOver = True
+
+            currentAgent = self.allAgents[self.agentTurnIndex]
             print(f"-------- {currentAgent.name}'s turn --------")
             
             selectedUnit = currentAgent.selectUnit()
             while selectedUnit.unitValidForTurn():
                 moveDict = currentAgent.selectMove(selectedUnit, self.Board)
-                if moveDict.get("type") == "move":
-                    self.Board.move(selectedUnit, moveDict)
-                if moveDict.get("type") == "castAbility":
-                    self.Board.cast(selectedUnit, moveDict)
                 if moveDict.get("type") == "swap":
                     break
-
-                # else:
-                #     pendingEvents = self.createEvents(moveDict, selectedUnit)
-                #     self.dispatcher.dispatch(pendingEvents)
+                self.Board.updateBoard(selectedUnit, moveDict)
+                self.Board.updateScreen()
 
             # self.gameState += 0.5
 
@@ -61,24 +66,6 @@ class GameManager:
 
             # if self.agentTurnIndex == 1:
 
-    # def createEvents(self, agentInput, unit):
-    #     if "move" in agentInput:
-    #         direction = agentInput[1]
-    #         destination = self.validDirections[direction]
-    #         moveEvent = eMove(unit, destination)
-    #         return moveEvent
-
-        # if "action" in agentInput:
-        #     actionName = agentInput[1]
-        #     subevents = []
-        #     allActions = unit.actions()
-        #     for _, actionDict in allActions.items():
-        #         if actionName in actionDict:
-        #             subevents.extend(actionDict["events"])
-
-        # if "swap" in agentInput:
-        #     # Do not create event, call loo
- 
 class Agent(metaclass=abc.ABCMeta):
     def __init__(self, name, agentIndex, team):       
         self.name = name
@@ -92,29 +79,27 @@ class HumanAgent(Agent):
     def selectUnit(self):
         waitingUnits = []
         for unit in self.team:
-            if unit.Alive == True and unit.Avail == True:
+            if unit.Alive and unit.Avail:
                 waitingUnits.append(unit)
 
-        waitingUnitsNames = []
+        waitingUnitsIDs = []
         for unit in waitingUnits:
-            waitingUnitsNames.append(unit.unitID)
+            waitingUnitsIDs.append(unit.unitID)
 
-        print((f"\nSelect from avail Units: {waitingUnitsNames}\n"))
+        print((f"\nSelect from avail Units: {waitingUnitsIDs}\n"))
         time.sleep(0.1)
         selectedUnitStr = input()
         print(selectedUnitStr)
-        
+
         for unit in waitingUnits:
             if unit.unitID == int(selectedUnitStr):
                 return unit
 
     def selectMove(self, unit, board):
-        if unit.canMove:
-            validDirections = board.getValidDirections(unit)
-        if unit.canAct:
-            allAbilities = board.getValidAbilities(unit)
-            validAbilities = allAbilities[0] # Returns list of dictionaries
-            invalidAbilities = allAbilities[1]
+        validDirections = board.getValidDirections(unit)
+        allAbilities = board.getValidAbilities(unit)
+        validAbilities = allAbilities[0] # Returns list of dictionaries
+        invalidAbilities = allAbilities[1]
 
         while True:
             print(f"Current HP: {unit.currentHP}")
@@ -135,36 +120,37 @@ class HumanAgent(Agent):
 
             if not unit.canMove:
                 print("\nOut of movement!\n")
-                returnDict = {"type" : "swap"}
 
             if unit.canAct:
-                print(f"\nAction Points = {unit.currentActionPoints}. Affordable abilities:\n")
+                print(f"\nAction Points = {unit.currentActionPoints}. Valid abilities:\n")
                 for ability in validAbilities:
                     name = ability.get("name")
                     cost = ability.get("cost")
                     print("".join([f"{name}: {cost}\n"]))
                 print("--------------------------")
                 print("Unavailable abilities:\n")
-                print("".join([f"{name}: {cost}" for name, cost in invalidAbilities.items()]))
+                print("\n".join([f"{name}: {cost}" for name, cost in invalidAbilities.items()]))
             
-            if unit.canMove and unit.canAct:
-                agentInput = input("\nTo move in a available direction, type the direction. To cast ability, type the ability. To swap, type 'swap'\n")
+            if unit.canMove or unit.canAct:
+                agentInput = input("\nTo move in an available direction, type the direction. To cast ability, type the ability. To swap, type 'swap'\n")
 
                 if agentInput == "swap":
                     returnDict = {"type" : "swap"}
                     return returnDict
+                if unit.canMove:
+                    if agentInput in validDirectionNames:
+                        returnDict = {"type" : "move"}
+                        for direction, value in validDirections.items():
+                            if agentInput == direction[0]:
+                                returnDict[direction] = value
 
-                if agentInput in validDirectionNames:
-                    returnDict = {"type" : "move"}
-                    for direction, value in validDirections.items():
-                        if agentInput == direction[0]:
-                            returnDict[direction] = value
-                for ability in validAbilities:
-                    if agentInput in ability.get("name"):
-                        returnDict = {"type" : "castAbility"}
-                        target = board.getTarget(ability)
-                        returnDict["target"] = target
-                        returnDict["ability"] = ability
+                if unit.canAct:
+                    for ability in validAbilities:
+                        if agentInput in ability.get("name"):
+                            returnDict = {"type" : "castAbility"}
+                            target = board.getTarget(ability)
+                            returnDict["target"] = target
+                            returnDict["ability"] = ability
 
             return returnDict
 
@@ -181,5 +167,3 @@ class HumanAgent(Agent):
             #     return ["swap"]
 
             print("\n\n!!!! Invalid input !!!!")
-
-a = GameManager()
