@@ -5,6 +5,8 @@ import time
 import queue
 from typing import Any
 
+
+
 class pyGameClass:
     getInput = False
     def __init__(self, displaySize, gcRef):
@@ -23,6 +25,7 @@ class pyGameClass:
                 
                 if event.type == pygame.KEYDOWN:
                     if self.getInput:
+                        #This is where we do all of the parsing to actually extract what the move is in terms that are meaningful to the game class
                         self.gcRef.moveQueue.put(event)
 
 
@@ -39,6 +42,7 @@ class GameClass:
 
     def startup(self):
         print('Starting up Pygame class!')
+        #Create a separate thread on which the pygame loop will run
         pyGameThread = threading.Thread(target=self.pg.startLoop)
         pyGameThread.daemon = True
         pyGameThread.start()
@@ -49,11 +53,17 @@ class GameClass:
         while run:
             print('.')
 
+
+            ## If we have a human player, need to communicate move back through queue
             self.player.getMove()
 
             if not self.moveQueue.empty():
                 self.displayMoveQueue()
             
+
+            # If the player is not a human, just straight assign move as output of function
+            #selectedMove = getMove()
+
             if self.quit:
                 run = False
                 print('Quitting!')
