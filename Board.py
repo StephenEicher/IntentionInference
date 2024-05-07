@@ -1,10 +1,14 @@
+import pygame
 import random
 import numpy as np
 from  opensimplex import OpenSimplex
 import matplotlib.pyplot as plt
+from scipy.ndimage import gaussian_filter, zoom
+from skimage.morphology import disk
 
 import Units as u
 import GameObjects as go
+import config
 
 class UnitsMap:
     def __init__(self, maxY, maxX, board):
@@ -20,7 +24,7 @@ class UnitsMap:
                 if 0 <= adjY < len(self.map) and 0 <= adjX < len(self.map):
                     adjUnit = self.map[adjY][adjX]
 
-                    if isinstance(adjUnit, u.Unit):
+                    if isinstance(adjUnit, u.UnitSprite):
                         adjUnits[(direction, (adjY, adjX))] = adjUnit
                         
             return adjUnits
@@ -32,7 +36,7 @@ class UnitsMap:
                 if 0 <= adjY < len(self.map) and 0 <= adjX < len(self.map):
                     adjUnit = self.map[adjY][adjX]
 
-                    if isinstance(adjUnit, u.Unit):
+                    if isinstance(adjUnit, u.UnitSprite):
                         targets.append(adjUnit)
 
             return targets
@@ -63,7 +67,7 @@ class Noise:
         # Mirror the lower half of the left triangular half across the center of grid
         for y in range(self.maxY):
             for x in range(self.maxX):
-                if y > x and y + x > self.maxY - 1:  # Points within lower half of left triangular half
+                if y > x and y + x >= self.maxY - 1:  # Points within lower half of left triangular half
                     newY = self.maxY - y - 1
                     newX = self.maxX - x - 1
                     noiseMap[newY, newX] = noiseMap[y, x]
@@ -71,10 +75,12 @@ class Noise:
         # Mirror the upper half of the left triangular half across center of grid
         for y in range(self.maxY):
             for x in range(self.maxX):
-                if y > x and y + x < self.maxY - 1: # Points within upper half of left triangular half
+                if y > x and y + x <= self.maxY - 1: # Points within upper half of left triangular half
                     newY = self.maxY - y - 1
                     newX = self.maxX - x - 1
                     noiseMap[newY, newX] = noiseMap[y, x]
+ 
+        self.smoothen(noiseMap)
                     
         # Normalize the mirrored map
         noiseMapNormalized = (noiseMap - noiseMap.min()) #Make smallest value 0
@@ -100,7 +106,31 @@ class Noise:
         #             # Set the value to zero to create a border zone
         #             scaledNoiseMapInt[y, x] = 0
 
-        return scaledNoiseMapInt
+        return [scaledNoiseMapInt, noiseMapNormalized]
+
+    def smoothen(self, map):
+        # GENERALIZE FUNCTION SO AS TO MASK -> THRESHOLD -> SMOOTHEN
+        # Create a mask that includes the seam and adjacent tiles up to a certain distance (seam_width)
+        mask = np.zeros_like(map, dtype=bool)
+        length = len(map)
+        
+        sigma = 1
+        seamWidth = 1
+
+        # Define the area around the seam
+        for i in range(length):
+            # Apply the mask along the main diagonal and its adjacent tiles up to seam_width
+            for j in range(max(0, i - seamWidth), min(length, i + seamWidth + 1)):
+                mask[i, j] = True
+                mask[j, i] = True  # Add adjacent tiles along the diagonal
+        
+        # Apply Gaussian blur to the entire map
+        blurredMap = gaussian_filter(map, sigma=sigma)
+        
+        # Blend the blurred map back into the original map using the mask
+        map[mask] = blurredMap[mask]
+        
+        return map
 
 class ZMap(Noise):
     def __init__(self, maxY, maxX, board):
@@ -120,9 +150,69 @@ class ZMap(Noise):
                 adjZs[(direction, (adjY, adjX))] = adjZ
 
             return adjZs
+        
+        def applyMasks(self, map, mask):
+            yScale = self.maxY/10
+            xScale = self.maxX/10
+            
+            masks = {
+            "twirl" :  [[1,0,0,0,0,0,0,0,0,0],
+                        [1,0,0,0,0,0,0,0,0,0],
+                        [0,1,0,0,0,0,0,0,0,0],
+                        [0,0,1,0,1,1,0,0,0,0],
+                        [0,0,0,1,0,0,1,0,0,0],
+                        [0,0,0,1,0,0,1,0,0,0],
+                        [0,0,0,0,1,1,0,1,0,0],
+                        [0,0,0,0,0,0,0,0,1,0],
+                        [0,0,0,0,0,0,0,0,0,1],
+                        [0,0,0,0,0,0,0,0,0,1]],
+            "ravine" : [[0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0]],
+            "woods" :  [[0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0]],
+            "delta" :  [[0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0]]
+            }
+
+            selectedMask = masks.get("twirl")
+            scaledMask = zoom(selectedMask, (yScale, xScale), order = 0)
+
+        
+        def applyThresholds(self, type):
+            thresholds = {
+                "erode" : [],
+                "makepeaks" : [],
+                "flatten" : [],
+                "fracture" : []                
+            }
             
 class EventDispatcher:
-    def __init__(self):
+    def __init__(self, board):
+        self.board = board
         self.listeners = {}
 
     def addListener(self, eventType, listener):
@@ -138,6 +228,7 @@ class EventDispatcher:
             for listener in self.listeners[eventType]:
                 listenerName = listener.__name__
                 response = listener(event)
+                # self.board.manageScreen(None, None, response)
                 listenerTuple = (listenerName, response)
                 responseList.append(listenerTuple)
 
@@ -156,20 +247,17 @@ class eMeleeRangeTargets:
     def __init__(self, unit):
         self.unit = unit
 
-class BoardDirector:
-    """
-    Board Director class which interface with ObjectTree to place GameObject seeds
-    """
-    emptySymbol = '.'
+class Board:
     defaultMinPoint = (0,0)
 
-    def __init__(self, maxY, maxX):
+    def __init__(self, maxY, maxX, instPygame = None):
         self.maxY = maxY
         self.maxX = maxX
         self.maxPoint = (maxX, maxY)
+        self.instPygame = instPygame
         # self.allElemPositions = set()
         # self.allSeedPositions = set()
-        self.dispatcher = EventDispatcher()
+        self.dispatcher = EventDispatcher(self)
         self.createDummyGameObjects()
         self.initializeObjectTree()
         self.initializeZMap()
@@ -194,19 +282,28 @@ class BoardDirector:
         self.dispatcher.addListener(eMeleeRangeTargets, self.instUM.UMhandleEvent)
         self.unitsMap = self.instUM.map
 
-        p1a = u.Unit(0, 1, (0,0))
-        p1b = u.Unit(0, 2, (1,0))
-        p2a = u.Unit(1, 3, (49,49))
-        p2b = u.Unit(1, 4, (48,49))
-        
-        self.unitsMap[0][0] = p1a
-        self.unitsMap[1][0] = p1b
-        self.unitsMap[49][49] = p2a
-        self.unitsMap[48][49] = p2b
+        if self.instPygame:
+            p1a = u.UnitSprite(0, 1, (0,0), self.spritesImageDict.get("Moo"))
+            self.unitsGroup.add(p1a)
+            p1b = u.UnitSprite(0, 2, (24,24), self.spritesImageDict.get("Moo"))
+            self.unitsGroup.add(p1b)
+        # p2a = u.UnitSprite(1, 3, (6,6), self.spritesImageDict.get("Moo"))
+        # self.unitsGroup.add(p2a)
+        # p2b = u.UnitSprite(1, 4, (7,7), self.spritesImageDict.get("Moo"))
+        # self.unitsGroup.add(p2b)
 
+        self.unitsMap[0][0] = p1a
+        self.unitsMap[24][24] = p1b
+        # self.unitsMap[6][6] = p2a
+        # self.unitsMap[7][7] = p2b
+
+        # print(f"p2a rect: {p2a.rect.topleft}")
+        # print(f"p2b rect: {p2b.rect.topleft}")
+
+        self.updateScreen()
         self.drawMap(self.unitsMap)
 
-        return [p1a, p1b, p2a, p2b]
+        return [p1a] #, p1b, p2a, p2b
 
     def initializeNoise(self):
         self.noise = Noise(self.maxY, self.maxX)
@@ -248,10 +345,10 @@ class BoardDirector:
         maxPointY = minPointY + 2  # maxPoint is calculated based on a 3x3 region
 
         if maxPointX > (len(self.unitsMap) - 1):
-            maxPointX = 49 
+            maxPointX = self.maxX
         
         if maxPointY > (len(self.unitsMap) - 1):
-            maxPointY = 49
+            maxPointY = self.maxY
 
         maxPoint = (maxPointX, maxPointY)
 
@@ -342,10 +439,10 @@ class BoardDirector:
                             if len(self.meleeRangeTargets) > 0: 
                                 validAbilities.append(ability)
                             if len(self.meleeRangeTargets) == 0:
-                                invalidAbilities.append(ability)
+                                invalidAbilities[ability["name"]] = ability.get("cost")
         
         for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
-            if ability not in validAbilities:
+            if ability not in validAbilities and ability.get("range") == 0:
                 validAbilities.append(ability)
 
         return (validAbilities, invalidAbilities)
@@ -358,18 +455,6 @@ class BoardDirector:
             for unit in self.meleeRangeTargets:
                 if targetUnitID == unit.unitID:
                     return unit
-
-    def cast(self, entity, dict):
-        target = dict.get("target")
-        ability = dict.get("ability")
-
-        events = ability.get("events")
-        for e in events:
-            for _, v in e.items():
-                if v == "changeHP":
-                    target.currentHP += e["value"]        
-                if v == "changeActionPoints":
-                    entity.currentActionPoints += e["value"]
 
     def rayCast(self, origin, target, castingUnit, targetUnit, gameObjectTree, unitsMap, zMap):
         
@@ -469,37 +554,55 @@ class BoardDirector:
 
         return points
 
-    def move(self, entity, dict):
-        if isinstance(entity, u.Unit):
-            destination = list(dict.keys())
-            self.unitsMap[destination[1][1][0]][destination[1][1][1]] = self.unitsMap[entity.position[0]][entity.position[1]] # (Y, X) format
-            self.unitsMap[entity.position[0]][entity.position[1]] = None
-            entity.position = destination[1][1][0], destination[1][1][1]
-            entity.currentMovement -= 1
+    def updateBoard(self, selectedUnit, moveDict):
+        if moveDict.get("type") == "move":
+            self.move(selectedUnit, moveDict)
+        if moveDict.get("type") == "castAbility":
+            self.cast(selectedUnit, moveDict)    
 
-            if entity.currentMovement == 0:
-                entity.canMove = False
+    def move(self, entity, dict):
+            if isinstance(entity, u.UnitSprite):
+                destination = list(dict.keys())
+                self.unitsMap[destination[1][1][0]][destination[1][1][1]] = self.unitsMap[entity.position[0]][entity.position[1]] # (Y, X) format
+                self.unitsMap[entity.position[0]][entity.position[1]] = None
+                entity.position = (destination[1][1][0], destination[1][1][1])
+                
+                if self.instPygame:
+                    entity.rect.topleft = entity.convertToRect((destination[1][1][0], destination[1][1][1]))
+                    entity.currentMovement -= 1
+
+                if entity.currentMovement == 0:
+                    entity.canMove = False
 
             self.drawMap(self.unitsMap)
 
-            # Apply fall damage
-            # Apply surfaces
+                # Apply fall damage
+                # Apply surfaces
+
+    def cast(self, entity, dict):
+        target = dict.get("target")
+        ability = dict.get("ability")
+
+        events = ability.get("events")
+        for e in events:
+            for _, v in e.items():
+                if v == "changeHP":
+                    target.currentHP += e["value"]        
+                if v == "changeActionPoints":
+                    entity.currentActionPoints += e["value"]    
 
     def drawMap(self, map):
             # cMap = plt.cm.terrain
-            # cMapMin = 0
-            # cMapMax = 10
-            # coloredZMap = cMap(matrix)
+            # coloredZMap = cMap(map)
             for y in range(len(map)):
                 rowToPrint = ''
                 for x in range(len(map[y])):
                     if map[y][x] == None:
                         rowToPrint += '{: ^3}'.format(".")    
                     else:
-                        rowToPrint += '{: ^3}'.format(f"{map[y][x].unitID}")
+                        rowToPrint += '{: ^3}'.format(f"{map[y][x]}")
                 print(rowToPrint)
             
-            # Supposed to adjust colors according to the range of possible noise values but not sure if working
             # im = plt.imshow(coloredZMap, cmap = cMap)
             # fig = plt.gcf()
             # fig.colorbar(im)
@@ -690,6 +793,12 @@ class GameObjectTree:
                     queriedStacks.append(stackDict)
 
             return queriedStacks
+
+b = Board(25,25)
+n = Noise(25,25)
+m = n.applyMasks()
+b.drawMap(m)
+# b.drawMap(b.zMap[1])
 
 
 
