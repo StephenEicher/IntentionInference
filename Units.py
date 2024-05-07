@@ -2,9 +2,7 @@ import pygame
 from config import config
 
 class Sprites:
-    def __init__(self, board):
-        import Board as b
-        self.board = board
+    def __init__(self):
         spritesDict = {
             "Moo": pygame.image.load(r"C:\Users\Brian\Documents\IntentionInference\sprites\sprite_moo.PNG")
 

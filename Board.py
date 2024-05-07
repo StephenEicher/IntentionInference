@@ -8,7 +8,7 @@ from skimage.morphology import disk
 
 import Units as u
 import GameObjects as go
-from config import config
+import config
 
 class UnitsMap:
     def __init__(self, maxY, maxX, board):
@@ -156,7 +156,7 @@ class ZMap(Noise):
             xScale = self.maxX/10
             
             masks = {
-            "twirl" :   [[1,0,0,0,0,0,0,0,0,0],
+            "twirl" :  [[1,0,0,0,0,0,0,0,0,0],
                         [1,0,0,0,0,0,0,0,0,0],
                         [0,1,0,0,0,0,0,0,0,0],
                         [0,0,1,0,1,1,0,0,0,0],
@@ -165,7 +165,37 @@ class ZMap(Noise):
                         [0,0,0,0,1,1,0,1,0,0],
                         [0,0,0,0,0,0,0,0,1,0],
                         [0,0,0,0,0,0,0,0,0,1],
-                        [0,0,0,0,0,0,0,0,0,1]]
+                        [0,0,0,0,0,0,0,0,0,1]],
+            "ravine" : [[0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0]],
+            "woods" :  [[0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0]],
+            "delta" :  [[0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0],
+                        [0,0,0,0,0,0,0,0,0,0]]
             }
 
             selectedMask = masks.get("twirl")
@@ -174,7 +204,10 @@ class ZMap(Noise):
         
         def applyThresholds(self, type):
             thresholds = {
-                "valley" : []
+                "erode" : [],
+                "makepeaks" : [],
+                "flatten" : [],
+                "fracture" : []                
             }
             
 class EventDispatcher:
@@ -214,27 +247,20 @@ class eMeleeRangeTargets:
     def __init__(self, unit):
         self.unit = unit
 
-class BoardDirector:
+class Board:
     defaultMinPoint = (0,0)
 
-    def __init__(self, maxY, maxX):
+    def __init__(self, maxY, maxX, instPygame = None):
         self.maxY = maxY
         self.maxX = maxX
         self.maxPoint = (maxX, maxY)
+        self.instPygame = instPygame
         # self.allElemPositions = set()
         # self.allSeedPositions = set()
         self.dispatcher = EventDispatcher(self)
         self.createDummyGameObjects()
         self.initializeObjectTree()
         self.initializeZMap()
-
-        self.screen = pygame.display.set_mode((config.windowWidth, config.windowHeight))
-
-        self.unitsLayer = pygame.Surface((config.windowWidth, config.windowHeight), pygame.SRCALPHA)
-        self.unitsGroup = pygame.sprite.Group()
-
-        self.sprites = u.Sprites(self)
-        self.spritesImageDict = self.sprites.spritesDictScaled
 
     def createDummyGameObjects(self):
         self.dummya = go.GameObject('a', (0,1), 0)
@@ -256,10 +282,11 @@ class BoardDirector:
         self.dispatcher.addListener(eMeleeRangeTargets, self.instUM.UMhandleEvent)
         self.unitsMap = self.instUM.map
 
-        p1a = u.UnitSprite(0, 1, (0,0), self.spritesImageDict.get("Moo"))
-        self.unitsGroup.add(p1a)
-        p1b = u.UnitSprite(0, 2, (24,24), self.spritesImageDict.get("Moo"))
-        self.unitsGroup.add(p1b)
+        if self.instPygame:
+            p1a = u.UnitSprite(0, 1, (0,0), self.spritesImageDict.get("Moo"))
+            self.unitsGroup.add(p1a)
+            p1b = u.UnitSprite(0, 2, (24,24), self.spritesImageDict.get("Moo"))
+            self.unitsGroup.add(p1b)
         # p2a = u.UnitSprite(1, 3, (6,6), self.spritesImageDict.get("Moo"))
         # self.unitsGroup.add(p2a)
         # p2b = u.UnitSprite(1, 4, (7,7), self.spritesImageDict.get("Moo"))
@@ -539,8 +566,10 @@ class BoardDirector:
                 self.unitsMap[destination[1][1][0]][destination[1][1][1]] = self.unitsMap[entity.position[0]][entity.position[1]] # (Y, X) format
                 self.unitsMap[entity.position[0]][entity.position[1]] = None
                 entity.position = (destination[1][1][0], destination[1][1][1])
-                entity.rect.topleft = entity.convertToRect((destination[1][1][0], destination[1][1][1]))
-                entity.currentMovement -= 1
+                
+                if self.instPygame:
+                    entity.rect.topleft = entity.convertToRect((destination[1][1][0], destination[1][1][1]))
+                    entity.currentMovement -= 1
 
                 if entity.currentMovement == 0:
                     entity.canMove = False
@@ -560,14 +589,7 @@ class BoardDirector:
                 if v == "changeHP":
                     target.currentHP += e["value"]        
                 if v == "changeActionPoints":
-                    entity.currentActionPoints += e["value"]
-
-    def updateScreen(self):
-        self.unitsLayer.fill((0,0,0,0))
-        self.unitsGroup.draw(self.unitsLayer)
-        self.screen.blit(self.unitsLayer, (0,0))
-
-        pygame.display.flip()    
+                    entity.currentActionPoints += e["value"]    
 
     def drawMap(self, map):
             # cMap = plt.cm.terrain
@@ -772,7 +794,7 @@ class GameObjectTree:
 
             return queriedStacks
 
-b = BoardDirector(25,25)
+b = Board(25,25)
 n = Noise(25,25)
 m = n.applyMasks()
 b.drawMap(m)

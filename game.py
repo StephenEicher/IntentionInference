@@ -11,15 +11,19 @@ import Board as b
 import GameObjects as go
 
 class GameManager:
-    def __init__(self):
+    def __init__(self, inclPygame = True):
         self.agentTurnIndex = 0
         self.gameOver = False
-        pygame.init()
+        self.inclPygame = inclPygame
         self.start()
 
     def start(self):
-        self.Board = b.BoardDirector(25, 25)
-        allUnits = self.Board.initializeUnits()
+        if self.inclPygame:
+            import RunPygame as rp     
+            self.instPygame = rp.Pygame
+            self.board = b.Board(25, 25)
+        self.board = b.Board(25, 25)
+        allUnits = self.board.initializeUnits()
         team0 = []
         team1 = []
         team0.extend([allUnits[0]]) #, self.allUnits[1]
@@ -31,33 +35,25 @@ class GameManager:
         # self.gameLoop()
         
     def gameLoop(self):
-        clock = pygame.time.Clock()
 
         if len(self.p1.team) == 0 and len(self.p2.team) == 0:
             self.gameOver = True
 
         while self.gameOver == False:
 
-            clock.tick(60)
-
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.gameOver = True
-
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        self.gameOver = True
+            if self.inclPygame:
+                self.instPygame.pygameLoop()                
 
             currentAgent = self.allAgents[self.agentTurnIndex]
             print(f"-------- {currentAgent.name}'s turn --------")
             
             selectedUnit = currentAgent.selectUnit()
             while selectedUnit.unitValidForTurn():
-                moveDict = currentAgent.selectMove(selectedUnit, self.Board)
+                moveDict = currentAgent.selectMove(selectedUnit, self.board)
                 if moveDict.get("type") == "swap":
                     break
-                self.Board.updateBoard(selectedUnit, moveDict)
-                self.Board.updateScreen()
+                self.board.updateBoard(selectedUnit, moveDict)
+                self.board.updateScreen()
 
             # self.gameState += 0.5
 
@@ -153,17 +149,3 @@ class HumanAgent(Agent):
                             returnDict["ability"] = ability
 
             return returnDict
-
-            # if agentInput in self.validActions.items():
-            #     allActions = unit.actions()
-
-            #     for _, actionDict in allActions.items():
-            #         if agentInput in actionDict:
-            #             for eventDict in actionDict["events"]:
-            #                 if "targetunit" in eventDict:     
-            #     return ["action", input]
-
-            # if agentInput == "swap":
-            #     return ["swap"]
-
-            print("\n\n!!!! Invalid input !!!!")
