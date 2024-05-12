@@ -1,4 +1,6 @@
 import pygame
+import queue
+import threading
 import random
 import numpy as np
 from  opensimplex import OpenSimplex
@@ -19,10 +21,14 @@ class GameManager:
 
     def start(self):
         if self.inclPygame:
-            import RunPygame as rp     
-            self.instPygame = rp.Pygame
-            self.board = b.Board(25, 25)
-        self.board = b.Board(25, 25)
+            import RunPygame as rp
+            self.gPygame = rp.Pygame(self)
+            self.board = b.Board(25, 25, self.gPygame)
+            pygameThread = threading.Thread(target = self.gPygame.pygameLoop)
+            pygameThread.daemon = True
+            pygameThread.start()
+
+        self.board = b.Board(25, 25, None)
         allUnits = self.board.initializeUnits()
         team0 = []
         team1 = []
@@ -35,15 +41,15 @@ class GameManager:
         # self.gameLoop()
         
     def gameLoop(self):
-
         if len(self.p1.team) == 0 and len(self.p2.team) == 0:
             self.gameOver = True
 
+        if self.inclPygame:
+                self.pygame.pygameLoop()
+                self.moveQueue = queue.Queue(maxsize = 1)                
+                self.getInput = False
+
         while self.gameOver == False:
-
-            if self.inclPygame:
-                self.instPygame.pygameLoop()                
-
             currentAgent = self.allAgents[self.agentTurnIndex]
             print(f"-------- {currentAgent.name}'s turn --------")
             
@@ -96,6 +102,7 @@ class HumanAgent(Agent):
         allAbilities = board.getValidAbilities(unit)
         validAbilities = allAbilities[0] # Returns list of dictionaries
         invalidAbilities = allAbilities[1]
+        self.gPygame.getInput = True
 
         while True:
             print(f"Current HP: {unit.currentHP}")

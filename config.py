@@ -4,6 +4,8 @@ class Configuration:
     self.maxX = 25
     self.windowWidth = 720
     self.windowHeight = 480
+    self.widgetWidth = 600
+    self.widgetHeight = 400
     self.widthFactor = self.windowWidth / self.maxX
     self.heightFactor = self.windowHeight / self.maxY
 

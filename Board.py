@@ -250,11 +250,11 @@ class eMeleeRangeTargets:
 class Board:
     defaultMinPoint = (0,0)
 
-    def __init__(self, maxY, maxX, instPygame = None):
+    def __init__(self, maxY, maxX, pygame = None):
         self.maxY = maxY
         self.maxX = maxX
         self.maxPoint = (maxX, maxY)
-        self.instPygame = instPygame
+        self.bPygame = pygame
         # self.allElemPositions = set()
         # self.allSeedPositions = set()
         self.dispatcher = EventDispatcher(self)
