@@ -1,12 +1,12 @@
 import pygame
 import time
 import Units as u
-import config
+import config as c
 
 class Pygame:
-
     def __init__(self, game):
         pygame.init()
+        config = c.config
         self.game = game
 
         self.screen = pygame.display.set_mode((config.windowWidth, config.windowHeight))
@@ -15,8 +15,12 @@ class Pygame:
         self.unitsLayer = pygame.Surface((config.windowWidth, config.windowHeight), pygame.SRCALPHA)
         self.unitsGroup = pygame.sprite.Group()
 
-        self.sprites = u.Sprites(self)
+        self.sprites = u.Sprites()
         self.spritesImageDict = self.sprites.spritesDictScaled
+
+        self.directionButtons = []
+        self.abilityButtons = []
+        self.pReturnDict = None
 
     def pygameLoop(self):
         clock = pygame.time.Clock()
@@ -28,44 +32,54 @@ class Pygame:
                     run = False
                 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    mousePos = pygame.mouse.get_pos()
-                    if self.getInput:
-                        self.handleMouseInput(mousePos)
-                        self.game.moveQueue.put(event)
+                    if event.button == 1:
+                        mousePos = pygame.mouse.get_pos()
+                        if self.game.getInput:
+                            self.pReturnDict = self.handleMouseInput(mousePos)
+                            # self.game.moveQueue.put(event)
+            
+            self.updateScreen
+
+            clock.tick(60)
 
     def drawButtons(self, validDirections, validAbilities):
         # Draw buttons for valid directions
-        directionButtons = []
+        self.directionButtons = []
         for directionTuple, v in validDirections.items():
-            buttonRect = pygame.Rect(10, 50 * len(directionButtons), 100, 40)  # Adjust dimensions as needed
+            buttonRect = pygame.Rect(10, 50 * len(self.directionButtons), 100, 40)  # Adjust dimensions as needed
             pygame.draw.rect(self.widget, (0, 255, 0), buttonRect)  # Green button
             directionName = directionTuple[0]
-            directionButtons.append((buttonRect, directionName))
+            self.directionButtons.append((buttonRect, {directionTuple : v}))
             # Render text on button (direction)
             font = pygame.font.Font(None, 24)
             text = font.render(directionName, True, (0, 0, 0))
             textRect = text.get_rect(center=buttonRect.center)
             self.widget.blit(text, textRect)
 
-         # Draw buttons for valid abilities
-        abilityButtons = []
+        # Draw buttons for valid abilities
+        self.abilityButtons = []
         for i, ability in enumerate(validAbilities):
-            buttonRect = pygame.Rect(10, 300 + (50 * i), 200, 40)  # Adjust dimensions as needed
+            buttonRect = pygame.Rect(10, self.widget.get_height() - (50 * (len(validAbilities) - i)), 200, 40)  # Adjust dimensions as needed
             pygame.draw.rect(self.widget, (255, 0, 0), buttonRect)  # Red button
-            abilityButtons.append((buttonRect, ability["name"]))
+            abilityName = ability["name"]
+            self.abilityButtons.append((buttonRect, ability))
             # Render text on button (ability name)
             font = pygame.font.Font(None, 24)
-            text = font.render(ability["name"], True, (0, 0, 0))
+            text = font.render(abilityName, True, (0, 0, 0))
             textRect = text.get_rect(center=buttonRect.center)
             self.widget.blit(text, textRect)
 
-    def handleMouseInput(mousePos):
-        for button_rect, direction in direction_buttons:
-            if button_rect.collidepoint(mouse_pos):
-                return {"type": "move", "direction": direction}
-        for button_rect, ability_name in ability_buttons:
-            if button_rect.collidepoint(mouse_pos):
-                return {"type": "castAbility", "ability_name": ability_name}
+            self.updateScreen()
+
+    def handleMouseInput(self, mousePos):
+        for buttonRect, directionDict in self.directionButtons:
+            if buttonRect.collidepoint(mousePos):
+                self.game.inputReady = True
+                return {"type": "move", "directionDict": directionDict}
+        for buttonRect, abilityDict in self.abilityButtons:
+            if buttonRect.collidepoint(mousePos):
+                self.game.inputReady = True
+                return {"type": "castAbility", "abilityDict": abilityDict}
         return None
 
     def updateScreen(self):

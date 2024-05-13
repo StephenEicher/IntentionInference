@@ -136,7 +136,8 @@ class ZMap(Noise):
     def __init__(self, maxY, maxX, board):
         super().__init__(maxY, maxX)
         self.board = board
-        self.map = self.genNoise(0.1, 1)
+        comboMap = self.genNoise(0.1, 1)
+        self.map = comboMap[0]
 
     def ZMhandleEvent(self, event):
         if isinstance(event, eMove):
@@ -151,64 +152,64 @@ class ZMap(Noise):
 
             return adjZs
         
-        def applyMasks(self, map, mask):
-            yScale = self.maxY/10
-            xScale = self.maxX/10
-            
-            masks = {
-            "twirl" :  [[1,0,0,0,0,0,0,0,0,0],
-                        [1,0,0,0,0,0,0,0,0,0],
-                        [0,1,0,0,0,0,0,0,0,0],
-                        [0,0,1,0,1,1,0,0,0,0],
-                        [0,0,0,1,0,0,1,0,0,0],
-                        [0,0,0,1,0,0,1,0,0,0],
-                        [0,0,0,0,1,1,0,1,0,0],
-                        [0,0,0,0,0,0,0,0,1,0],
-                        [0,0,0,0,0,0,0,0,0,1],
-                        [0,0,0,0,0,0,0,0,0,1]],
-            "ravine" : [[0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0]],
-            "woods" :  [[0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0]],
-            "delta" :  [[0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0],
-                        [0,0,0,0,0,0,0,0,0,0]]
-            }
-
-            selectedMask = masks.get("twirl")
-            scaledMask = zoom(selectedMask, (yScale, xScale), order = 0)
-
+    def applyMasks(self, map, mask):
+        yScale = self.maxY/10
+        xScale = self.maxX/10
         
-        def applyThresholds(self, type):
-            thresholds = {
-                "erode" : [],
-                "makepeaks" : [],
-                "flatten" : [],
-                "fracture" : []                
-            }
+        masks = {
+        "twirl" :  [[1,0,0,0,0,0,0,0,0,0],
+                    [1,0,0,0,0,0,0,0,0,0],
+                    [0,1,0,0,0,0,0,0,0,0],
+                    [0,0,1,0,1,1,0,0,0,0],
+                    [0,0,0,1,0,0,1,0,0,0],
+                    [0,0,0,1,0,0,1,0,0,0],
+                    [0,0,0,0,1,1,0,1,0,0],
+                    [0,0,0,0,0,0,0,0,1,0],
+                    [0,0,0,0,0,0,0,0,0,1],
+                    [0,0,0,0,0,0,0,0,0,1]],
+        "ravine" : [[0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0]],
+        "woods" :  [[0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0]],
+        "delta" :  [[0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0],
+                    [0,0,0,0,0,0,0,0,0,0]]
+        }
+
+        selectedMask = masks.get("twirl")
+        scaledMask = zoom(selectedMask, (yScale, xScale), order = 0)
+
+    
+    def applyThresholds(self, type):
+        thresholds = {
+            "erode" : [],
+            "makepeaks" : [],
+            "flatten" : [],
+            "fracture" : []                
+        }
             
 class EventDispatcher:
     def __init__(self, board):
@@ -282,11 +283,11 @@ class Board:
         self.dispatcher.addListener(eMeleeRangeTargets, self.instUM.UMhandleEvent)
         self.unitsMap = self.instUM.map
 
-        if self.instPygame:
-            p1a = u.UnitSprite(0, 1, (0,0), self.spritesImageDict.get("Moo"))
-            self.unitsGroup.add(p1a)
-            p1b = u.UnitSprite(0, 2, (24,24), self.spritesImageDict.get("Moo"))
-            self.unitsGroup.add(p1b)
+        if self.bPygame:
+            p1a = u.UnitSprite(0, 1, (0,0), self.bPygame.spritesImageDict.get("Moo"))
+            self.bPygame.unitsGroup.add(p1a)
+            p1b = u.UnitSprite(0, 2, (24,24), self.bPygame.spritesImageDict.get("Moo"))
+            self.bPygame.unitsGroup.add(p1b)
         # p2a = u.UnitSprite(1, 3, (6,6), self.spritesImageDict.get("Moo"))
         # self.unitsGroup.add(p2a)
         # p2b = u.UnitSprite(1, 4, (7,7), self.spritesImageDict.get("Moo"))
@@ -300,7 +301,7 @@ class Board:
         # print(f"p2a rect: {p2a.rect.topleft}")
         # print(f"p2b rect: {p2b.rect.topleft}")
 
-        self.updateScreen()
+        self.bPygame.updateScreen()
         self.drawMap(self.unitsMap)
 
         return [p1a] #, p1b, p2a, p2b
@@ -793,12 +794,6 @@ class GameObjectTree:
                     queriedStacks.append(stackDict)
 
             return queriedStacks
-
-b = Board(25,25)
-n = Noise(25,25)
-m = n.applyMasks()
-b.drawMap(m)
-# b.drawMap(b.zMap[1])
 
 
 
