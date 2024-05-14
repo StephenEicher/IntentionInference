@@ -20,7 +20,7 @@ class Pygame:
 
         self.directionButtons = []
         self.abilityButtons = []
-        self.pReturnDict = None
+        pReturnDict = None
 
     def pygameLoop(self):
         clock = pygame.time.Clock()
@@ -32,11 +32,12 @@ class Pygame:
                     run = False
                 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        mousePos = pygame.mouse.get_pos()
-                        if self.game.getInput:
-                            self.pReturnDict = self.handleMouseInput(mousePos)
-                            # self.game.moveQueue.put(event)
+                    if self.game.getInput:
+                        if event.button == 1:
+                            mousePos = pygame.mouse.get_pos()
+                            pReturnDict = self.handleMouseInput(mousePos)
+                            self.game.agentQueue.put(pReturnDict)
+                            self.game.inputReady = True
             
             self.updateScreen
 
@@ -69,7 +70,7 @@ class Pygame:
             textRect = text.get_rect(center=buttonRect.center)
             self.widget.blit(text, textRect)
 
-            self.updateScreen()
+        self.updateScreen()
 
     def handleMouseInput(self, mousePos):
         for buttonRect, directionDict in self.directionButtons:
