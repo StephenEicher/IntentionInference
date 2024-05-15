@@ -26,20 +26,21 @@ class Pygame:
         while run:
 
             for event in pygame.event.get():
+                print(event)
                 if event.type == pygame.QUIT:
                     run = False
                 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if self.game.getInput:
+                    # if self.game.getInput:
                         if event.button == 1:
                             mousePos = pygame.mouse.get_pos()
-                            pReturnDict = self.handleMouseInput(mousePos)
-                            if pReturnDict["type"] == "move":
-                                self.game.moveQueue.put(pReturnDict["directionDict"])                 
-                            if pReturnDict["type"] == "castAbility":
-                                self.game.moveQueue.put(pReturnDict["abilityDict"])
-                    else:
-                        continue
+                            print(mousePos)
+
+                            # pReturnDict = self.handleMouseInput(mousePos)
+                            # if pReturnDict["type"] == "move":
+                            #     self.game.moveQueue.put(pReturnDict["directionDict"])                 
+                            # if pReturnDict["type"] == "castAbility":
+                            #     self.game.moveQueue.put(pReturnDict["abilityDict"])
           
             self.updateScreen()
 
