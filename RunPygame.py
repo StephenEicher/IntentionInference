@@ -10,7 +10,6 @@ class Pygame:
         self.game = game
 
         self.screen = pygame.display.set_mode((config.windowWidth, config.windowHeight))
-        self.widget = pygame.display.set_mode((config.widgetWidth, config.widgetHeight))
 
         self.unitsLayer = pygame.Surface((config.windowWidth, config.windowHeight), pygame.SRCALPHA)
         self.unitsGroup = pygame.sprite.Group()
@@ -20,13 +19,12 @@ class Pygame:
 
         self.directionButtons = []
         self.abilityButtons = []
-        pReturnDict = None
 
     def pygameLoop(self):
         clock = pygame.time.Clock()
         run = True
         while run:
-            
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     run = False
@@ -36,10 +34,14 @@ class Pygame:
                         if event.button == 1:
                             mousePos = pygame.mouse.get_pos()
                             pReturnDict = self.handleMouseInput(mousePos)
-                            self.game.agentQueue.put(pReturnDict)
-                            self.game.inputReady = True
-            
-            self.updateScreen
+                            if pReturnDict["type"] == "move":
+                                self.game.moveQueue.put(pReturnDict["directionDict"])                 
+                            if pReturnDict["type"] == "castAbility":
+                                self.game.moveQueue.put(pReturnDict["abilityDict"])
+                    else:
+                        continue
+          
+            self.updateScreen()
 
             clock.tick(60)
 
@@ -48,29 +50,27 @@ class Pygame:
         self.directionButtons = []
         for directionTuple, v in validDirections.items():
             buttonRect = pygame.Rect(10, 50 * len(self.directionButtons), 100, 40)  # Adjust dimensions as needed
-            pygame.draw.rect(self.widget, (0, 255, 0), buttonRect)  # Green button
+            pygame.draw.rect(self.screen, (0, 255, 0), buttonRect)  # Green button
             directionName = directionTuple[0]
             self.directionButtons.append((buttonRect, {directionTuple : v}))
             # Render text on button (direction)
             font = pygame.font.Font(None, 24)
             text = font.render(directionName, True, (0, 0, 0))
             textRect = text.get_rect(center=buttonRect.center)
-            self.widget.blit(text, textRect)
+            self.screen.blit(text, textRect)
 
         # Draw buttons for valid abilities
         self.abilityButtons = []
         for i, ability in enumerate(validAbilities):
-            buttonRect = pygame.Rect(10, self.widget.get_height() - (50 * (len(validAbilities) - i)), 200, 40)  # Adjust dimensions as needed
-            pygame.draw.rect(self.widget, (255, 0, 0), buttonRect)  # Red button
+            buttonRect = pygame.Rect(10, self.screen.get_height() - (50 * (len(validAbilities) - i)), 200, 40)  # Adjust dimensions as needed
+            pygame.draw.rect(self.screen, (255, 0, 0), buttonRect)  # Red button
             abilityName = ability["name"]
             self.abilityButtons.append((buttonRect, ability))
             # Render text on button (ability name)
             font = pygame.font.Font(None, 24)
             text = font.render(abilityName, True, (0, 0, 0))
             textRect = text.get_rect(center=buttonRect.center)
-            self.widget.blit(text, textRect)
-
-        self.updateScreen()
+            self.screen.blit(text, textRect)
 
     def handleMouseInput(self, mousePos):
         for buttonRect, directionDict in self.directionButtons:
@@ -84,8 +84,9 @@ class Pygame:
         return None
 
     def updateScreen(self):
-        self.unitsLayer.fill((0,0,0,0))
-        self.unitsGroup.draw(self.unitsLayer)
-        self.screen.blit(self.unitsLayer, (0,0))
+        # self.unitsLayer.fill((0,0,0,0))
+        # self.unitsGroup.draw(self.unitsLayer)
+        # self.screen.fill((0,0,0))
+        # self.screen.blit(self.unitsLayer, (0,0))
 
         pygame.display.flip()

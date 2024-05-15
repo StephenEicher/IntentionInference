@@ -66,7 +66,8 @@ class GameManager:
             
             selectedUnit = currentAgent.selectUnit()
             while selectedUnit.unitValidForTurn():
-                moveDict = currentAgent.selectMove(selectedUnit, self.board)
+                currentAgent.selectMove(selectedUnit, self.board)
+                moveDict = self.moveQueue.get()
                 if moveDict.get("type") == "swap":
                     break
                 self.board.updateBoard(selectedUnit, moveDict)
@@ -116,9 +117,6 @@ class HumanAgent(Agent):
         allAbilities = board.getValidAbilities(unit)
         validAbilities = allAbilities[0] # Returns list of dictionaries
         invalidAbilities = allAbilities[1]
-        self.agentQueue = queue.Queue(maxsize = 1)
-        self.game.getInput = True
-        self.game.inputReady = False
 
         # rely on queue system to communicate pygame input directly to the game loop
         # probably just make more variables on agents assigned by Board operations instance-wide and accessible to pygame class somehow..
@@ -126,12 +124,6 @@ class HumanAgent(Agent):
         # the issue then is added complexity in terms of first parsing which agent to call on? maybe not so difficult to implement..
 
         # also troubleshoot incorrect mouse coordinates during click input event
-
-
-
-
-
-
 
         # print(f"Current HP: {unit.currentHP}")
         # if unit.canMove:
@@ -162,16 +154,17 @@ class HumanAgent(Agent):
         #     print("Unavailable abilities:\n")
         #     print("\n".join([f"{name}: {cost}" for name, cost in invalidAbilities.items()]))
 
-        while True:            
-            if unit.canMove or unit.canAct: 
-                self.aPygame.drawButtons(validDirections, validAbilities)
-                pReturnDict = self.agentQueue.get()
-                if pReturnDict["type"] == "move":
-                    return pReturnDict["directionDict"]                    
-                if pReturnDict["type"] == "castAbility":
-                    return pReturnDict["abilityDict"]
-                else:
-                    continue
+        # while True:            
+        if unit.canMove or unit.canAct:
+            self.game.getInput = True
+            self.aPygame.drawButtons(validDirections, validAbilities)
+            # pReturnDict = self.agentQueue.get()
+                # if pReturnDict["type"] == "move":
+                #     return pReturnDict["directionDict"]                    
+                # if pReturnDict["type"] == "castAbility":
+                #     return pReturnDict["abilityDict"]
+                # else:
+                #     continue
 
                 # agentInput = input("\nTo move in an available direction, type the direction. To cast ability, type the ability. To swap, type 'swap'\n")
 
