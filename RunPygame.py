@@ -2,6 +2,8 @@ import pygame
 import time
 import Units as u
 import config as c
+import threading
+import queue
 
 class Pygame:
     def __init__(self, game):
@@ -26,7 +28,6 @@ class Pygame:
         while run:
 
             for event in pygame.event.get():
-                print(event)
                 if event.type == pygame.QUIT:
                     run = False
                 
@@ -76,11 +77,9 @@ class Pygame:
     def handleMouseInput(self, mousePos):
         for buttonRect, directionDict in self.directionButtons:
             if buttonRect.collidepoint(mousePos):
-                self.game.inputReady = True
                 return {"type": "move", "directionDict": directionDict}
         for buttonRect, abilityDict in self.abilityButtons:
             if buttonRect.collidepoint(mousePos):
-                self.game.inputReady = True
                 return {"type": "castAbility", "abilityDict": abilityDict}
         return None
 
@@ -91,3 +90,26 @@ class Pygame:
         # self.screen.blit(self.unitsLayer, (0,0))
 
         pygame.display.flip()
+
+validDirections = {
+    ('E', (0, 1)):(False, []),
+    ('SE', (1, 1)):(False, []),
+    ('S', (1, 0)):(False, [])
+}
+validAbilities = [
+{'name':'Hide',
+'cost':1,
+'range':0,
+'events':[{'type': 'hide', 'target': 'self'}]}
+]
+
+a = Pygame(None)
+pygameThread = threading.Thread(target = a.pygameLoop)
+pygameThread.daemon = True
+pygameThread.start()
+self.moveQueue = queue.Queue(maxsize = 1)
+# a.drawButtons(validDirections, validAbilities)
+# moveQueue = queue.Queue(maxsize = 1)
+while True:
+    if moveQueue.get():
+        break
