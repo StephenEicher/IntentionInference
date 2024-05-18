@@ -24,10 +24,10 @@ class pyGameClass:
                 if event.type == pygame.QUIT:
                     run = False
                 
-                if event.type == pygame.KEYDOWN:
-                    if self.getInput:
-                        #This is where we do all of the parsing to actually extract what the move is in terms that are meaningful to the game class
-                        self.gcRef.moveQueue.put(event)
+                # if event.type == pygame.KEYDOWN:
+                #     if self.getInput:
+                #         #This is where we do all of the parsing to actually extract what the move is in terms that are meaningful to the game class
+                #         self.gcRef.moveQueue.put(event)
 
 
         pygame.quit()

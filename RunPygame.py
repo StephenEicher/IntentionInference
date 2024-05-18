@@ -8,42 +8,34 @@ import sys
 
 class Pygame:
     def __init__(self, game):
-        pygame.init()
-        config = c.config
+        self.config = c.config
         self.game = game
-
-        self.screen = pygame.display.set_mode((config.windowWidth, config.windowHeight))
-
-        self.unitsLayer = pygame.Surface((config.windowWidth, config.windowHeight), pygame.SRCALPHA)
-        self.unitsGroup = pygame.sprite.Group()
-
-        self.sprites = u.Sprites()
-        self.spritesImageDict = self.sprites.spritesDictScaled
 
         self.directionButtons = []
         self.abilityButtons = []
 
-    # def logicAI(self):
-    #     while not self.game.gameOver:
-    #         currentAgent = self.game.allAgents[self.agentTurnIndex]
-    #         selectedUnit = currentAgent.selectUnit()
-    #         while selectedUnit.unitValidForTurn():
-    #             moveDict = currentAgent.selectMove(selectedUnit, self.board)
-    #             self.board.updateBoard(selectedUnit, moveDict)
+    def startup(self):
+        pygame.init()
+        self.unitsLayer = pygame.Surface((self.config.windowWidth, self.config.windowHeight), pygame.SRCALPHA)
+        self.unitsGroup = pygame.sprite.Group()
+
+        self.sprites = u.Sprites()
+        self.spritesImageDict = self.sprites.spritesDictScaled
+        self.screen = pygame.display.set_mode((self.config.windowWidth, self.config.windowHeight))
 
     def pygameLoop(self):
-        print('Starting pygameLoop')
+        self.startup()
+
         # for agent in self.game.allAgents:
         #     if type(agent) != self.game.HumanAgent:
         #         AIThread = threading.Thread(target=self.inclAI)
         #         AIThread.daemon = True
         #         AIThread.start()
 
-        clock = pygame.time.Clock()
+        # clock = pygame.time.Clock()
         run = True
 
         while run:
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     print("Quit event detected")
@@ -60,12 +52,12 @@ class Pygame:
                             if pReturnDict["type"] == "castAbility":
                                 self.game.moveQueue.put(pReturnDict["abilityDict"])
 
-                
+            self.updateScreen()
 
-            clock.tick(30)
+            # clock.tick(30)
 
-        pygame.display.quit()
-        pygame.quit()
+        # pygame.display.quit()
+        # pygame.quit()
 
                 # if event.type == pygame.MOUSEBUTTONDOWN:
                 #     if self.game.getInput:
@@ -79,8 +71,6 @@ class Pygame:
                 #             if pReturnDict["type"] == "castAbility":
                 #                 self.game.moveQueue.put(pReturnDict["abilityDict"])
         
-            # self.updateScreen()
-
     def drawButtons(self, validDirections, validAbilities):
         # Draw buttons for valid directions
         self.directionButtons = []

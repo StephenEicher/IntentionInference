@@ -288,23 +288,23 @@ class Board:
             self.bPygame.unitsGroup.add(p1a)
             p1b = u.UnitSprite(0, 2, (24,24), self.bPygame.spritesImageDict.get("Moo"))
             self.bPygame.unitsGroup.add(p1b)
-        # p2a = u.UnitSprite(1, 3, (6,6), self.spritesImageDict.get("Moo"))
-        # self.unitsGroup.add(p2a)
-        # p2b = u.UnitSprite(1, 4, (7,7), self.spritesImageDict.get("Moo"))
-        # self.unitsGroup.add(p2b)
+            p2a = u.UnitSprite(1, 3, (6,6), self.bPygame.spritesImageDict.get("Moo"))
+            self.bPygame.unitsGroup.add(p2a)
+            p2b = u.UnitSprite(1, 4, (7,7), self.bPygame.spritesImageDict.get("Moo"))
+            self.bPygame.unitsGroup.add(p2b)
 
         self.unitsMap[0][0] = p1a
         self.unitsMap[24][24] = p1b
-        # self.unitsMap[6][6] = p2a
-        # self.unitsMap[7][7] = p2b
+        self.unitsMap[6][6] = p2a
+        self.unitsMap[7][7] = p2b
 
-        # print(f"p2a rect: {p2a.rect.topleft}")
-        # print(f"p2b rect: {p2b.rect.topleft}")
+        print(f"p2a rect: {p2a.rect.topleft}")
+        print(f"p2b rect: {p2b.rect.topleft}")
 
-        self.bPygame.updateScreen()
+        # self.bPygame.updateScreen()
         self.drawMap(self.unitsMap)
 
-        return [p1a] #, p1b, p2a, p2b
+        return [p1a, p1b, p2a, p2b]
 
     def initializeNoise(self):
         self.noise = Noise(self.maxY, self.maxX)
