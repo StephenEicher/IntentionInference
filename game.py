@@ -63,6 +63,7 @@ class GameManager:
             while selectedUnit.unitValidForTurn():
                 currentAgent.selectMove(selectedUnit, self.board)
                 moveDict = self.moveQueue.get()
+                print(moveDict)
                 if moveDict.get("type") == "swap":
                     break
                 self.board.updateBoard(selectedUnit, moveDict)
@@ -96,7 +97,7 @@ class HumanAgent(Agent):
 
         waitingUnitsIDs = []
         for unit in waitingUnits:
-            waitingUnitsIDs.append(unit.unitID)
+            waitingUnitsIDs.append(unit.ID)
 
         print((f"\nSelect from avail Units: {waitingUnitsIDs}\n"))
         time.sleep(0.1)
@@ -104,7 +105,7 @@ class HumanAgent(Agent):
         print(selectedUnitStr)
 
         for unit in waitingUnits:
-            if unit.unitID == int(selectedUnitStr):
+            if unit.ID == int(selectedUnitStr):
                 return unit
 
     def selectMove(self, unit, board):

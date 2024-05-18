@@ -8,7 +8,7 @@ import sys
 
 class Pygame:
     def __init__(self, game):
-        self.config = c.config
+        self.c = c.config
         self.game = game
 
         self.directionButtons = []
@@ -16,25 +16,16 @@ class Pygame:
 
     def startup(self):
         pygame.init()
-        self.unitsLayer = pygame.Surface((self.config.windowWidth, self.config.windowHeight), pygame.SRCALPHA)
+        self.unitsLayer = pygame.Surface((self.c.windowWidth, self.c.windowHeight), pygame.SRCALPHA)
         self.unitsGroup = pygame.sprite.Group()
 
         self.sprites = u.Sprites()
         self.spritesImageDict = self.sprites.spritesDictScaled
-        self.screen = pygame.display.set_mode((self.config.windowWidth, self.config.windowHeight))
+        self.screen = pygame.display.set_mode((self.c.windowWidth, self.c.windowHeight))
 
     def pygameLoop(self):
         self.startup()
-
-        # for agent in self.game.allAgents:
-        #     if type(agent) != self.game.HumanAgent:
-        #         AIThread = threading.Thread(target=self.inclAI)
-        #         AIThread.daemon = True
-        #         AIThread.start()
-
-        # clock = pygame.time.Clock()
         run = True
-
         while run:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -44,32 +35,18 @@ class Pygame:
                     if self.game.getInput:
                         if event.button == 1:
                             mousePos = pygame.mouse.get_pos()
-                            print(mousePos)
-
                             pReturnDict = self.handleMouseInput(mousePos)
+                            if not pReturnDict:
+                                continue
                             if pReturnDict["type"] == "move":
-                                self.game.moveQueue.put(pReturnDict["directionDict"])                 
+                                self.game.moveQueue.put(pReturnDict)                 
                             if pReturnDict["type"] == "castAbility":
-                                self.game.moveQueue.put(pReturnDict["abilityDict"])
+                                self.game.moveQueue.put(pReturnDict)
 
             self.updateScreen()
 
-            # clock.tick(30)
-
-        # pygame.display.quit()
-        # pygame.quit()
-
-                # if event.type == pygame.MOUSEBUTTONDOWN:
-                #     if self.game.getInput:
-                #         if event.button == 1:
-                #             mousePos = pygame.mouse.get_pos()
-                #             print(mousePos)
-
-                #             pReturnDict = self.handleMouseInput(mousePos)
-                #             if pReturnDict["type"] == "move":
-                #                 self.game.moveQueue.put(pReturnDict["directionDict"])                 
-                #             if pReturnDict["type"] == "castAbility":
-                #                 self.game.moveQueue.put(pReturnDict["abilityDict"])
+        pygame.display.quit()
+        pygame.quit()
         
     def drawButtons(self, validDirections, validAbilities):
         # Draw buttons for valid directions

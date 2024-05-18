@@ -556,12 +556,14 @@ class Board:
         return points
 
     def updateBoard(self, selectedUnit, moveDict):
+        print('Updating board..')
         if moveDict.get("type") == "move":
-            self.move(selectedUnit, moveDict)
+            self.move(selectedUnit, moveDict["directionDict"])
         if moveDict.get("type") == "castAbility":
-            self.cast(selectedUnit, moveDict)    
+            self.cast(selectedUnit, moveDict["abilityDict"])    
 
     def move(self, entity, dict):
+            print('Moving')
             if isinstance(entity, u.UnitSprite):
                 destination = list(dict.keys())
                 self.unitsMap[destination[1][1][0]][destination[1][1][1]] = self.unitsMap[entity.position[0]][entity.position[1]] # (Y, X) format
@@ -601,7 +603,7 @@ class Board:
                     if map[y][x] == None:
                         rowToPrint += '{: ^3}'.format(".")    
                     else:
-                        rowToPrint += '{: ^3}'.format(f"{map[y][x]}")
+                        rowToPrint += '{: ^3}'.format(f"{map[y][x].ID}")
                 print(rowToPrint)
             
             # im = plt.imshow(coloredZMap, cmap = cMap)

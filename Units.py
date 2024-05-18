@@ -15,7 +15,7 @@ class Sprites:
 class Unit:
     def __init__(self, agentIndex, unitID, position):
         self.agentIndex = agentIndex
-        self.unitID = unitID
+        self.ID = unitID
         self.unitSymbol = "U"
         self.position = position
 
