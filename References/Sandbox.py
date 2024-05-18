@@ -20,6 +20,7 @@ class pyGameClass:
         while run:
             
             for event in pygame.event.get():
+                print(event)
                 if event.type == pygame.QUIT:
                     run = False
                 
@@ -30,7 +31,7 @@ class pyGameClass:
 
 
         pygame.quit()
-        self.gcRef.quitLoop()
+        # self.gcRef.quitLoop()
 
 
 class GameClass: 

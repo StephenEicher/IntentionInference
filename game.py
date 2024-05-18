@@ -17,7 +17,7 @@ class GameManager:
         self.agentTurnIndex = 0
         self.gameOver = False
         self.inclPygame = inclPygame
-        self.gameLoopEvent = threading.Event()
+        # self.gameLoopEvent = threading.Event()
         self.getInput = False
         self.inputReady = False
         self.start()
@@ -28,39 +28,67 @@ class GameManager:
             import RunPygame as rp
             self.gPygame = rp.Pygame(self)
             self.board = b.Board(25, 25, self.gPygame)
-            pygameThread = threading.Thread(target = self.runPygameLoop)
-            pygameThread.daemon = True
-            pygameThread.start()
+            # self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
+            # self.pygameThread.daemon = True
+            # self.pygameThread.start()
 
-        if not self.inclPygame:
+        else:
             self.board = b.Board(25, 25, None)
     
         allUnits = self.board.initializeUnits()
         team0 = []
         team1 = []
-        team0.extend([allUnits[0]]) #, self.allUnits[1]
+        team0.extend([allUnits[0]]) 
+        
+        
+                #, self.allUnits[1]
         # self.team1.extend([self.allUnits[2], self.allUnits[3]])
+        
+        
         self.p1 = HumanAgent('Ally', 0, team0, self, self.gPygame)
         self.p2 = HumanAgent('Bob', 1, team1, self, self.gPygame)
         self.allAgents = []
         self.allAgents.extend([self.p1, self.p2])
-        self.gameLoopEvent.wait()
+        # self.gameLoopEvent.wait()
         self.gameLoop()
 
-    def runPygameLoop(self):
-        # Start the Pygame loop
-        self.gameLoopEvent.set()  # Signal that the game loop has started
-        self.gPygame.pygameLoop()
+
+
+
+
+
+
+
+
+    def gameLoop1(self):
+        print('Starting gameLoop...')
+        if len(self.p1.team) == 0 and len(self.p2.team) == 0:
+            self.gameOver = True
+
+        if self.inclPygame:
+            self.moveQueue = queue.Queue(maxsize=1)
+            self.gPygame.pygameLoop()
+
+
+
+
+
+
+
+
+
+
         
+          
     def gameLoop(self):
         print('Starting gameLoop...')
         if len(self.p1.team) == 0 and len(self.p2.team) == 0:
             self.gameOver = True
 
         if self.inclPygame:
-            self.moveQueue = queue.Queue(maxsize = 1)                
+            self.moveQueue = queue.Queue(maxsize=1)            
             
-        while self.gameOver == False:
+        while not self.gameOver:
             currentAgent = self.allAgents[self.agentTurnIndex]
             print(f"-------- {currentAgent.name}'s turn --------")
             
@@ -189,4 +217,3 @@ class HumanAgent(Agent):
             # return returnDict
         
 a = GameManager(True)
-a.start()

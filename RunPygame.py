@@ -4,6 +4,7 @@ import Units as u
 import config as c
 import threading
 import queue
+import sys
 
 class Pygame:
     def __init__(self, game):
@@ -22,30 +23,63 @@ class Pygame:
         self.directionButtons = []
         self.abilityButtons = []
 
+    # def logicAI(self):
+    #     while not self.game.gameOver:
+    #         currentAgent = self.game.allAgents[self.agentTurnIndex]
+    #         selectedUnit = currentAgent.selectUnit()
+    #         while selectedUnit.unitValidForTurn():
+    #             moveDict = currentAgent.selectMove(selectedUnit, self.board)
+    #             self.board.updateBoard(selectedUnit, moveDict)
+
     def pygameLoop(self):
+        print('Starting pygameLoop')
+        # for agent in self.game.allAgents:
+        #     if type(agent) != self.game.HumanAgent:
+        #         AIThread = threading.Thread(target=self.inclAI)
+        #         AIThread.daemon = True
+        #         AIThread.start()
+
         clock = pygame.time.Clock()
         run = True
+
         while run:
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    print("Quit event detected")
                     run = False
-                
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    # if self.game.getInput:
+                    if self.game.getInput:
                         if event.button == 1:
                             mousePos = pygame.mouse.get_pos()
                             print(mousePos)
 
-                            # pReturnDict = self.handleMouseInput(mousePos)
-                            # if pReturnDict["type"] == "move":
-                            #     self.game.moveQueue.put(pReturnDict["directionDict"])                 
-                            # if pReturnDict["type"] == "castAbility":
-                            #     self.game.moveQueue.put(pReturnDict["abilityDict"])
-          
-            self.updateScreen()
+                            pReturnDict = self.handleMouseInput(mousePos)
+                            if pReturnDict["type"] == "move":
+                                self.game.moveQueue.put(pReturnDict["directionDict"])                 
+                            if pReturnDict["type"] == "castAbility":
+                                self.game.moveQueue.put(pReturnDict["abilityDict"])
 
-            clock.tick(60)
+                
+
+            clock.tick(30)
+
+        pygame.display.quit()
+        pygame.quit()
+
+                # if event.type == pygame.MOUSEBUTTONDOWN:
+                #     if self.game.getInput:
+                #         if event.button == 1:
+                #             mousePos = pygame.mouse.get_pos()
+                #             print(mousePos)
+
+                #             pReturnDict = self.handleMouseInput(mousePos)
+                #             if pReturnDict["type"] == "move":
+                #                 self.game.moveQueue.put(pReturnDict["directionDict"])                 
+                #             if pReturnDict["type"] == "castAbility":
+                #                 self.game.moveQueue.put(pReturnDict["abilityDict"])
+        
+            # self.updateScreen()
 
     def drawButtons(self, validDirections, validAbilities):
         # Draw buttons for valid directions
@@ -91,25 +125,25 @@ class Pygame:
 
         pygame.display.flip()
 
-validDirections = {
-    ('E', (0, 1)):(False, []),
-    ('SE', (1, 1)):(False, []),
-    ('S', (1, 0)):(False, [])
-}
-validAbilities = [
-{'name':'Hide',
-'cost':1,
-'range':0,
-'events':[{'type': 'hide', 'target': 'self'}]}
-]
+# validDirections = {
+#     ('E', (0, 1)):(False, []),
+#     ('SE', (1, 1)):(False, []),
+#     ('S', (1, 0)):(False, [])
+# }
+# validAbilities = [
+# {'name':'Hide',
+# 'cost':1,
+# 'range':0,
+# 'events':[{'type': 'hide', 'target': 'self'}]}
+# ]
 
-a = Pygame(None)
-pygameThread = threading.Thread(target = a.pygameLoop)
-pygameThread.daemon = True
-pygameThread.start()
-self.moveQueue = queue.Queue(maxsize = 1)
-# a.drawButtons(validDirections, validAbilities)
+# a = Pygame(None)
+# pygameThread = threading.Thread(target = a.pygameLoop)
+# pygameThread.daemon = True
+# pygameThread.start()
 # moveQueue = queue.Queue(maxsize = 1)
-while True:
-    if moveQueue.get():
-        break
+# # a.drawButtons(validDirections, validAbilities)
+# # moveQueue = queue.Queue(maxsize = 1)
+# while True:
+#     if moveQueue.get():
+#         break
