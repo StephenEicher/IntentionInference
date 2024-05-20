@@ -4,8 +4,8 @@ from config import config
 class Sprites:
     def __init__(self):
         spritesDict = {
-            "Moo": pygame.image.load(r"C:\Users\Brian\Documents\IntentionInference\sprites\sprite_moo.PNG")
-
+            "Moo": pygame.image.load(r"C:\Users\Brian\Documents\IntentionInference\sprites\sprite_moo.PNG"),
+            "Haku": pygame.image.load(r"C:\Users\Brian\Documents\IntentionInference\sprites\sprite_haku.PNG")
         }
 
         self.spritesDictScaled = {}

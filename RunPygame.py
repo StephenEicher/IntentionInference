@@ -25,6 +25,7 @@ class Pygame:
 
     def pygameLoop(self):
         self.startup()
+        clock = pygame.time.Clock()
         run = True
         while run:
             for event in pygame.event.get():
@@ -42,7 +43,8 @@ class Pygame:
                                 self.game.moveQueue.put(pReturnDict)                 
                             if pReturnDict["type"] == "castAbility":
                                 self.game.moveQueue.put(pReturnDict)
-
+            
+            clock.tick(30)
             self.updateScreen()
 
         pygame.display.quit()
@@ -58,9 +60,8 @@ class Pygame:
             self.directionButtons.append((buttonRect, {directionTuple : v}))
             # Render text on button (direction)
             font = pygame.font.Font(None, 24)
-            text = font.render(directionName, True, (0, 0, 0))
-            textRect = text.get_rect(center=buttonRect.center)
-            self.screen.blit(text, textRect)
+            dText = font.render(directionName, True, (0, 0, 0))
+            dTextRect = dText.get_rect(center=buttonRect.center)
 
         # Draw buttons for valid abilities
         self.abilityButtons = []
@@ -71,46 +72,31 @@ class Pygame:
             self.abilityButtons.append((buttonRect, ability))
             # Render text on button (ability name)
             font = pygame.font.Font(None, 24)
-            text = font.render(abilityName, True, (0, 0, 0))
-            textRect = text.get_rect(center=buttonRect.center)
-            self.screen.blit(text, textRect)
-
+            aText = font.render(abilityName, True, (0, 0, 0))
+            aTextRect = aText.get_rect(center=buttonRect.center)
+        
+        return [(dText, dTextRect), (aText, aTextRect)]
+            
     def handleMouseInput(self, mousePos):
         for buttonRect, directionDict in self.directionButtons:
             if buttonRect.collidepoint(mousePos):
+                print(directionDict)
                 return {"type": "move", "directionDict": directionDict}
         for buttonRect, abilityDict in self.abilityButtons:
             if buttonRect.collidepoint(mousePos):
+                print(abilityDict)
                 return {"type": "castAbility", "abilityDict": abilityDict}
         return None
 
     def updateScreen(self):
-        # self.unitsLayer.fill((0,0,0,0))
-        # self.unitsGroup.draw(self.unitsLayer)
-        # self.screen.fill((0,0,0))
-        # self.screen.blit(self.unitsLayer, (0,0))
+        # self.unitsLayer.fill((0, 0, 0, 0))  # Clear units layer with transparent black
+        # self.unitsGroup.draw(self.unitsLayer)  # Draw units on the units layer
 
-        pygame.display.flip()
+        self.screen.fill((0, 0, 0))  # Clear the screen with black
+        # self.screen.blit(self.unitsLayer, (0, 0))  # Blit the units layer onto the screen
 
-# validDirections = {
-#     ('E', (0, 1)):(False, []),
-#     ('SE', (1, 1)):(False, []),
-#     ('S', (1, 0)):(False, [])
-# }
-# validAbilities = [
-# {'name':'Hide',
-# 'cost':1,
-# 'range':0,
-# 'events':[{'type': 'hide', 'target': 'self'}]}
-# ]
+        # Blit all text elements onto the screen
+        for text, rect in self.game.buttonsToBlit:
+            self.screen.blit(text, rect)
 
-# a = Pygame(None)
-# pygameThread = threading.Thread(target = a.pygameLoop)
-# pygameThread.daemon = True
-# pygameThread.start()
-# moveQueue = queue.Queue(maxsize = 1)
-# # a.drawButtons(validDirections, validAbilities)
-# # moveQueue = queue.Queue(maxsize = 1)
-# while True:
-#     if moveQueue.get():
-#         break
+        pygame.display.flip()  # Update the display

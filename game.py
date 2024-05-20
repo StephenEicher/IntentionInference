@@ -28,6 +28,9 @@ class GameManager:
             import RunPygame as rp
             self.gPygame = rp.Pygame(self)
             self.board = b.Board(25, 25, self.gPygame)
+            
+            self.buttonsToBlit = []
+            
             self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
             self.pygameThread.daemon = True
             self.pygameThread.start()
@@ -153,7 +156,7 @@ class HumanAgent(Agent):
         # while True:            
         if unit.canMove or unit.canAct:
             self.game.getInput = True
-            self.aPygame.drawButtons(validDirections, validAbilities)
+            self.buttonsToBlit = self.aPygame.drawButtons(validDirections, validAbilities)
             # pReturnDict = self.agentQueue.get()
                 # if pReturnDict["type"] == "move":
                 #     return pReturnDict["directionDict"]                    
