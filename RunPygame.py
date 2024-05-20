@@ -13,6 +13,7 @@ class Pygame:
 
         self.directionButtons = []
         self.abilityButtons = []
+        self.buttonsToBlit = []
 
     def startup(self):
         pygame.init()
@@ -44,8 +45,8 @@ class Pygame:
                             if pReturnDict["type"] == "castAbility":
                                 self.game.moveQueue.put(pReturnDict)
             
-            clock.tick(30)
             self.updateScreen()
+            clock.tick(30)
 
         pygame.display.quit()
         pygame.quit()
@@ -62,6 +63,8 @@ class Pygame:
             font = pygame.font.Font(None, 24)
             dText = font.render(directionName, True, (0, 0, 0))
             dTextRect = dText.get_rect(center=buttonRect.center)
+            self.buttonsToBlit.append((dText, dTextRect))
+            # self.screen.blit(dText, dTextRect)
 
         # Draw buttons for valid abilities
         self.abilityButtons = []
@@ -74,9 +77,14 @@ class Pygame:
             font = pygame.font.Font(None, 24)
             aText = font.render(abilityName, True, (0, 0, 0))
             aTextRect = aText.get_rect(center=buttonRect.center)
-        
-        return [(dText, dTextRect), (aText, aTextRect)]
-            
+            self.buttonsToBlit.append((aText, aTextRect))
+            # self.screen.blit(aText, aTextRect)
+
+        # for text, rect in self.buttonsToBlit:
+        #     self.screen.blit(text, rect)
+
+        # pygame.display.update()
+
     def handleMouseInput(self, mousePos):
         for buttonRect, directionDict in self.directionButtons:
             if buttonRect.collidepoint(mousePos):
@@ -89,14 +97,15 @@ class Pygame:
         return None
 
     def updateScreen(self):
-        # self.unitsLayer.fill((0, 0, 0, 0))  # Clear units layer with transparent black
-        # self.unitsGroup.draw(self.unitsLayer)  # Draw units on the units layer
+        print('!')
+        self.unitsLayer.fill((0, 0, 0, 0))  # Clear units layer with transparent black
+        self.unitsGroup.draw(self.unitsLayer)  # Draw units on the units layer
 
         self.screen.fill((0, 0, 0))  # Clear the screen with black
-        # self.screen.blit(self.unitsLayer, (0, 0))  # Blit the units layer onto the screen
+        self.screen.blit(self.unitsLayer, (0, 0))  # Blit the units layer onto the screen
 
-        # Blit all text elements onto the screen
-        for text, rect in self.game.buttonsToBlit:
+        # # Blit all text elements onto the screen
+        for text, rect in self.buttonsToBlit:
             self.screen.blit(text, rect)
 
-        pygame.display.flip()  # Update the display
+        pygame.display.update()  # Update the display
