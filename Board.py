@@ -4,7 +4,7 @@ import numpy as np
 from  opensimplex import OpenSimplex
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter, zoom
-from skimage.morphology import disk
+# from skimage.morphology import disk
 
 import Units as u
 import GameObjects as go
