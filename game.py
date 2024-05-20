@@ -156,7 +156,7 @@ class HumanAgent(Agent):
         # while True:            
         if unit.canMove or unit.canAct:
             self.game.getInput = True
-            self.aPygame.drawButtons(validDirections, validAbilities)
+            self.aPygame.drawButtons(validDirections, validAbilities, unit)
             
             # pReturnDict = self.agentQueue.get()
                 # if pReturnDict["type"] == "move":
