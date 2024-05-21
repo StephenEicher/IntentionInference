@@ -42,10 +42,11 @@ class Pygame:
                     print("Quit event detected")
                     run = False
                 if self.game.getInput:
-                    self.trackMouseAndDisplayMove(mousePos)
+                    pReturnDict = self.trackMouseAndDisplayMove(mousePos)
                     if event.type == pygame.MOUSEBUTTONDOWN:
                         if event.button == 1:
-                            pReturnDict = self.handleMouseInput(mousePos)
+                            print(pReturnDict)
+                            # pReturnDict = self.handleMouseInput(mousePos)
                             if not pReturnDict:
                                 continue
                             if pReturnDict["type"] == "move":
@@ -81,12 +82,11 @@ class Pygame:
         for i, (dirId, matCoord) in enumerate(self.validDirections.keys()):
             if dirId== queryDirId:
                 key = (dirId, matCoord)
-
-        print(key)
+                v = self.validDirections[key]
+                break
         if key is None:
-            print('ERROR! Direction not valid!')
+            return None
         else:
-            curDirectionTuple = self.validDirections[key]
             image = self.unitToMove.image
             image = image.convert_alpha()
             newRect = self.unitToMove.image.get_rect()
@@ -95,23 +95,26 @@ class Pygame:
             image.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
             self.prevRects.append((newRect, image))
 
+            
+        return {"type": "move", "directionDict": {key: v}}
+
 
     def drawButtons(self, validDirections, validAbilities, unit):
         self.directionButtons = []
         self.buttonsToBlit = []  # Initialize the list to store buttons and text
         self.unitToMove = unit
         self.validDirections = validDirections
-        # Draw buttons for valid directions
-        for i, (directionTuple, v) in enumerate(validDirections.items()):
-            buttonRect = pygame.Rect(10, 50 * i, 100, 40)  # Adjust dimensions as needed
-            self.directionButtons.append((buttonRect, {directionTuple: v}))
-            # Render text on button (direction)
-            font = pygame.font.Font(None, 24)
-            directionName = directionTuple[0]
-            dText = font.render(directionName, True, (0, 0, 0))
-            dTextRect = dText.get_rect(center=buttonRect.center)
-            color = (0, 255, 0)
-            self.buttonsToBlit.append((buttonRect, dText, dTextRect, color))
+        # # Draw buttons for valid directions
+        # for i, (directionTuple, v) in enumerate(validDirections.items()):
+        #     buttonRect = pygame.Rect(10, 50 * i, 100, 40)  # Adjust dimensions as needed
+        #     self.directionButtons.append((buttonRect, {directionTuple: v}))
+        #     # Render text on button (direction)
+        #     font = pygame.font.Font(None, 24)
+        #     directionName = directionTuple[0]
+        #     dText = font.render(directionName, True, (0, 0, 0))
+        #     dTextRect = dText.get_rect(center=buttonRect.center)
+        #     color = (0, 255, 0)
+        #     self.buttonsToBlit.append((buttonRect, dText, dTextRect, color))
 
         # Draw buttons for valid abilities
         for i, ability in enumerate(validAbilities):
