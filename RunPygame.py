@@ -15,6 +15,7 @@ class Pygame:
 
         self.abilityButtons = []
         self.unitButtons = []
+        self.unitButtonsToBlit = []
         self.buttonsToBlit = []
         self.unitToMove = None
         self.validDirections = None
@@ -101,18 +102,18 @@ class Pygame:
                 image.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
                 self.prevRects.append((newRect, image))
 
-                
             return {"type": "move", "directionDict": {key: v}}
+       
         else:
             return None
 
     def drawSelectUnit(self, unitIDs, unitRefs):
-        self.buttonsToBlit = []  # Initialize the list to store buttons and text
+        # self.buttonsToBlit = []  # Initialize the list to store buttons and text
         self.game.getInput = True
         for i, id in enumerate(unitIDs):
-            buttonRect = pygame.Rect(10, self.screen.get_height() - (50 * (len(unitRefs) - i)), 200, 40)  # Adjust dimensions as needed
+            buttonRect = pygame.Rect((720 + 144), (50 * (len(unitRefs) - i)), 50, 40)  # Adjust dimensions as needed
             image = unitRefs[i].image
-            self.buttonsToBlit.append((buttonRect, image, buttonRect, (0, 0, 255)))
+            self.unitButtonsToBlit.append((buttonRect, image, buttonRect, (0, 0, 255)))
             self.unitButtons.append((buttonRect, id))
 
     def drawButtons(self, validDirections, validAbilities, unit):
@@ -121,7 +122,6 @@ class Pygame:
         self.unitToMove = unit
         self.validDirections = validDirections
 
-    
         # Draw buttons for valid abilities
         for i, ability in enumerate(validAbilities):
             buttonRect = pygame.Rect(10, self.screen.get_height() - (50 * (len(validAbilities) - i)), 200, 40)  # Adjust dimensions as needed
@@ -157,6 +157,12 @@ class Pygame:
 
         for (rect, image) in self.prevRects:
             self.screen.blit(image, rect)
+
+        # Blit all text elements and draw rectangles onto the screen
+        for buttonRect, text, rect, color in self.unitButtonsToBlit:
+            pygame.draw.rect(self.screen, color, buttonRect)  # Draw the rectangle
+            if text is not None:
+                self.screen.blit(text, rect)  # Blit the text on top of the rectangle
 
         # Blit all text elements and draw rectangles onto the screen
         for buttonRect, text, rect, color in self.buttonsToBlit:

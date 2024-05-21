@@ -13,11 +13,12 @@ class Sprites:
             self.spritesDictScaled[name] = pygame.transform.scale(surface, (config.widthFactor, config.heightFactor))
 
 class Unit:
-    def __init__(self, agentIndex, unitID, position):
+    def __init__(self, agentIndex, unitID, position, game):
         self.agentIndex = agentIndex
         self.ID = unitID
         self.unitSymbol = "U"
         self.position = position
+        self.game = game
 
         self.Alive = True
         self.Avail = True  # Available to select from team of units to move/act with
@@ -68,12 +69,12 @@ class Unit:
         return abilities
 
     def unitValidForTurn(self):
-        if self.currentHP > 0 or self.currentMovement > 0 or self.currentActionPoints > 0:
+        if self.currentHP > 0 and (self.canMove or self.canAct):
             return True
 
 class UnitSprite(Unit, pygame.sprite.Sprite):
-    def __init__(self, agentIndex, unitID, position, image):
-        super().__init__(agentIndex, unitID, position)
+    def __init__(self, agentIndex, unitID, position, game, image):
+        super().__init__(agentIndex, unitID, position, game)
         pygame.sprite.Sprite.__init__(self)
 
         rectTopLeft = self.convertToRect(position)

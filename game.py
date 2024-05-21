@@ -27,7 +27,7 @@ class GameManager:
             print('Including pygame...')
             import RunPygame as rp
             self.gPygame = rp.Pygame(self)
-            self.board = b.Board(25, 25, self.gPygame)
+            self.board = b.Board(25, 25, self, self.gPygame)
             
             self.buttonsToBlit = []
             
@@ -36,7 +36,7 @@ class GameManager:
             self.pygameThread.start()
 
         else:
-            self.board = b.Board(25, 25, None)
+            self.board = b.Board(25, 25, self, None)
         time.sleep(1)
         allUnits = self.board.initializeUnits()
         team0 = []
@@ -64,11 +64,11 @@ class GameManager:
             
             selectedUnit = currentAgent.selectUnit()
             while selectedUnit.unitValidForTurn():
+                print(f'Can act: {selectedUnit.canAct}')
+                print(f'Can move: {selectedUnit.canMove}')
                 currentAgent.selectMove(selectedUnit, self.board)
                 moveDict = self.moveQueue.get()
                 print(moveDict)
-                if moveDict.get("type") == "swap":
-                    break
                 self.board.updateBoard(selectedUnit, moveDict)
                 self.getInput = False
 
@@ -117,8 +117,10 @@ class HumanAgent(Agent):
     def selectMove(self, unit, board):
         validDirections = board.getValidDirections(unit)
         allAbilities = board.getValidAbilities(unit)
-        validAbilities = allAbilities[0] # Returns list of dictionaries
+        self.validAbilities = allAbilities[0] # Returns list of dictionaries
         invalidAbilities = allAbilities[1]
+        if len(self.validAbilities) == 0:
+            unit.canAct = False
 
         # rely on queue system to communicate pygame input directly to the game loop
         # probably just make more variables on agents assigned by Board operations instance-wide and accessible to pygame class somehow..
@@ -159,7 +161,7 @@ class HumanAgent(Agent):
         # while True:            
         if unit.canMove or unit.canAct:
             self.game.getInput = True
-            self.aPygame.drawButtons(validDirections, validAbilities, unit)
+            self.aPygame.drawButtons(validDirections, self.validAbilities, unit)
             
             # pReturnDict = self.agentQueue.get()
                 # if pReturnDict["type"] == "move":

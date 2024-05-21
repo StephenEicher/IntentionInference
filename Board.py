@@ -251,10 +251,11 @@ class eMeleeRangeTargets:
 class Board:
     defaultMinPoint = (0,0)
 
-    def __init__(self, maxY, maxX, pygame = None):
+    def __init__(self, maxY, maxX, game, pygame = None):
         self.maxY = maxY
         self.maxX = maxX
         self.maxPoint = (maxX, maxY)
+        self.game = game
         self.bPygame = pygame
         # self.allElemPositions = set()
         # self.allSeedPositions = set()
@@ -284,13 +285,13 @@ class Board:
         self.unitsMap = self.instUM.map
 
         if self.bPygame:
-            p1a = u.UnitSprite(0, 1, (0,0), self.bPygame.spritesImageDict.get("Moo"))
+            p1a = u.UnitSprite(0, 1, (0,0), self.game, self.bPygame.spritesImageDict.get("Moo"))
             self.bPygame.unitsGroup.add(p1a)
-            p1b = u.UnitSprite(0, 2, (24,24), self.bPygame.spritesImageDict.get("Moo"))
+            p1b = u.UnitSprite(0, 2, (24,24), self.game, self.bPygame.spritesImageDict.get("Moo"))
             self.bPygame.unitsGroup.add(p1b)
-            p2a = u.UnitSprite(1, 3, (6,6), self.bPygame.spritesImageDict.get("Haku"))
+            p2a = u.UnitSprite(1, 3, (6,6), self.game, self.bPygame.spritesImageDict.get("Haku"))
             self.bPygame.unitsGroup.add(p2a)
-            p2b = u.UnitSprite(1, 4, (7,7), self.bPygame.spritesImageDict.get("Haku"))
+            p2b = u.UnitSprite(1, 4, (7,7), self.game, self.bPygame.spritesImageDict.get("Haku"))
             self.bPygame.unitsGroup.add(p2b)
 
         self.unitsMap[0][0] = p1a
@@ -570,10 +571,11 @@ class Board:
                 self.unitsMap[destination[1][0]][destination[1][1]] = self.unitsMap[entity.position[0]][entity.position[1]] # (Y, X) format
                 self.unitsMap[entity.position[0]][entity.position[1]] = None
                 entity.position = (destination[1][0], destination[1][1])
-                
+                print(f'Current movement: {entity.currentMovement}')
+
                 if self.bPygame:
                     entity.rect.topleft = entity.convertToRect((destination[1][0], destination[1][1]))
-                    entity.currentMovement -= 1
+                    entity.currentMovement = 0
 
                 if entity.currentMovement == 0:
                     entity.canMove = False
