@@ -103,10 +103,13 @@ class HumanAgent(Agent):
             waitingUnitsIDs.append(unit.ID)
 
         print((f"\nSelect from avail Units: {waitingUnitsIDs}\n"))
+        
+        # selectedUnitStr = input()
+        # print(selectedUnitStr)
+        self.aPygame.drawSelectUnit(waitingUnitsIDs, waitingUnits)
         time.sleep(0.1)
-        selectedUnitStr = input()
-        print(selectedUnitStr)
-
+        unitDict = self.game.moveQueue.get()
+        selectedUnitStr = unitDict["unit"]
         for unit in waitingUnits:
             if unit.ID == int(selectedUnitStr):
                 return unit
