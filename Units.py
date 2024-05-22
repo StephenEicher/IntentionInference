@@ -31,7 +31,7 @@ class Unit:
         self.jump = 2
         self.actionPoints = 2
         
-        # Initialize current stats as instance variables
+        # Initialize current stats
         self.currentHP = self.HP
         self.currentMovement = self.movement
         self.currentJump = self.jump
@@ -56,21 +56,26 @@ class Unit:
                     {"type": "move", "target": "targetunit", "distance": 1},
                     {"type": "changeActionPoints", "target": "self", "value": -1},
                 ]
-            },
-            {
-                "name": "Hide",
-                "cost": 1,
-                "range": 0,
-                "events": [
-                    {"type": "hide", "target": "self"}
-                ]
             }
+            # ,
+            # {
+            #     "name": "Hide",
+            #     "cost": 1,
+            #     "range": 0,
+            #     "events": [
+            #         {"type": "hide", "target": "self"}
+            #     ]
+            # }
         ]
         return abilities
 
     def unitValidForTurn(self):
         if self.currentHP > 0 and (self.canMove or self.canAct):
             return True
+        else:
+            print("toggling to False!")
+            self.Avail = False
+            return False
 
 class UnitSprite(Unit, pygame.sprite.Sprite):
     def __init__(self, agentIndex, unitID, position, game, image):

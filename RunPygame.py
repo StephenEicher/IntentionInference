@@ -42,24 +42,25 @@ class Pygame:
                 if event.type == pygame.QUIT:
                     print("Quit event detected")
                     run = False
-                if self.game.getInput:
 
-                    mouseTrackReturn = self.trackMouseAndDisplayMove(mousePos)
-                    if event.type == pygame.MOUSEBUTTONDOWN:
-                        if event.button == 1:
+                mouseTrackReturn = self.trackMouseAndDisplayMove(mousePos)
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        if self.game.getInput:
                             pReturnDict = self.handleMouseInput(mousePos)
                             if pReturnDict is None:
                                 pReturnDict = mouseTrackReturn
-                            if not pReturnDict:
-                                continue
+                                if pReturnDict is None:
+                                    continue
                             if pReturnDict["type"] == "move":
                                 self.game.moveQueue.put(pReturnDict)                 
                             if pReturnDict["type"] == "castAbility":
                                 self.game.moveQueue.put(pReturnDict)
                             if pReturnDict["type"] == "unit":
                                 self.game.moveQueue.put(pReturnDict)
+                        else:
+                            continue
 
-            
             self.updateScreen()
             clock.tick(30)
 
@@ -87,7 +88,7 @@ class Pygame:
             queryDirId = dirs[index]
             key = None
             for i, (dirId, matCoord) in enumerate(self.validDirections.keys()):
-                if dirId== queryDirId:
+                if dirId == queryDirId:
                     key = (dirId, matCoord)
                     v = self.validDirections[key]
                     break
@@ -109,6 +110,8 @@ class Pygame:
 
     def drawSelectUnit(self, unitIDs, unitRefs):
         # self.buttonsToBlit = []  # Initialize the list to store buttons and text
+        self.unitButtonsToBlit = []
+        self.unitButtons = []
         self.game.getInput = True
         for i, id in enumerate(unitIDs):
             buttonRect = pygame.Rect((720 + 144), (50 * (len(unitRefs) - i)), 50, 40)  # Adjust dimensions as needed

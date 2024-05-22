@@ -58,26 +58,35 @@ class GameManager:
         if self.inclPygame:
             self.moveQueue = queue.Queue(maxsize=1)            
             
-        while not self.gameOver:
+        while self.gameOver is False:
             currentAgent = self.allAgents[self.agentTurnIndex]
             print(f"-------- {currentAgent.name}'s turn --------")
-            
             selectedUnit = currentAgent.selectUnit()
+            print(f"Selected {selectedUnit.ID}")
             while selectedUnit.unitValidForTurn():
-                print(f'Can act: {selectedUnit.canAct}')
-                print(f'Can move: {selectedUnit.canMove}')
                 currentAgent.selectMove(selectedUnit, self.board)
                 moveDict = self.moveQueue.get()
-                print(moveDict)
+                if moveDict["type"] == "unit":
+                    self.moveQueue.put(moveDict) # Need to re-insert the dict so that .get() when called during unit selection can pull the dictionary too
+                    break
                 self.board.updateBoard(selectedUnit, moveDict)
                 self.getInput = False
+            
+            if selectedUnit.Avail is False:
+                print("Unit is NOT Avail!")
+                self.gPygame.unitToMove = None
+            else:
+                continue
+            
+            totalUnavail = 0
+            for unit in currentAgent.team:
+                if unit.Avail:
+                    break
+                else:
+                    totalUnavail += 1
 
-            # self.gameState += 0.5
-
-            # if turnFinished == True:
-            #     self.agentTurnIndex = 1
-
-            # if self.agentTurnIndex == 1:
+            if len(currentAgent.team) == totalUnavail:
+                self.agentTurnIndex ^= 1
 
 class Agent(metaclass=abc.ABCMeta):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):       

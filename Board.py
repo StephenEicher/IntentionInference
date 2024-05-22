@@ -575,7 +575,7 @@ class Board:
 
                 if self.bPygame:
                     entity.rect.topleft = entity.convertToRect((destination[1][0], destination[1][1]))
-                    entity.currentMovement = 0
+                    entity.currentMovement -= 1
 
                 if entity.currentMovement == 0:
                     entity.canMove = False
