@@ -59,7 +59,6 @@ class Unit:
             }
         ]
         return abilities
-
     def unitValidForTurn(self):
         if self.currentHP > 0 and (self.canMove or self.canAct):
             return True
@@ -67,6 +66,15 @@ class Unit:
             print("toggling to False!")
             self.Avail = False
             return False
+        
+class meleeUnit(Unit):
+    def __init__(self, agentIndex, unitID, position, game):
+        super().__init__(agentIndex, unitID, position, game)
+        self.unitSymbol = "M"
+        self.movement = 2
+        self.currentMovement = 2
+        self.HP = 200
+        self.currentHP = 200
 
 class UnitSprite(Unit, pygame.sprite.Sprite):
     def __init__(self, agentIndex, unitID, position, game, image):
@@ -85,3 +93,4 @@ class UnitSprite(Unit, pygame.sprite.Sprite):
         rectY = position[0] * config.heightFactor
 
         return (rectX, rectY)
+    
