@@ -287,13 +287,13 @@ class Board:
 
         if self.bPygame:
             p1a = u.Unit(0, 1, (0,0), self.game, self.bPygame.spritesImageDict.get("Moo"))
-            self.bPygame.unitsGroup.add(p1a.sprite)
+            self.bPygame.spriteGroup.add(p1a.sprite)
             p1b = u.Unit(0, 2, (0,1), self.game, self.bPygame.spritesImageDict.get("Moo"))
-            self.bPygame.unitsGroup.add(p1b.sprite)
+            self.bPygame.spriteGroup.add(p1b.sprite)
             p2a = u.Unit(1, 3, (1,0), self.game, self.bPygame.spritesImageDict.get("Haku"))
-            self.bPygame.unitsGroup.add(p2a.sprite)
+            self.bPygame.spriteGroup.add(p2a.sprite)
             p2b = u.Unit(1, 4, (1,1), self.game, self.bPygame.spritesImageDict.get("Haku"))
-            self.bPygame.unitsGroup.add(p2b.sprite)
+            self.bPygame.spriteGroup.add(p2b.sprite)
             print(f"p2a rect: {p2a.sprite.rect.topleft}")
             print(f"p2b rect: {p2b.sprite.rect.topleft}")
 
@@ -302,9 +302,6 @@ class Board:
         self.unitsMap[1][0] = p2a
         self.unitsMap[1][1] = p2b
 
-
-
-        # self.bPygame.updateScreen()
         self.drawMap(self.unitsMap)
 
         return [p1a, p1b, p2a, p2b]
@@ -594,7 +591,7 @@ class Board:
                     entity.currentActionPoints += event["value"]
         
     def withinRange(self, entity, ability):
-        
+        pass
 
     def drawMap(self, map):
             # cMap = plt.cm.terrain

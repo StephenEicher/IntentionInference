@@ -52,7 +52,6 @@ class GameManager:
         self.gameLoop()
           
     def gameLoop(self):
-        print('Starting gameLoop...')
         if len(self.p1.team) == 0 and len(self.p2.team) == 0:
             self.gameOver = True
 
@@ -62,7 +61,7 @@ class GameManager:
             
         while self.gameOver is False:
             self.currentAgent = self.allAgents[self.agentTurnIndex]
-            print(f"-------- {self.currentAgent.name}'s turn --------")
+            print(f"\n-------- {self.currentAgent.name}'s turn --------")
             selectedUnit = self.currentAgent.selectUnit()
             print(f"Selected {selectedUnit.ID}")
             while selectedUnit.unitValidForTurn():
@@ -156,7 +155,12 @@ class HumanAgent(Agent):
     def selectTarget(self, ability):
         self.game.getTarget = True
         self.game.gPygame.unitToMove = None
+        if ability.get("range") == 1:
+            self.validTargets = self.game.board.meleeRangeTargets
+        # if ability.get("range") > 1:
+        #     self.validTargets = self.board.rangedRangeTargets
         castTarget = self.game.targetQueue.get()
+        self.validTargets = None
         self.game.getTarget = False
         return castTarget
 

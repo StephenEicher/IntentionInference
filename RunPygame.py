@@ -7,6 +7,7 @@ import queue
 import sys
 import numpy as np
 import copy
+import queue
 
 class Pygame:
     def __init__(self, game):
@@ -34,7 +35,7 @@ class Pygame:
     def startup(self):
         pygame.init()
         self.unitsLayer = pygame.Surface((self.c.windowWidth, self.c.windowHeight), pygame.SRCALPHA)
-        self.unitsGroup = pygame.sprite.Group()
+        self.spriteGroup = pygame.sprite.Group()
         
         temp = u.Sprites()
         self.spritesImageDict = temp.spritesDictScaled
@@ -209,20 +210,26 @@ class Pygame:
 
     def trackMouseHover(self, mousePos):
         self.hoveredSprite = None  # Reset hovered sprite before checking
-        for sprite in self.unitsGroup:
+        for sprite in self.spriteGroup:
             if sprite.rect.collidepoint(mousePos):
                 self.hoveredSprite = sprite
+                self.displayStats(self.hoveredSprite)
                 break  # Stop checking once a hovering sprite is found
 
-    def handleTargeting(self, mousePos):
-        for sprite in self.unitsGroup:
-            if sprite.rect.collidepoint(mousePos):
-                if self.board.withinRange(mousePos, sprite):
-                    return sprite
+    def displayStats(self, sprite):
+        pass
 
+    def handleTargeting(self, mousePos):
+        for sprite in self.spriteGroup:
+            if sprite.rect.collidepoint(mousePos):
+                for unit in self.game.currentAgent.validTargets:
+                    if sprite.parent.ID == unit.ID:
+                        return sprite
+                print("not within range!")
+                    
     def updateScreen(self):
         self.unitsLayer.fill((0, 0, 0, 0))  # Clear units layer with transparent black
-        self.unitsGroup.draw(self.unitsLayer)  # Draw units on the units layer
+        self.spriteGroup.draw(self.unitsLayer)  # Draw units on the units layer
         if self.hoveredSprite is not None:
             self.unitsLayer.blit(self.uiElementsScaled["select_hover"], self.hoveredSprite.rect)
 
