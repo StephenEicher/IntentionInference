@@ -17,9 +17,19 @@ class Pygame:
         self.unitButtons = []
         self.unitButtonsToBlit = []
         self.buttonsToBlit = []
+        self.spriteButtons = []
         self.unitToMove = None
         self.validDirections = None
         self.prevRects = []
+        self.hoveredSprite = None
+
+        uiElements = {
+            "select_hover": pygame.image.load(r".\sprites\select_target_hover.PNG"),
+            "select_confirm": pygame.image.load(r".\sprites\select_target_confirm.PNG")
+        }
+        self.uiElementsScaled = {}
+        for name, surface in uiElements.items():
+            self.uiElementsScaled[name] = pygame.transform.scale(surface, (self.c.widthFactor, self.c.heightFactor))
 
     def startup(self):
         pygame.init()
@@ -34,8 +44,7 @@ class Pygame:
         self.startup()
         clock = pygame.time.Clock()
         run = True
-       
-
+    
         while run:
             mousePos = pygame.mouse.get_pos()
             for event in pygame.event.get():
@@ -44,6 +53,8 @@ class Pygame:
                     run = False
 
                 mouseTrackReturn = self.trackMouseAndDisplayMove(mousePos)
+                self.trackMouseHover(mousePos)
+                
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         if self.game.getInput:
@@ -58,6 +69,12 @@ class Pygame:
                                 self.game.moveQueue.put(pReturnDict)
                             if pReturnDict["type"] == "unit":
                                 self.game.moveQueue.put(pReturnDict)
+                            if self.game.getTarget:
+                                pReturnSprite = self.handleTargeting()
+                                if pReturnSprite is None:
+                                    continue
+                                else:
+                                    self.targetQueue.put(pReturnSprite)
                         else:
                             continue
 
@@ -69,7 +86,6 @@ class Pygame:
         self.game.gameOver = True
         self.game.moveQueue.put({}) #This is just to get past the waiting for input portion in the game loop
     
-
     def trackMouseAndDisplayMove(self,mousePos):
         self.prevRects = []
         if self.unitToMove is not None:
@@ -141,19 +157,29 @@ class Pygame:
     def handleMouseInput(self, mousePos):
         for buttonRect, unitId in self.unitButtons:
             if buttonRect.collidepoint(mousePos):
-                print(unitId)
                 return {"type": "unit", "unit": unitId}
         for buttonRect, abilityDict in self.abilityButtons:
             if buttonRect.collidepoint(mousePos):
-                print(abilityDict)
                 return {"type": "castAbility", "abilityDict": abilityDict}
         return None
-    
 
+    def trackMouseHover(self, mousePos):
+        self.hoveredSprite = None  # Reset hovered sprite before checking
+        for sprite in self.unitsGroup:
+            if sprite.rect.collidepoint(mousePos):
+                self.hoveredSprite = sprite
+                break  # Stop checking once a hovering sprite is found
+
+    def handleTargeting(self, mousePos):
+        for sprite in self.unitsGroup:
+            if sprite.rect.collidepoint(mousePos):
+                return sprite
 
     def updateScreen(self):
         self.unitsLayer.fill((0, 0, 0, 0))  # Clear units layer with transparent black
         self.unitsGroup.draw(self.unitsLayer)  # Draw units on the units layer
+        if self.hoveredSprite is not None:
+            self.unitsLayer.blit(self.uiElementsScaled["select_hover"], self.hoveredSprite.rect)
 
         self.screen.fill((0, 0, 0))  # Clear the screen with black
         self.screen.blit(self.unitsLayer, (0, 0))  # Blit the units layer onto the screen

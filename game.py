@@ -18,7 +18,9 @@ class GameManager:
         self.gameOver = False
         self.inclPygame = inclPygame
         # self.gameLoopEvent = threading.Event()
+        self.currentAgent = None
         self.getInput = False
+        self.getTarget = False
         self.inputReady = False
         self.start()
 
@@ -26,11 +28,10 @@ class GameManager:
         if self.inclPygame:
             print('Including pygame...')
             import RunPygame as rp
-            self.gPygame = rp.Pygame(self)
-            self.board = b.Board(25, 25, self, self.gPygame)
-            
+            self.gPygame = rp.Pygame(self)            
             self.buttonsToBlit = []
-            
+            self.board = b.Board(25, 25, self, self.gPygame)
+
             self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
             self.pygameThread.daemon = True
             self.pygameThread.start()
@@ -56,15 +57,16 @@ class GameManager:
             self.gameOver = True
 
         if self.inclPygame:
-            self.moveQueue = queue.Queue(maxsize=1)            
+            self.moveQueue = queue.Queue(maxsize=1)
+            self.targetQueue = queue.Queue(maxsize=1)            
             
         while self.gameOver is False:
-            currentAgent = self.allAgents[self.agentTurnIndex]
-            print(f"-------- {currentAgent.name}'s turn --------")
-            selectedUnit = currentAgent.selectUnit()
+            self.currentAgent = self.allAgents[self.agentTurnIndex]
+            print(f"-------- {self.currentAgent.name}'s turn --------")
+            selectedUnit = self.currentAgent.selectUnit()
             print(f"Selected {selectedUnit.ID}")
             while selectedUnit.unitValidForTurn():
-                currentAgent.selectMove(selectedUnit, self.board)
+                self.currentAgent.selectMove(selectedUnit, self.board)
                 moveDict = self.moveQueue.get()
                 if moveDict["type"] == "unit":
                     self.moveQueue.put(moveDict) # Need to re-insert the dict so that .get() when called during unit selection can pull the dictionary too
@@ -79,13 +81,13 @@ class GameManager:
                 continue
             
             totalUnavail = 0
-            for unit in currentAgent.team:
+            for unit in self.currentAgent.team:
                 if unit.Avail:
                     break
                 else:
                     totalUnavail += 1
 
-            if len(currentAgent.team) == totalUnavail:
+            if len(self.currentAgent.team) == totalUnavail:
                 self.agentTurnIndex ^= 1
 
 class Agent(metaclass=abc.ABCMeta):
@@ -125,81 +127,20 @@ class HumanAgent(Agent):
 
     def selectMove(self, unit, board):
         validDirections = board.getValidDirections(unit)
+        print(validDirections)
         allAbilities = board.getValidAbilities(unit)
         self.validAbilities = allAbilities[0] # Returns list of dictionaries
         invalidAbilities = allAbilities[1]
         if len(self.validAbilities) == 0:
             unit.canAct = False
 
-        # rely on queue system to communicate pygame input directly to the game loop
-        # probably just make more variables on agents assigned by Board operations instance-wide and accessible to pygame class somehow..
-        # this seems it would require both instances of the agent classes to be passed to pygame at initialization?
-        # the issue then is added complexity in terms of first parsing which agent to call on? maybe not so difficult to implement..
-
-        # also troubleshoot incorrect mouse coordinates during click input event
-
-        # print(f"Current HP: {unit.currentHP}")
-        # if unit.canMove:
-        #     print(f"\nMovement = {unit.currentMovement}. Available directions:\n")
-        #     for direction, value in validDirections.items():
-        #         fallDamage = value[0]
-        #         surfacesList = value[1]
-        #         allNames = []
-        #         for surface in surfacesList:
-        #             if surface != []:
-        #                 surfaceName = surface.debugName
-        #                 allNames.append(surfaceName)
-
-        #         print("".join(f"{direction}: fall damage = {fallDamage}, surfaces = {allNames}\n"))
-
-        #     validDirectionNames = [direction[0] for direction in validDirections.keys()]
-
-        # if not unit.canMove:
-        #     print("\nOut of movement!\n")
-
-        # if unit.canAct:
-        #     print(f"\nAction Points = {unit.currentActionPoints}. Valid abilities:\n")
-        #     for ability in validAbilities:
-        #         name = ability.get("name")
-        #         cost = ability.get("cost")
-        #         print("".join([f"{name}: {cost}\n"]))
-        #     print("--------------------------")
-        #     print("Unavailable abilities:\n")
-        #     print("\n".join([f"{name}: {cost}" for name, cost in invalidAbilities.items()]))
-
-        # while True:            
         if unit.canMove or unit.canAct:
             self.game.getInput = True
             self.aPygame.drawButtons(validDirections, self.validAbilities, unit)
-            
-            # pReturnDict = self.agentQueue.get()
-                # if pReturnDict["type"] == "move":
-                #     return pReturnDict["directionDict"]                    
-                # if pReturnDict["type"] == "castAbility":
-                #     return pReturnDict["abilityDict"]
-                # else:
-                #     continue
 
-                # agentInput = input("\nTo move in an available direction, type the direction. To cast ability, type the ability. To swap, type 'swap'\n")
+    def selectTarget(self, ability):
+        self.getTarget = True
+        castTarget = self.game.targetQueue.get()
+        return castTarget
 
-                # if agentInput == "swap":
-                #     returnDict = {"type" : "swap"}
-                #     return returnDict
-                # if unit.canMove:
-                #     if agentInput in validDirectionNames:
-                #         returnDict = {"type" : "move"}
-                #         for direction, value in validDirections.items():
-                #             if agentInput == direction[0]:
-                #                 returnDict[direction] = value
-
-                # if unit.canAct:
-                #     for ability in validAbilities:
-                #         if agentInput in ability.get("name"):
-                #             returnDict = {"type" : "castAbility"}
-                #             target = board.getTarget(ability)
-                #             returnDict["target"] = target
-                #             returnDict["ability"] = ability
-
-            # return returnDict
-        
 a = GameManager(True)

@@ -5,6 +5,7 @@ from  opensimplex import OpenSimplex
 import matplotlib.pyplot as plt
 from scipy.ndimage import gaussian_filter, zoom
 # from skimage.morphology import disk
+import queue
 
 import Units as u
 import GameObjects as go
@@ -287,17 +288,17 @@ class Board:
         if self.bPygame:
             p1a = u.UnitSprite(0, 1, (0,0), self.game, self.bPygame.spritesImageDict.get("Moo"))
             self.bPygame.unitsGroup.add(p1a)
-            p1b = u.UnitSprite(0, 2, (24,24), self.game, self.bPygame.spritesImageDict.get("Moo"))
+            p1b = u.UnitSprite(0, 2, (0,1), self.game, self.bPygame.spritesImageDict.get("Moo"))
             self.bPygame.unitsGroup.add(p1b)
-            p2a = u.UnitSprite(1, 3, (6,6), self.game, self.bPygame.spritesImageDict.get("Haku"))
+            p2a = u.UnitSprite(1, 3, (1,0), self.game, self.bPygame.spritesImageDict.get("Haku"))
             self.bPygame.unitsGroup.add(p2a)
-            p2b = u.UnitSprite(1, 4, (7,7), self.game, self.bPygame.spritesImageDict.get("Haku"))
+            p2b = u.UnitSprite(1, 4, (1,1), self.game, self.bPygame.spritesImageDict.get("Haku"))
             self.bPygame.unitsGroup.add(p2b)
 
         self.unitsMap[0][0] = p1a
-        self.unitsMap[24][24] = p1b
-        self.unitsMap[6][6] = p2a
-        self.unitsMap[7][7] = p2b
+        self.unitsMap[0][1] = p1b
+        self.unitsMap[1][0] = p2a
+        self.unitsMap[1][1] = p2b
 
         print(f"p2a rect: {p2a.rect.topleft}")
         print(f"p2b rect: {p2b.rect.topleft}")
@@ -449,14 +450,14 @@ class Board:
 
         return (validAbilities, invalidAbilities)
     
-    def getTarget(self, ability):
-        if ability.get("range") == 1:
-            print("\nAvailable targets:") 
-            unitIDs = [unit.unitID for unit in self.meleeRangeTargets]
-            targetUnitID = int(input(f"To select target, type its unitID: {unitIDs}\n"))
-            for unit in self.meleeRangeTargets:
-                if targetUnitID == unit.unitID:
-                    return unit
+    # def getTarget(self, ability):
+        # if ability.get("range") == 1:
+            # print("\nAvailable targets:") 
+            # unitIDs = [unit.ID for unit in self.meleeRangeTargets]
+            # targetUnitID = int(input(f"To select target, type its unitID: {unitIDs}\n")) # call another target acquisition method on the current agent acting !!!!!!!!!!!!!!!!!!!!!!!!!!
+            # for unit in self.meleeRangeTargets:
+            #     if targetUnitID == unit.ID:
+            #         return unit
 
     def rayCast(self, origin, target, castingUnit, targetUnit, gameObjectTree, unitsMap, zMap):
         
@@ -585,17 +586,17 @@ class Board:
                 # Apply fall damage
                 # Apply surfaces
 
-    def cast(self, entity, dict):
-        target = dict.get("target")
-        ability = dict.get("ability")
+    def cast(self, entity, ability):
+        targetType = ability["events"][0].get("target")
+        if targetType == "targetunit":
+            castTarget = self.game.currentAgent.selectTarget(ability)
 
-        events = ability.get("events")
-        for e in events:
-            for _, v in e.items():
+        for event in ability.get("events"):
+            for k, v in event.items():
                 if v == "changeHP":
-                    target.currentHP += e["value"]        
+                    castTarget.currentHP += event["value"]
                 if v == "changeActionPoints":
-                    entity.currentActionPoints += e["value"]    
+                    entity.currentActionPoints += event["value"]    
 
     def drawMap(self, map):
             # cMap = plt.cm.terrain

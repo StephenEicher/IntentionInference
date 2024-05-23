@@ -7,7 +7,7 @@ class Sprites:
             "Moo": pygame.image.load(r".\sprites\sprite_moo.PNG"),
             "Haku": pygame.image.load(r".\sprites\sprite_haku.PNG")
         }
-
+        
         self.spritesDictScaled = {}
         for name, surface in spritesDict.items():
             self.spritesDictScaled[name] = pygame.transform.scale(surface, (config.widthFactor, config.heightFactor))
@@ -57,15 +57,6 @@ class Unit:
                     {"type": "changeActionPoints", "target": "self", "value": -1},
                 ]
             }
-            # ,
-            # {
-            #     "name": "Hide",
-            #     "cost": 1,
-            #     "range": 0,
-            #     "events": [
-            #         {"type": "hide", "target": "self"}
-            #     ]
-            # }
         ]
         return abilities
 
