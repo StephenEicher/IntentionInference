@@ -13,7 +13,7 @@ class Sprites:
             self.spritesDictScaled[name] = pygame.transform.scale(surface, (config.widthFactor, config.heightFactor))
 
 class Unit:
-    def __init__(self, agentIndex, unitID, position, game):
+    def __init__(self, agentIndex, unitID, position, game, image=None):
         self.agentIndex = agentIndex
         self.ID = unitID
         self.unitSymbol = "U"
@@ -36,6 +36,11 @@ class Unit:
         self.currentMovement = self.movement
         self.currentJump = self.jump
         self.currentActionPoints = self.actionPoints
+        
+        if image is not None:
+            self.sprite = UnitSprite(self, image)
+        else:
+            self.sprite = None
         
     def abilities(self):
         abilities = [
@@ -68,20 +73,20 @@ class Unit:
             return False
         
 class meleeUnit(Unit):
-    def __init__(self, agentIndex, unitID, position, game):
-        super().__init__(agentIndex, unitID, position, game)
+    def __init__(self, agentIndex, unitID, position, game, image=None):
+        super().__init__(agentIndex, unitID, position, game, image=None)
         self.unitSymbol = "M"
         self.movement = 2
         self.currentMovement = 2
         self.HP = 200
         self.currentHP = 200
 
-class UnitSprite(Unit, pygame.sprite.Sprite):
-    def __init__(self, agentIndex, unitID, position, game, image):
-        super().__init__(agentIndex, unitID, position, game)
+class UnitSprite(pygame.sprite.Sprite):
+    def __init__(self, parent, image):
+        self.parent = parent
         pygame.sprite.Sprite.__init__(self)
 
-        rectTopLeft = self.convertToRect(position)
+        rectTopLeft = self.convertToRect(parent.position)
 
         # Initialize sprite image and position
         self.image = image
