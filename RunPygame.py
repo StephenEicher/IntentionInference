@@ -36,8 +36,8 @@ class Pygame:
         self.unitsLayer = pygame.Surface((self.c.windowWidth, self.c.windowHeight), pygame.SRCALPHA)
         self.unitsGroup = pygame.sprite.Group()
         
-        self.sprites = u.Sprites()
-        self.spritesImageDict = self.sprites.spritesDictScaled
+        temp = u.Sprites()
+        self.spritesImageDict = temp.spritesDictScaled
         self.screen = pygame.display.set_mode((self.c.windowWidth, self.c.windowHeight))
 
     def pygameLoop(self):
@@ -62,7 +62,7 @@ class Pygame:
                             if pReturnSprite is None:
                                 continue
                             else:
-                                self.game.targetQueue.put(pReturnSprite)
+                                self.game.targetQueue.put(pReturnSprite.parent)
                                 continue
 
                         if self.game.getInput:
@@ -89,7 +89,7 @@ class Pygame:
     def trackMouseAndDisplayMove(self, mousePos):
         self.prevRects = []
         if self.unitToMove is not None and self.unitToMove.canMove is not False:
-            spritePos = self.unitToMove.rect.topleft
+            spritePos = self.unitToMove.sprite.rect.topleft
             # Relative vector from sprite to mouse
             mouseRelPos = np.array(mousePos) - np.array(spritePos)
             distance = np.linalg.norm(mouseRelPos)
@@ -119,10 +119,10 @@ class Pygame:
             if key is None:
                 return None
             else:
-                image = self.unitToMove.image.copy()
+                image = self.unitToMove.sprite.image.copy()
                 image = image.convert_alpha()
-                newRect = self.unitToMove.image.get_rect()
-                newRect.topleft = self.unitToMove.convertToRect((key[1][0], key[1][1]))
+                newRect = self.unitToMove.sprite.image.get_rect()
+                newRect.topleft = self.unitToMove.sprite.convertToRect((key[1][0], key[1][1]))
                 alpha = 128
                 image.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
                 self.prevRects.append((newRect, image))
@@ -176,7 +176,7 @@ class Pygame:
         self.game.getInput = True
         for i, id in enumerate(unitIDs):
             buttonRect = pygame.Rect((720 + 144), (50 * (len(unitRefs) - i)), 50, 40)  # Adjust dimensions as needed
-            image = unitRefs[i].image
+            image = unitRefs[i].sprite.image
             self.unitButtonsToBlit.append((buttonRect, image, buttonRect, (0, 0, 255)))
             self.unitButtons.append((buttonRect, id))
 

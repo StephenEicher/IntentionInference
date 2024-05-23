@@ -25,7 +25,7 @@ class UnitsMap:
                 if 0 <= adjY < len(self.map) and 0 <= adjX < len(self.map):
                     adjUnit = self.map[adjY][adjX]
 
-                    if isinstance(adjUnit, u.UnitSprite):
+                    if isinstance(adjUnit, u.Unit):
                         adjUnits[(direction, (adjY, adjX))] = adjUnit
                         
             return adjUnits
@@ -37,7 +37,7 @@ class UnitsMap:
                 if 0 <= adjY < len(self.map) and 0 <= adjX < len(self.map):
                     adjUnit = self.map[adjY][adjX]
 
-                    if isinstance(adjUnit, u.UnitSprite):
+                    if isinstance(adjUnit, u.Unit):
                         targets.append(adjUnit)
 
             return targets
@@ -286,22 +286,23 @@ class Board:
         self.unitsMap = self.instUM.map
 
         if self.bPygame:
-            p1a = u.UnitSprite(0, 1, (0,0), self.game, self.bPygame.spritesImageDict.get("Moo"))
-            self.bPygame.unitsGroup.add(p1a)
-            p1b = u.UnitSprite(0, 2, (0,1), self.game, self.bPygame.spritesImageDict.get("Moo"))
-            self.bPygame.unitsGroup.add(p1b)
-            p2a = u.UnitSprite(1, 3, (1,0), self.game, self.bPygame.spritesImageDict.get("Haku"))
-            self.bPygame.unitsGroup.add(p2a)
-            p2b = u.UnitSprite(1, 4, (1,1), self.game, self.bPygame.spritesImageDict.get("Haku"))
-            self.bPygame.unitsGroup.add(p2b)
+            p1a = u.Unit(0, 1, (0,0), self.game, self.bPygame.spritesImageDict.get("Moo"))
+            self.bPygame.unitsGroup.add(p1a.sprite)
+            p1b = u.Unit(0, 2, (0,1), self.game, self.bPygame.spritesImageDict.get("Moo"))
+            self.bPygame.unitsGroup.add(p1b.sprite)
+            p2a = u.Unit(1, 3, (1,0), self.game, self.bPygame.spritesImageDict.get("Haku"))
+            self.bPygame.unitsGroup.add(p2a.sprite)
+            p2b = u.Unit(1, 4, (1,1), self.game, self.bPygame.spritesImageDict.get("Haku"))
+            self.bPygame.unitsGroup.add(p2b.sprite)
+            print(f"p2a rect: {p2a.sprite.rect.topleft}")
+            print(f"p2b rect: {p2b.sprite.rect.topleft}")
 
         self.unitsMap[0][0] = p1a
         self.unitsMap[0][1] = p1b
         self.unitsMap[1][0] = p2a
         self.unitsMap[1][1] = p2b
 
-        print(f"p2a rect: {p2a.rect.topleft}")
-        print(f"p2b rect: {p2b.rect.topleft}")
+
 
         # self.bPygame.updateScreen()
         self.drawMap(self.unitsMap)
@@ -564,7 +565,7 @@ class Board:
             self.cast(selectedUnit, moveDict["abilityDict"])
 
     def move(self, entity, dict):
-            if isinstance(entity, u.UnitSprite):
+            if isinstance(entity, u.Unit):
                 destination = list(dict.keys())
                 destination = destination[0]
                 self.unitsMap[destination[1][0]][destination[1][1]] = self.unitsMap[entity.position[0]][entity.position[1]] # (Y, X) format
@@ -572,7 +573,7 @@ class Board:
                 entity.position = (destination[1][0], destination[1][1])
 
                 if self.bPygame:
-                    entity.rect.topleft = entity.convertToRect((destination[1][0], destination[1][1]))
+                    entity.sprite.rect.topleft = entity.sprite.convertToRect((destination[1][0], destination[1][1]))
                     entity.currentMovement -= 1
 
                 if entity.currentMovement == 0:

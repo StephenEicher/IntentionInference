@@ -13,7 +13,7 @@ class Sprites:
             self.spritesDictScaled[name] = pygame.transform.scale(surface, (config.widthFactor, config.heightFactor))
 
 class Unit:
-    def __init__(self, agentIndex, unitID, position, game):
+    def __init__(self, agentIndex, unitID, position, game, image=None):
         self.agentIndex = agentIndex
         self.ID = unitID
         self.unitSymbol = "U"
@@ -37,6 +37,11 @@ class Unit:
         self.currentJump = self.jump
         self.currentActionPoints = self.actionPoints
         
+        if image is not None:
+            self.sprite = UnitSprite(self, image)
+        else:
+            self.sprite = None
+        
     def abilities(self):
         abilities = [
             {
@@ -59,7 +64,6 @@ class Unit:
             }
         ]
         return abilities
-
     def unitValidForTurn(self):
         if self.currentHP > 0 and (self.canMove or self.canAct):
             return True
@@ -67,13 +71,22 @@ class Unit:
             print("toggling to False!")
             self.Avail = False
             return False
+        
+class meleeUnit(Unit):
+    def __init__(self, agentIndex, unitID, position, game, image=None):
+        super().__init__(agentIndex, unitID, position, game, image=None)
+        self.unitSymbol = "M"
+        self.movement = 2
+        self.currentMovement = 2
+        self.HP = 200
+        self.currentHP = 200
 
-class UnitSprite(Unit, pygame.sprite.Sprite):
-    def __init__(self, agentIndex, unitID, position, game, image):
-        super().__init__(agentIndex, unitID, position, game)
+class UnitSprite(pygame.sprite.Sprite):
+    def __init__(self, parent, image):
+        self.parent = parent
         pygame.sprite.Sprite.__init__(self)
 
-        rectTopLeft = self.convertToRect(position)
+        rectTopLeft = self.convertToRect(parent.position)
 
         # Initialize sprite image and position
         self.image = image
@@ -85,3 +98,4 @@ class UnitSprite(Unit, pygame.sprite.Sprite):
         rectY = position[0] * config.heightFactor
 
         return (rectX, rectY)
+    
