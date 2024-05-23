@@ -592,9 +592,8 @@ class Board:
                 if v == "changeActionPoints":
                     entity.currentActionPoints += event["value"]
         
-        for agent in self.game.allAgents:
-            for unit in agent.team:
-                print(f"ID: {unit.ID}\nCurrent HP: {unit.currentHP}")
+    def withinRange(self, entity, ability):
+        
 
     def drawMap(self, map):
             # cMap = plt.cm.terrain

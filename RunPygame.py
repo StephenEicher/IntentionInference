@@ -88,7 +88,7 @@ class Pygame:
 
     def trackMouseAndDisplayMove(self, mousePos):
         self.prevRects = []
-        if self.unitToMove is not None:
+        if self.unitToMove is not None and self.unitToMove.canMove is not False:
             spritePos = self.unitToMove.rect.topleft
             # Relative vector from sprite to mouse
             mouseRelPos = np.array(mousePos) - np.array(spritePos)
@@ -217,7 +217,8 @@ class Pygame:
     def handleTargeting(self, mousePos):
         for sprite in self.unitsGroup:
             if sprite.rect.collidepoint(mousePos):
-                return sprite
+                if self.board.withinRange(mousePos, sprite):
+                    return sprite
 
     def updateScreen(self):
         self.unitsLayer.fill((0, 0, 0, 0))  # Clear units layer with transparent black

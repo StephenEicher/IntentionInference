@@ -66,12 +66,16 @@ class GameManager:
             selectedUnit = self.currentAgent.selectUnit()
             print(f"Selected {selectedUnit.ID}")
             while selectedUnit.unitValidForTurn():
-                self.currentAgent.selectMove(selectedUnit, self.board)
+                unitPlayable = self.currentAgent.selectMove(selectedUnit, self.board)
+                if unitPlayable is False:
+                    break
                 moveDict = self.moveQueue.get()
                 if moveDict["type"] == "unit":
                     self.moveQueue.put(moveDict) # Need to re-insert the dict so that .get() when called during unit selection can pull the dictionary too
                     break
                 self.board.updateBoard(selectedUnit, moveDict)
+                print(f"Current unit: {selectedUnit.ID}")
+                print("===================================")
                 print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
                 self.getInput = False
             
@@ -89,6 +93,14 @@ class GameManager:
                     totalUnavail += 1
 
             if len(self.currentAgent.team) == totalUnavail:
+                for unit in self.currentAgent.team: # Reset availability for next time that agent is up for turn
+                    if unit.Alive:
+                        unit.Avail = True
+                        unit.canMove = True
+                        unit.canAct = True
+                        unit.movement = 4
+                        unit.actionPoints = 2
+
                 self.agentTurnIndex ^= 1
 
 class Agent(metaclass=abc.ABCMeta):
@@ -116,8 +128,6 @@ class HumanAgent(Agent):
 
         print((f"\nSelect from avail Units: {waitingUnitsIDs}\n"))
         
-        # selectedUnitStr = input()
-        # print(selectedUnitStr)
         self.aPygame.drawSelectUnit(waitingUnitsIDs, waitingUnits)
         time.sleep(0.1)
         unitDict = self.game.moveQueue.get()
@@ -133,12 +143,15 @@ class HumanAgent(Agent):
         invalidAbilities = allAbilities[1]
 
         if unit.canMove is False and len(self.validAbilities) == 0:
-            unit.canAct = False
+            unit.Avail = False
+            return False
 
         if unit.canMove or unit.canAct:
             self.game.getInput = True
             self.aPygame.validDirections = validDirections
             self.aPygame.drawButtons(self.validAbilities, unit)
+
+        return True
 
     def selectTarget(self, ability):
         self.game.getTarget = True
