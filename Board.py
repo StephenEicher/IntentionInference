@@ -86,7 +86,7 @@ class Noise:
         # Normalize the mirrored map
         noiseMapNormalized = (noiseMap - noiseMap.min()) #Make smallest value 0
         noiseMapNormalized = noiseMapNormalized/ noiseMapNormalized.max() #Scale all values from 0 to 1
-        print(f"minZ = {noiseMap.min()} maxZ = {noiseMap.max()}")
+        # print(f"minZ = {noiseMap.min()} maxZ = {noiseMap.max()}")
         minZ = 0
         maxZ = 10
         scaledNoiseMapFloat = noiseMapNormalized * (maxZ - minZ)
@@ -558,21 +558,18 @@ class Board:
         return points
 
     def updateBoard(self, selectedUnit, moveDict):
-        print('Updating board..')
         if moveDict.get("type") == "move":
             self.move(selectedUnit, moveDict["directionDict"])
         if moveDict.get("type") == "castAbility":
-            self.cast(selectedUnit, moveDict["abilityDict"])    
+            self.cast(selectedUnit, moveDict["abilityDict"])
 
     def move(self, entity, dict):
-            print('Moving')
             if isinstance(entity, u.UnitSprite):
                 destination = list(dict.keys())
                 destination = destination[0]
                 self.unitsMap[destination[1][0]][destination[1][1]] = self.unitsMap[entity.position[0]][entity.position[1]] # (Y, X) format
                 self.unitsMap[entity.position[0]][entity.position[1]] = None
                 entity.position = (destination[1][0], destination[1][1])
-                print(f'Current movement: {entity.currentMovement}')
 
                 if self.bPygame:
                     entity.rect.topleft = entity.convertToRect((destination[1][0], destination[1][1]))
@@ -582,9 +579,6 @@ class Board:
                     entity.canMove = False
 
             self.drawMap(self.unitsMap)
-
-                # Apply fall damage
-                # Apply surfaces
 
     def cast(self, entity, ability):
         targetType = ability["events"][0].get("target")
@@ -596,7 +590,11 @@ class Board:
                 if v == "changeHP":
                     castTarget.currentHP += event["value"]
                 if v == "changeActionPoints":
-                    entity.currentActionPoints += event["value"]    
+                    entity.currentActionPoints += event["value"]
+        
+        for agent in self.game.allAgents:
+            for unit in agent.team:
+                print(f"ID: {unit.ID}\nCurrent HP: {unit.currentHP}")
 
     def drawMap(self, map):
             # cMap = plt.cm.terrain
@@ -652,7 +650,7 @@ class GameObjectTree:
         stack = self.stacks[stackPosition]
         if len(stack) < self.defaultStackHeight:
             stack.append(gameObject)
-            print(f'Inserting GameObject into stack at ({stackPosition[0]},{stackPosition[1]} (X,Y)')
+            # print(f'Inserting GameObject into stack at ({stackPosition[0]},{stackPosition[1]} (X,Y)')
             return True
 
         if len(stack) == self.defaultStackHeight and not self.isLeaf:

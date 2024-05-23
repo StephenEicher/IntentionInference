@@ -72,6 +72,7 @@ class GameManager:
                     self.moveQueue.put(moveDict) # Need to re-insert the dict so that .get() when called during unit selection can pull the dictionary too
                     break
                 self.board.updateBoard(selectedUnit, moveDict)
+                print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
                 self.getInput = False
             
             if selectedUnit.Avail is False:
@@ -127,20 +128,23 @@ class HumanAgent(Agent):
 
     def selectMove(self, unit, board):
         validDirections = board.getValidDirections(unit)
-        print(validDirections)
         allAbilities = board.getValidAbilities(unit)
         self.validAbilities = allAbilities[0] # Returns list of dictionaries
         invalidAbilities = allAbilities[1]
-        if len(self.validAbilities) == 0:
+
+        if unit.canMove is False and len(self.validAbilities) == 0:
             unit.canAct = False
 
         if unit.canMove or unit.canAct:
             self.game.getInput = True
-            self.aPygame.drawButtons(validDirections, self.validAbilities, unit)
+            self.aPygame.validDirections = validDirections
+            self.aPygame.drawButtons(self.validAbilities, unit)
 
     def selectTarget(self, ability):
-        self.getTarget = True
+        self.game.getTarget = True
+        self.game.gPygame.unitToMove = None
         castTarget = self.game.targetQueue.get()
+        self.game.getTarget = False
         return castTarget
 
 a = GameManager(True)
