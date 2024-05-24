@@ -133,8 +133,6 @@ class HumanAgent(Agent):
             if unit.ID == int(selectedUnitStr):
                 return unit
 
-
-
     def selectAction(self, unit, board, allActions):
         validAbilities = allActions['abilities']
         validMoveDirections = allActions['moves']

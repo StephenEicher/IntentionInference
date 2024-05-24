@@ -30,7 +30,7 @@ class UnitsMap:
                         
             return adjUnits
 
-        if isinstance(event, eMeleeRangeTargets):
+        if isinstance(event, eMeleeTargets):
             targets = []
             for direction, (adjY, adjX) in self.board.validAdjPositions.items():
                 # Check if the adjacent position is within bounds of the map
@@ -47,7 +47,7 @@ class Noise:
         self.maxY = maxY
         self.maxX = maxX
 
-    def genNoise(self, scales, amplis):
+    def genNoise(self, scales, amplis, minZ, maxZ):
         simplex = OpenSimplex(seed = 0)
         noiseMap = np.zeros((self.maxY, self.maxX))
 
@@ -87,8 +87,6 @@ class Noise:
         noiseMapNormalized = (noiseMap - noiseMap.min()) #Make smallest value 0
         noiseMapNormalized = noiseMapNormalized/ noiseMapNormalized.max() #Scale all values from 0 to 1
         # print(f"minZ = {noiseMap.min()} maxZ = {noiseMap.max()}")
-        minZ = 0
-        maxZ = 10
         scaledNoiseMapFloat = noiseMapNormalized * (maxZ - minZ)
         scaledNoiseMapInt = np.round(scaledNoiseMapFloat).astype(int)
         # borderWidth = 3
@@ -137,7 +135,7 @@ class ZMap(Noise):
     def __init__(self, maxY, maxX, board):
         super().__init__(maxY, maxX)
         self.board = board
-        comboMap = self.genNoise(0.1, 1)
+        comboMap = self.genNoise(0.1, 1, 0, 10)
         self.map = comboMap[0]
 
     def ZMhandleEvent(self, event):
@@ -211,7 +209,32 @@ class ZMap(Noise):
             "flatten" : [],
             "fracture" : []                
         }
-            
+
+class OMap(Noise):
+    def __init__(self, maxY, maxX, board):
+        super().__init__(maxY, maxX)
+        self.board = board
+        comboMap = self.genNoise(0.4, 1, 0, 3)
+        self.map = comboMap[0]
+    #     self.createMask(map)
+        
+
+    # def createMask(self, map):
+
+
+    # def OMhandleEvent(self, event):        
+    #     if isinstance(event, eMove):
+
+    #         adjZs = {}
+    #         for direction, (adjY, adjX) in self.board.validAdjPositions.items():
+    #             adjZ = self.map[adjY, adjX]
+    #             unitZ = self.map[event.unit.position[0], event.unit.position[1]]
+
+    #             adjZs[(event.unit.position[0], event.unit.position[1])] = unitZ
+    #             adjZs[(direction, (adjY, adjX))] = adjZ
+
+    #         return adjZs
+
 class EventDispatcher:
     def __init__(self, board):
         self.board = board
@@ -245,7 +268,11 @@ class eMove:
         self.minPoint = minPoint
         self.maxPoint = maxPoint
 
-class eMeleeRangeTargets:
+class eMeleeTargets:
+    def __init__(self, unit):
+        self.unit = unit
+
+class eRangeTargets:
     def __init__(self, unit):
         self.unit = unit
 
@@ -264,6 +291,7 @@ class Board:
         self.createDummyGameObjects()
         self.initializeObjectTree()
         self.initializeZMap()
+        self.initializeOMap()
 
     def createDummyGameObjects(self):
         self.dummya = go.GameObject('a', (0,1), 0)
@@ -282,7 +310,8 @@ class Board:
     def initializeUnits(self):
         self.instUM = UnitsMap(self.maxY, self.maxX, self)
         self.dispatcher.addListener(eMove, self.instUM.UMhandleEvent)
-        self.dispatcher.addListener(eMeleeRangeTargets, self.instUM.UMhandleEvent)
+        self.dispatcher.addListener(eMeleeTargets, self.instUM.UMhandleEvent)
+        self.dispatcher.addListener(eRangeTargets, self.instUM.UMhandleEvent)
         self.unitsMap = self.instUM.map
 
         if self.bPygame:
@@ -313,6 +342,12 @@ class Board:
         self.instZM = ZMap(self.maxY, self.maxX, self)
         self.dispatcher.addListener(eMove, self.instZM.ZMhandleEvent)
         self.zMap = self.instZM.map
+
+    def initializeOMap(self):
+        self.instOM = OMap(self.maxY, self.maxX, self)
+        self.dispatcher.addListener(eMove, self.instZM.ZMhandleEvent)
+        self.oMap = self.instOM.map
+        self.drawMap(self.oMap)
 
     def getValidDirections(self, unit):
         unitY, unitX = unit.position
@@ -440,15 +475,25 @@ class Board:
                         range = ability.get("range")
                         
                         if range == 1:
-                            event = eMeleeRangeTargets(unit)
+                            event = eMeleeTargets(unit)
                             responseTuple = (self.dispatcher.dispatch(event))
-                            meleeRangeTargets = responseTuple[0][1]
+                            meleeTargets = responseTuple[0][1]
 
-                            if len(meleeRangeTargets) > 0: 
+                            if len(meleeTargets) > 0: 
                                 validAbilities.append(ability)
-                            if len(meleeRangeTargets) == 0:
+                            if len(meleeTargets) == 0:
                                 invalidAbilities[ability["name"]] = ability.get("cost")
-        
+
+                        if range > 1:
+                            event = eRangeTargets(unit)
+                            responseTuple = (self.dispatcher.dispatch(event))
+                            rangeTargets = responseTuple[0][1]
+
+                            if len(rangeTargets) > 0: 
+                                validAbilities.append(ability)
+                            if len(rangeTargets) == 0:
+                                invalidAbilities[ability["name"]] = ability.get("cost")
+
         for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
             if ability not in validAbilities and ability.get("range") == 0:
                 validAbilities.append(ability)
@@ -606,14 +651,24 @@ class Board:
     def drawMap(self, map):
             # cMap = plt.cm.terrain
             # coloredZMap = cMap(map)
-            for y in range(len(map)):
-                rowToPrint = ''
-                for x in range(len(map[y])):
-                    if map[y][x] == None:
-                        rowToPrint += '{: ^3}'.format(".")    
-                    else:
-                        rowToPrint += '{: ^3}'.format(f"{map[y][x].ID}")
-                print(rowToPrint)
+            if isinstance(map, np.ndarray):
+                for y in range(len(map)):
+                    rowToPrint = ''
+                    for x in range(len(map[y])):
+                        if map[y][x] == None:
+                            rowToPrint += '{: ^3}'.format(".")    
+                        else:
+                            rowToPrint += '{: ^3}'.format(f"{map[y][x]}")
+                    print(rowToPrint)
+            else:
+                for y in range(len(map)):
+                    rowToPrint = ''
+                    for x in range(len(map[y])):
+                        if map[y][x] == None:
+                            rowToPrint += '{: ^3}'.format(".")    
+                        else:
+                            rowToPrint += '{: ^3}'.format(f"{map[y][x].ID}")
+                    print(rowToPrint)
             
             # im = plt.imshow(coloredZMap, cmap = cMap)
             # fig = plt.gcf()
