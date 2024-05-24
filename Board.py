@@ -20,7 +20,7 @@ class UnitsMap:
         if isinstance(event, eMove):
             adjUnits = {}
             adjUnits[(event.unit.position[0], event.unit.position[1])] = event.unit
-            for direction, (adjY, adjX) in self.board.validAdjPositions.items():
+            for direction, (adjY, adjX) in self.board.getAdjDirections(event.unit).items():
                 # Check if the adjacent position is within bounds of the map
                 if 0 <= adjY < len(self.map) and 0 <= adjX < len(self.map):
                     adjUnit = self.map[adjY][adjX]
@@ -32,29 +32,28 @@ class UnitsMap:
 
         if isinstance(event, eMeleeTargets):
             targets = []
-            for direction, (adjY, adjX) in self.board.validAdjPositions.items():
-                # Check if the adjacent position is within bounds of the map
-                if 0 <= adjY < len(self.map) and 0 <= adjX < len(self.map):
+            for direction, (adjY, adjX) in self.board.getAdjDirections(event.unit).items():
                     adjUnit = self.map[adjY][adjX]
-
                     if isinstance(adjUnit, u.Unit):
                         targets.append(adjUnit)
 
             return targets
         if isinstance(event, eTargetsInRange):
             targets = []
-            xBounds = np.array([event.unit.position[0] - event.range, event.unit.position[0] + event.range])
-            yBounds = np.array([event.unit.position[1] - event.range, event.unit.position[1] + event.range])
-            xBounds = np.clip(xBounds, 0, len(self.map)-1)
-            yBounds = np.clip(yBounds, 0, len(self.map)-1)
+            rowBounds = np.array([event.unit.position[0] - event.range, event.unit.position[0] + event.range])
+            colBounds = np.array([event.unit.position[1] - event.range, event.unit.position[1] + event.range])
+            rowBounds = np.clip(rowBounds, 0, len(self.map)-1)
+            colBounds = np.clip(colBounds, 0, len(self.map)-1)
             #xMax = self.unit.position[0] + self.range
+            tilesToCheck = []
+            for row in np.arange(rowBounds[0], rowBounds[1]+1):
+                for col in np.arange(colBounds[0], colBounds[1]+1):
+                    tilesToCheck.append(self.map[row][col])
 
-            tilesToCheck = self.map[xBounds[0]:xBounds[1]][yBounds[0]:yBounds[1]]
-            #Flatten list:
-            tilesToCheck = [x for xs in tilesToCheck for x in xs]
             for unit in tilesToCheck:
                 if isinstance(unit, u.Unit):
-                    targets.append(unit)
+                    if unit.ID is not event.unit.ID and unit.agentIndex is not event.unit.agentIndex:
+                        targets.append(unit)
             return targets
 
 class Noise:
@@ -157,7 +156,7 @@ class ZMap(Noise):
         if isinstance(event, eMove):
 
             adjZs = {}
-            for direction, (adjY, adjX) in self.board.validAdjPositions.items():
+            for direction, (adjY, adjX) in self.board.getAdjDirections(event.unit).items():
                 adjZ = self.map[adjY, adjX]
                 unitZ = self.map[event.unit.position[0], event.unit.position[1]]
 
@@ -371,13 +370,13 @@ class Board:
         self.oMap = self.instOM.map
         self.drawMap(self.oMap)
 
-    def getValidDirections(self, unit):
+    def getAdjDirections(self, unit):
         unitY, unitX = unit.position
         validDirections = {}
         if unit.canMove is False:
             return validDirections
 
-        self.adjPositions = { 
+        adjPositions = { 
             "NW": (unitY - 1, unitX - 1),
             "N": (unitY - 1, unitX),
             "NE": (unitY - 1, unitX + 1),
@@ -388,7 +387,10 @@ class Board:
             "W": (unitY, unitX - 1)
         }
 
-        self.validAdjPositions = self.filterValidDirections(self.adjPositions)
+        return self.filterValidDirections(adjPositions)   
+
+    def getValidDirections(self, unit):
+        validAdjPositions = self.getAdjDirections(unit)
 
         GOY = len(self.unitsMap) - 1 - unit.position[0]
         UX = unit.position[1]
@@ -438,7 +440,8 @@ class Board:
 
         takeFallDamage = False
         addSurfaces = []
-        for direction, position in self.validAdjPositions.items():
+        validDirections = {}
+        for direction, position in validAdjPositions.items():
 
             # Check if adjacent Unit exists
             if (direction, position) in unitsMapR:
@@ -469,7 +472,7 @@ class Board:
             validDirections[(direction, position)] = (takeFallDamage, addSurfaces)
 
         return validDirections
-        
+    
     def getValidAbilities(self, unit):
         unitAbilities = unit.abilities()
         # Access dictionary of class actions and their action points cost
@@ -851,7 +854,7 @@ class GameObjectTree:
             queriedStacks = []
             stacks = self.querySpace(event.minPoint, event.maxPoint)
             for stack in stacks:
-                for direction, position in self.board.validAdjPositions.items():
+                for direction, position in self.board.getAdjDirections(event.unit).items():
                     if position == stack[0].position:
                         stackDict = {}
                         stackDict["direction"] = direction                        

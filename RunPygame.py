@@ -180,16 +180,16 @@ class Pygame:
     #     else:
     #         return None
 
-    def drawSelectUnit(self, unitIDs, unitRefs):
+    def drawSelectUnit(self, unitRefs):
         # self.buttonsToBlit = []  # Initialize the list to store buttons and text
         self.unitButtonsToBlit = []
         self.unitButtons = []
         self.game.getInput = True
-        for i, id in enumerate(unitIDs):
+        for i, unit in enumerate(unitRefs):
             buttonRect = pygame.Rect((720 + 144), (50 * (len(unitRefs) - i)), 50, 40)  # Adjust dimensions as needed
-            image = unitRefs[i].sprite.image
+            image = unit.sprite.image
             self.unitButtonsToBlit.append((buttonRect, image, buttonRect, (0, 0, 255)))
-            self.unitButtons.append((buttonRect, id))
+            self.unitButtons.append((buttonRect, unit))
 
     def drawButtons(self, validAbilities, unit):
         self.buttonsToBlit = []  # Initialize the list to store buttons and text
@@ -210,9 +210,9 @@ class Pygame:
 
 
     def handleMouseInput(self, mousePos):
-        for buttonRect, unitId in self.unitButtons:
+        for buttonRect, unit in self.unitButtons:
             if buttonRect.collidepoint(mousePos):
-                return {"type": "unit", "unit": unitId}
+                return {"type": "unit", "unit": unit}
         for buttonRect, abilityDict in self.abilityButtons:
             if buttonRect.collidepoint(mousePos):
                 return {"type": "castAbility", "abilityDict": abilityDict}

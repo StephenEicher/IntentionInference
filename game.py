@@ -58,15 +58,15 @@ class GameManager:
             
         while self.gameOver is False:
             self.currentAgent = self.allAgents[self.agentTurnIndex]
+
+            
             print(f"\n-------- {self.currentAgent.name}'s turn --------")
-            selectedUnit = self.currentAgent.selectUnit()
-            print(f"Selected {selectedUnit.ID}")
-            while selectedUnit.unitValidForTurn():
-                allActions = {}
-                allActions['moves'] = self.board.getValidDirections(selectedUnit)
-                validAbilities, _ = self.board.getValidAbilities(selectedUnit)
-                allActions['abilities'] = validAbilities
-                actionDict = self.currentAgent.selectAction(selectedUnit, self.board, allActions)
+            #selectedUnit = self.currentAgent.selectUnit()
+            #print(f"Selected {selectedUnit.ID}")   
+            currentTurnActive= True
+            while currentTurnActive:
+                waitingUnits, allActions = self.getAgentWaitingUnitsAndAbilities(self.currentAgent)
+                selectedUnit, actionDict = self.currentAgent.selectAction(waitingUnits, self.board, allActions)
                 if actionDict is None:
                     break
                 # actionDict = self.moveQueue.get()
@@ -78,11 +78,11 @@ class GameManager:
                 print("===================================")
                 print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
             
-            if selectedUnit.Avail is False:
-                print("Unit is NOT Avail!")
-                self.gPygame.unitToMove = None
-            else:
-                continue
+            # if selectedUnit.Avail is False:
+            #     print("Unit is NOT Avail!")
+            #     self.gPygame.unitToMove = None
+            # else:
+            #     continue
             
             totalUnavail = 0
             for unit in self.currentAgent.team:
@@ -99,8 +99,27 @@ class GameManager:
                         unit.canAct = True
                         unit.movement = 4
                         unit.actionPoints = 2
-
+                currentTurnActive = True
                 self.agentTurnIndex ^= 1
+    def getAgentWaitingUnitsAndAbilities(self, agent):
+        waitingUnits = []
+        allActions= {}
+        for curUnit in agent.team:
+            if curUnit.Alive and curUnit.Avail:
+                waitingUnits.append(curUnit)
+                allActions[curUnit.ID] = {}
+
+        for curUnit in waitingUnits:
+            id = curUnit.ID
+            curDict = {}
+            curDict['moves'] = self.board.getValidDirections(curUnit)
+            curUnit.canAct = bool(curDict['moves'])
+            validAbilities, _ = self.board.getValidAbilities(curUnit)
+            curDict['abilities'] = validAbilities
+            curUnit.canAct = bool(curDict['abilities'])
+            allActions[curUnit.ID] = curDict
+            
+        return waitingUnits, allActions
 
 class Agent(metaclass=abc.ABCMeta):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):       
@@ -115,30 +134,42 @@ class Agent(metaclass=abc.ABCMeta):
         pass
 
 class HumanAgent(Agent):
-    def selectUnit(self):
-        waitingUnits = []
-        for unit in self.team:
-            if unit.Alive and unit.Avail:
-                waitingUnits.append(unit)
-        waitingUnitsIDs = []
-        for unit in waitingUnits:
-            waitingUnitsIDs.append(unit.ID)
-        print((f"\nSelect from avail Units: {waitingUnitsIDs}\n"))
-        self.aPygame.drawSelectUnit(waitingUnitsIDs, waitingUnits)
+    selectedUnit = None
+    def selectUnit(self, waitingUnits):
+        # waitingUnits = []
+        # waitingUnitsIDs = []
+        # for unit in self.team:
+        #     if unit.Alive and unit.Avail:
+        #         waitingUnits.append(unit)
+        #         waitingUnitsIDs.append(unit.ID)
+
+        # print((f"\nSelect from avail Units: {waitingUnitsIDs}\n"))
+        self.aPygame.drawSelectUnit(waitingUnits)
         self.aPygame.getInput = True
         time.sleep(0.1)
         unitDict = self.game.actionQueue.get()
-        selectedUnitStr = unitDict["unit"]
-        for unit in waitingUnits:
-            if unit.ID == int(selectedUnitStr):
-                return unit
+        selectedUnit = unitDict["unit"]
+        self.selectedUnit = selectedUnit
+        return selectedUnit
+        # for unit in waitingUnits:
+        #     if unit.ID == int(selectedUnitStr):
+                
+        #         return unit
 
-    def selectAction(self, unit, board, allActions):
-        validAbilities = allActions['abilities']
-        validMoveDirections = allActions['moves']
-        if unit.canMove is False and len(validAbilities) == 0:
+    def selectAction(self, waitingUnits, board, allActions):
+        if self.selectedUnit is None:
+            unit = self.selectUnit(waitingUnits)
+        else:
+            if self.selectedUnit.ID not in allActions.keys():
+                unit = self.selectUnit(waitingUnits)
+            unit = self.selectedUnit
+        
+        unitAbilitiesDict = allActions[unit.ID]
+        validAbilities = unitAbilitiesDict['abilities']
+        validMoveDirections = unitAbilitiesDict['moves']
+        if unit.canMove is False and unit.canAct is False:
             unit.Avail = False
-            return None
+            return (None, None)
         if unit.canMove or unit.canAct:
             self.aPygame.getInput = True
         
@@ -148,10 +179,17 @@ class HumanAgent(Agent):
         self.aPygame.drawButtons(validAbilities, unit)
 
         actionDict = self.game.actionQueue.get()
+        if actionDict is not None:
+            if actionDict["type"] == "unit":
+                self.selectedUnit = actionDict["unit"]
+                (unit, actionDict) = self.selectAction(waitingUnits, board, allActions)
 
 
-        self.aPygame.getInput = False
-        return actionDict
+            self.aPygame.getInput = False
+            return (unit, actionDict)
+        else:
+            return (None, None)
+        
 
 
     # def selectMove(self, unit, board):
