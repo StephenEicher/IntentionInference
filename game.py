@@ -65,7 +65,7 @@ class GameManager:
             #print(f"Selected {selectedUnit.ID}")   
             currentTurnActive= True
             while currentTurnActive:
-                waitingUnits, allActions = self.getAgentWaitingUnitsAndAbilities(self.currentAgent)
+                waitingUnits, allActions, noMovesOrAbilities = self.getAgentWaitingUnitsAndAbilities(self.currentAgent)
                 selectedUnit, actionDict = self.currentAgent.selectAction(waitingUnits, self.board, allActions)
                 if actionDict is None:
                     break
@@ -87,9 +87,15 @@ class GameManager:
             totalUnavail = 0
             for unit in self.currentAgent.team:
                 if unit.Avail:
-                    break
+                    if noMovesOrAbilities:
+                        unit.Avail = False
+                    else:
+                        break
                 else:
                     totalUnavail += 1
+            
+                
+            
 
             if len(self.currentAgent.team) == totalUnavail:
                 for unit in self.currentAgent.team: # Reset availability for next time that agent is up for turn
@@ -104,22 +110,22 @@ class GameManager:
     def getAgentWaitingUnitsAndAbilities(self, agent):
         waitingUnits = []
         allActions= {}
+        noMovesOrAbilities = True
         for curUnit in agent.team:
             if curUnit.Alive and curUnit.Avail:
                 waitingUnits.append(curUnit)
                 allActions[curUnit.ID] = {}
-
+ 
         for curUnit in waitingUnits:
-            id = curUnit.ID
             curDict = {}
             curDict['moves'] = self.board.getValidDirections(curUnit)
-            curUnit.canMove = bool(curDict['moves'])
             validAbilities, _ = self.board.getValidAbilities(curUnit)
             curDict['abilities'] = validAbilities
-            curUnit.canAct = bool(curDict['abilities'])
+            if bool( curDict['moves']) or bool(curDict['abilities']):
+                noMovesOrAbilities = False
             allActions[curUnit.ID] = curDict
             
-        return waitingUnits, allActions
+        return waitingUnits, allActions, noMovesOrAbilities
 
 class Agent(metaclass=abc.ABCMeta):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):       
@@ -144,6 +150,7 @@ class HumanAgent(Agent):
         #         waitingUnitsIDs.append(unit.ID)
 
         # print((f"\nSelect from avail Units: {waitingUnitsIDs}\n"))
+        self.aPygame.drawButtons({}, None)
         self.aPygame.drawSelectUnit(waitingUnits)
         self.aPygame.getInput = True
         time.sleep(0.1)
@@ -158,6 +165,7 @@ class HumanAgent(Agent):
 
     def selectAction(self, waitingUnits, board, allActions):
         if self.selectedUnit is None:
+            
             unit = self.selectUnit(waitingUnits)
         else:
             if self.selectedUnit.ID not in allActions.keys():

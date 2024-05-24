@@ -196,6 +196,7 @@ class Pygame:
 
     def drawButtons(self, validAbilities, unit):
         self.buttonsToBlit = []  # Initialize the list to store buttons and text
+        self.abilityButtons = []
         self.unitToMove = unit
 
         # Draw buttons for valid abilities

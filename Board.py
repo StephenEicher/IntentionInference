@@ -372,10 +372,6 @@ class Board:
 
     def getAdjDirections(self, unit):
         unitY, unitX = unit.position
-        validDirections = {}
-        if unit.canMove is False:
-            return validDirections
-
         adjPositions = { 
             "NW": (unitY - 1, unitX - 1),
             "N": (unitY - 1, unitX),
