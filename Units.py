@@ -51,7 +51,8 @@ class Unit:
                 "events": [
                     {"type": "changeHP", "target": "targetunit", "value": -1},
                     {"type": "changeActionPoints", "target": "self", "value": -1},
-                ]
+                ],
+                "targetedUnit" : None
             },
             {
                 "name": "Shove",
@@ -60,7 +61,8 @@ class Unit:
                 "events": [
                     {"type": "move", "target": "targetunit", "distance": 1},
                     {"type": "changeActionPoints", "target": "self", "value": -1},
-                ]
+                ],
+                "targetedUnit" : None
             }
         ]
         return abilities

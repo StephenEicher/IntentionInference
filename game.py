@@ -19,8 +19,6 @@ class GameManager:
         self.inclPygame = inclPygame
         # self.gameLoopEvent = threading.Event()
         self.currentAgent = None
-        self.getInput = False
-        self.getTarget = False
         self.inputReady = False
         self.start()
 
@@ -55,9 +53,8 @@ class GameManager:
         if len(self.p1.team) == 0 and len(self.p2.team) == 0:
             self.gameOver = True
 
-        if self.inclPygame:
-            self.moveQueue = queue.Queue(maxsize=1)
-            self.targetQueue = queue.Queue(maxsize=1)            
+        if self.inclPygame:      
+            self.actionQueue = queue.Queue(maxsize = 1)    
             
         while self.gameOver is False:
             self.currentAgent = self.allAgents[self.agentTurnIndex]
@@ -65,18 +62,21 @@ class GameManager:
             selectedUnit = self.currentAgent.selectUnit()
             print(f"Selected {selectedUnit.ID}")
             while selectedUnit.unitValidForTurn():
-                unitPlayable = self.currentAgent.selectMove(selectedUnit, self.board)
-                if unitPlayable is False:
+                allActions = {}
+                allActions['moves'] = self.board.getValidDirections(selectedUnit)
+                validAbilities, _ = self.board.getValidAbilities(selectedUnit)
+                allActions['abilities'] = validAbilities
+                actionDict = self.currentAgent.selectAction(selectedUnit, self.board, allActions)
+                if actionDict is None:
                     break
-                moveDict = self.moveQueue.get()
-                if moveDict["type"] == "unit":
-                    self.moveQueue.put(moveDict) # Need to re-insert the dict so that .get() when called during unit selection can pull the dictionary too
-                    break
-                self.board.updateBoard(selectedUnit, moveDict)
+                # actionDict = self.moveQueue.get()
+                # if actionDict["type"] == "unit":
+                #     self.moveQueue.put(actionDict) # Need to re-insert the dict so that .get() when called during unit selection can pull the dictionary too
+                #     break
+                self.board.updateBoard(selectedUnit, actionDict)
                 print(f"Current unit: {selectedUnit.ID}")
                 print("===================================")
                 print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
-                self.getInput = False
             
             if selectedUnit.Avail is False:
                 print("Unit is NOT Avail!")
@@ -120,48 +120,69 @@ class HumanAgent(Agent):
         for unit in self.team:
             if unit.Alive and unit.Avail:
                 waitingUnits.append(unit)
-
         waitingUnitsIDs = []
         for unit in waitingUnits:
             waitingUnitsIDs.append(unit.ID)
-
         print((f"\nSelect from avail Units: {waitingUnitsIDs}\n"))
-        
         self.aPygame.drawSelectUnit(waitingUnitsIDs, waitingUnits)
+        self.aPygame.getInput = True
         time.sleep(0.1)
-        unitDict = self.game.moveQueue.get()
+        unitDict = self.game.actionQueue.get()
         selectedUnitStr = unitDict["unit"]
         for unit in waitingUnits:
             if unit.ID == int(selectedUnitStr):
                 return unit
 
-    def selectMove(self, unit, board):
-        validDirections = board.getValidDirections(unit)
-        allAbilities = board.getValidAbilities(unit)
-        self.validAbilities = allAbilities[0] # Returns list of dictionaries
-        invalidAbilities = allAbilities[1]
 
-        if unit.canMove is False and len(self.validAbilities) == 0:
+
+    def selectAction(self, unit, board, allActions):
+        validAbilities = allActions['abilities']
+        validMoveDirections = allActions['moves']
+        if unit.canMove is False and len(validAbilities) == 0:
             unit.Avail = False
-            return False
-
+            return None
         if unit.canMove or unit.canAct:
-            self.game.getInput = True
-            self.aPygame.validDirections = validDirections
-            self.aPygame.drawButtons(self.validAbilities, unit)
+            self.aPygame.getInput = True
+        
+        
+        self.aPygame.validDirections = validMoveDirections
+        
+        self.aPygame.drawButtons(validAbilities, unit)
 
-        return True
+        actionDict = self.game.actionQueue.get()
 
-    def selectTarget(self, ability):
-        self.game.getTarget = True
-        self.game.gPygame.unitToMove = None
-        if ability.get("range") == 1:
-            self.validTargets = self.game.board.meleeRangeTargets
-        # if ability.get("range") > 1:
-        #     self.validTargets = self.board.rangedRangeTargets
-        castTarget = self.game.targetQueue.get()
-        self.validTargets = None
-        self.game.getTarget = False
-        return castTarget
+
+        self.aPygame.getInput = False
+        return actionDict
+
+
+    # def selectMove(self, unit, board):
+    #     validDirections = board.getValidDirections(unit)
+    #     allAbilities = board.getValidAbilities(unit)
+    #     self.validAbilities = allAbilities[0] # Returns list of dictionaries
+    #     invalidAbilities = allAbilities[1]
+
+    #     if unit.canMove is False and len(self.validAbilities) == 0:
+    #         unit.Avail = False
+    #         return False
+
+    #     if unit.canMove or unit.canAct:
+    #         self.aPygame.getInput = True
+    #         self.aPygame.validDirections = validDirections
+    #         self.aPygame.drawButtons(self.validAbilities, unit)
+
+    #     return True
+
+    # def selectTarget(self, ability):
+    #     self.game.getTarget = True
+    #     self.game.gPygame.unitToMove = None
+    #     if ability.get("range") == 1:
+    #         self.validTargets = self.game.board.meleeRangeTargets
+    #     # if ability.get("range") > 1:
+    #     #     self.validTargets = self.board.rangedRangeTargets
+    #     castTarget = self.game.targetQueue.get()
+    #     self.validTargets = None
+    #     self.game.getTarget = False
+    #     return castTarget
 
 a = GameManager(True)

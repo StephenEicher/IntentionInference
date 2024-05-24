@@ -317,6 +317,8 @@ class Board:
     def getValidDirections(self, unit):
         unitY, unitX = unit.position
         validDirections = {}
+        if unit.canMove is False:
+            return validDirections
 
         self.adjPositions = { 
             "NW": (unitY - 1, unitX - 1),
@@ -419,6 +421,11 @@ class Board:
         affordableAbilities = []
         validAbilities = []
         invalidAbilities = {}
+
+        if unit.canAct is False:
+            invalidAbilities=unitAbilities
+            return (validAbilities, invalidAbilities)
+
         for ability in unitAbilities:
             if ability.get("cost") <= unit.currentActionPoints:
                 affordableAbilities.append(ability)
@@ -435,16 +442,18 @@ class Board:
                         if range == 1:
                             event = eMeleeRangeTargets(unit)
                             responseTuple = (self.dispatcher.dispatch(event))
-                            self.meleeRangeTargets = responseTuple[0][1]
+                            meleeRangeTargets = responseTuple[0][1]
 
-                            if len(self.meleeRangeTargets) > 0: 
+                            if len(meleeRangeTargets) > 0: 
                                 validAbilities.append(ability)
-                            if len(self.meleeRangeTargets) == 0:
+                            if len(meleeRangeTargets) == 0:
                                 invalidAbilities[ability["name"]] = ability.get("cost")
         
         for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
             if ability not in validAbilities and ability.get("range") == 0:
                 validAbilities.append(ability)
+        if len(validAbilities) == 0:
+            unit.canAct = False
 
         return (validAbilities, invalidAbilities)
     
@@ -555,11 +564,11 @@ class Board:
 
         return points
 
-    def updateBoard(self, selectedUnit, moveDict):
-        if moveDict.get("type") == "move":
-            self.move(selectedUnit, moveDict["directionDict"])
-        if moveDict.get("type") == "castAbility":
-            self.cast(selectedUnit, moveDict["abilityDict"])
+    def updateBoard(self, selectedUnit, actionDict):
+        if actionDict.get("type") == "move":
+            self.move(selectedUnit, actionDict["directionDict"])
+        if actionDict.get("type") == "castAbility":
+            self.cast(selectedUnit, actionDict["abilityDict"])
 
     def move(self, entity, dict):
             if isinstance(entity, u.Unit):
@@ -581,7 +590,8 @@ class Board:
     def cast(self, entity, ability):
         targetType = ability["events"][0].get("target")
         if targetType == "targetunit":
-            castTarget = self.game.currentAgent.selectTarget(ability)
+            #castTarget = self.game.currentAgent.selectTarget(ability)
+            castTarget = ability["targetedUnit"]
 
         for event in ability.get("events"):
             for k, v in event.items():

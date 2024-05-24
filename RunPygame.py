@@ -3,7 +3,6 @@ import time
 import Units as u
 import config as c
 import threading
-import queue
 import sys
 import numpy as np
 import copy
@@ -23,6 +22,9 @@ class Pygame:
         self.validDirections = None
         self.prevRects = []
         self.hoveredSprite = None
+        self.getTarget = False
+        self.getInput = False
+        self.actionDictAwaitingTarget = None
 
         uiElements = {
             "select_hover": pygame.image.load(r".\sprites\select_target_hover.PNG"),
@@ -52,32 +54,40 @@ class Pygame:
                 if event.type == pygame.QUIT:
                     print("Quit event detected")
                     run = False
-
-                mouseTrackReturn = self.trackMouseAndDisplayMove(mousePos)
-                self.trackMouseHover(mousePos)
-                
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if event.button == 1:
-                        if self.game.getInput and self.game.getTarget:
-                            pReturnSprite = self.handleTargeting(mousePos)
-                            if pReturnSprite is None:
+                if self.getInput:
+                    if self.getTarget:
+                        self.prevRects = []
+                        self.trackMouseHover(mousePos)
+                        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                            
+                            targetedUnit = self.handleTargeting(mousePos)
+                            if targetedUnit is None:
                                 continue
                             else:
-                                self.game.targetQueue.put(pReturnSprite.parent)
-                                continue
-
-                        if self.game.getInput:
-                            pReturnDict = self.handleMouseInput(mousePos)
-                            if pReturnDict is None:
+                                pReturnDict = self.actionDictAwaitingTarget
+                                abilityDict = pReturnDict["abilityDict"]
+                                abilityDict["targetedUnit"] = targetedUnit
+                                pReturnDict["abilityDict"] = abilityDict
+                                self.game.actionQueue.put(pReturnDict)
+                                self.hoveredSprite = None
+                                self.getTarget = False
+                    else:
+                        mouseTrackReturn = self.trackMouseAndDisplayMove(mousePos)
+                        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                            print("click rcvd")
+                            mouseClickDict = self.handleMouseInput(mousePos)
+                            if mouseClickDict is None and mouseTrackReturn is not None:
                                 pReturnDict = mouseTrackReturn
-                                if pReturnDict is None:
-                                    continue
-                            if pReturnDict["type"] == "move":
-                                self.game.moveQueue.put(pReturnDict)                 
+                            elif mouseClickDict is not None:
+                                pReturnDict = mouseClickDict
+                            else:
+                                continue                                         
                             if pReturnDict["type"] == "castAbility":
-                                self.game.moveQueue.put(pReturnDict)
-                            if pReturnDict["type"] == "unit":
-                                self.game.moveQueue.put(pReturnDict)
+                                self.getTarget = True
+                                self.actionDictAwaitingTarget = pReturnDict
+                                #self.game.moveQueue.put(pReturnDict)
+                            else: 
+                                self.game.actionQueue.put(pReturnDict)
 
             self.updateScreen()
             clock.tick(30)
@@ -85,7 +95,7 @@ class Pygame:
         pygame.display.quit()
         pygame.quit()
         self.game.gameOver = True
-        self.game.moveQueue.put({}) #This is just to get past the waiting for input portion in the game loop
+        self.game.actionQueue.put({}) #This is just to get past the waiting for input portion in the game loop
 
     def trackMouseAndDisplayMove(self, mousePos):
         self.prevRects = []
@@ -182,7 +192,6 @@ class Pygame:
             self.unitButtons.append((buttonRect, id))
 
     def drawButtons(self, validAbilities, unit):
-
         self.buttonsToBlit = []  # Initialize the list to store buttons and text
         self.unitToMove = unit
 
@@ -198,6 +207,7 @@ class Pygame:
             aTextRect = aText.get_rect(center=buttonRect.center)
             color = (255, 0, 0)
             self.buttonsToBlit.append((buttonRect, aText, aTextRect, color))
+
 
     def handleMouseInput(self, mousePos):
         for buttonRect, unitId in self.unitButtons:
@@ -222,9 +232,7 @@ class Pygame:
     def handleTargeting(self, mousePos):
         for sprite in self.spriteGroup:
             if sprite.rect.collidepoint(mousePos):
-                for unit in self.game.currentAgent.validTargets:
-                    if sprite.parent.ID == unit.ID:
-                        return sprite
+                return sprite.parent
                 print("not within range!")
                     
     def updateScreen(self):
