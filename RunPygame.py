@@ -109,7 +109,6 @@ class Pygame:
             spritePos = self.unitToMove.sprite.rect.topleft
             # Relative vector from sprite to mouse
             mouseRelPos = np.array(mousePos) - np.array(spritePos)
-            print(mousePos)
             distance = np.linalg.norm(mouseRelPos)
             
             # Calculate angle
@@ -123,7 +122,7 @@ class Pygame:
             # else:
             #     segment_size = 45  # Less precise
             segment_size = 45
-            
+
             dirs = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE']
             index = int((theta + (segment_size / 2)) // segment_size) % 8
             queryDirId = dirs[index]
