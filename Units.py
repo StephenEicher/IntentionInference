@@ -98,7 +98,7 @@ class rangedUnit(Unit):
         super().__init__(agentIndex, unitID, position, game, image)
         self.unitSymbol = "R"
         self.movement = 4
-        self.currentMovement = 4
+        self.currentMovement = 9999
         self.HP = 100
         self.currentHP = 100
 

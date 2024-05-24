@@ -109,6 +109,7 @@ class Pygame:
             spritePos = self.unitToMove.sprite.rect.topleft
             # Relative vector from sprite to mouse
             mouseRelPos = np.array(mousePos) - np.array(spritePos)
+            print(mousePos)
             distance = np.linalg.norm(mouseRelPos)
             
             # Calculate angle
@@ -116,12 +117,13 @@ class Pygame:
             if theta < 0:
                 theta += 360
 
-            # Increase precision based on distance
-            if distance < 50:
-                segment_size = 22.5  # More precise
-            else:
-                segment_size = 45  # Less precise
-
+            # # Increase precision based on distance
+            # if distance < 50:
+            #     segment_size = 22.5  # More precise
+            # else:
+            #     segment_size = 45  # Less precise
+            segment_size = 45
+            
             dirs = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE']
             index = int((theta + (segment_size / 2)) // segment_size) % 8
             queryDirId = dirs[index]
@@ -228,6 +230,8 @@ class Pygame:
             pygame.draw.rect(self.screen, color, buttonRect)  # Draw the rectangle
             if text is not None:
                 self.screen.blit(text, rect)  # Blit the text on top of the rectangle
+
+        
 
         pygame.display.update()  # Update the display
         
