@@ -411,7 +411,8 @@ class Board:
         # Unpack listenerResponses
         gameObjectTreeR = listenerResponses[0][1]
         zMapR = listenerResponses[1][1]
-        unitsMapR = listenerResponses[2][1]
+
+        unitsMapR = listenerResponses[3][1]
 
         takeFallDamage = False
         addSurfaces = []
