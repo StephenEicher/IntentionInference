@@ -148,43 +148,6 @@ class Pygame:
         else:
             return None
 
-    # def trackMouseAndDisplayMove(self,mousePos):
-    #     self.prevRects = []
-    #     if self.unitToMove is not None:
-    #         spritePos = self.unitToMove.rect.topleft
-    #         #Rel vector to mouse from spite
-    #         mouseRelPos = np.array(mousePos) - np.array(spritePos)
-    #         #flip y
-    #         # mouseRelPos[1] = mouseRelPos[1]
-    #         theta = np.rad2deg(np.arctan2(mouseRelPos[1], mouseRelPos[0]))
-    #         dirs = ['E', 'SE', 'S', 'SW', 'W', 'NW','N', 'NE']
-    #         # Compute the index by dividing the angle by 45 and rounding to the nearest integer
-    #         # Adding 0.5 before taking int to handle rounding correctly
-    #         index = int((theta + 22.5) // 45) % 8
-
-    #         # Get the direction
-    #         queryDirId = dirs[index]
-    #         key = None
-    #         for i, (dirId, matCoord) in enumerate(self.validDirections.keys()):
-    #             if dirId == queryDirId:
-    #                 key = (dirId, matCoord)
-    #                 v = self.validDirections[key]
-    #                 break
-    #         if key is None:
-    #             return None
-    #         else:
-    #             image = self.unitToMove.image
-    #             image = image.convert_alpha()
-    #             newRect = self.unitToMove.image.get_rect()
-    #             newRect.topleft = self.unitToMove.convertToRect((key[1][0], key[1][1]))
-    #             alpha = 128
-    #             image.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
-    #             self.prevRects.append((newRect, image))
-
-    #         return {"type": "move", "directionDict": {key: v}}
-       
-    #     else:
-    #         return None
 
     def drawSelectUnit(self, unitRefs):
         # self.buttonsToBlit = []  # Initialize the list to store buttons and text

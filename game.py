@@ -69,20 +69,11 @@ class GameManager:
                 selectedUnit, actionDict = self.currentAgent.selectAction(waitingUnits, self.board, allActions)
                 if actionDict is None:
                     break
-                # actionDict = self.moveQueue.get()
-                # if actionDict["type"] == "unit":
-                #     self.moveQueue.put(actionDict) # Need to re-insert the dict so that .get() when called during unit selection can pull the dictionary too
-                #     break
                 self.board.updateBoard(selectedUnit, actionDict)
                 print(f"Current unit: {selectedUnit.ID}")
                 print("===================================")
                 print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
             
-            # ifx selectedUnit.Avail is False:
-            #     print("Unit is NOT Avail!")
-            #     self.gPygame.unitToMove = None
-            # else:
-            #     continue
             
                 totalUnavail = 0
                 for unit in self.currentAgent.team:
@@ -140,14 +131,6 @@ class Agent(metaclass=abc.ABCMeta):
 class HumanAgent(Agent):
     selectedUnit = None
     def selectUnit(self, waitingUnits):
-        # waitingUnits = []
-        # waitingUnitsIDs = []
-        # for unit in self.team:
-        #     if unit.Alive and unit.Avail:
-        #         waitingUnits.append(unit)
-        #         waitingUnitsIDs.append(unit.ID)
-
-        # print((f"\nSelect from avail Units: {waitingUnitsIDs}\n"))
         self.aPygame.drawButtons({}, None)
         
         self.aPygame.getInput = True
@@ -156,11 +139,7 @@ class HumanAgent(Agent):
         selectedUnit = unitDict["unit"]
         self.selectedUnit = selectedUnit
         return selectedUnit
-        # for unit in waitingUnits:
-        #     if unit.ID == int(selectedUnitStr):
-                
-        #         return unit
-
+    
     def selectAction(self, waitingUnits, board, allActions):
         self.aPygame.drawSelectUnit(waitingUnits)
         if self.selectedUnit is None:
@@ -196,35 +175,5 @@ class HumanAgent(Agent):
         else:
             return (None, None)
         
-
-
-    # def selectMove(self, unit, board):
-    #     validDirections = board.getValidDirections(unit)
-    #     allAbilities = board.getValidAbilities(unit)
-    #     self.validAbilities = allAbilities[0] # Returns list of dictionaries
-    #     invalidAbilities = allAbilities[1]
-
-    #     if unit.canMove is False and len(self.validAbilities) == 0:
-    #         unit.Avail = False
-    #         return False
-
-    #     if unit.canMove or unit.canAct:
-    #         self.aPygame.getInput = True
-    #         self.aPygame.validDirections = validDirections
-    #         self.aPygame.drawButtons(self.validAbilities, unit)
-
-    #     return True
-
-    # def selectTarget(self, ability):
-    #     self.game.getTarget = True
-    #     self.game.gPygame.unitToMove = None
-    #     if ability.get("range") == 1:
-    #         self.validTargets = self.game.board.meleeRangeTargets
-    #     # if ability.get("range") > 1:
-    #     #     self.validTargets = self.board.rangedRangeTargets
-    #     castTarget = self.game.targetQueue.get()
-    #     self.validTargets = None
-    #     self.game.getTarget = False
-    #     return castTarget
 
 a = GameManager(True)
