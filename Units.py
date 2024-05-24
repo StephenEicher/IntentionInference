@@ -1,5 +1,6 @@
 import pygame
 from config import config
+import Board as b
 
 class Sprites:
     def __init__(self):
@@ -52,7 +53,7 @@ class Unit:
                     {"type": "changeHP", "target": "targetunit", "value": -1},
                     {"type": "changeActionPoints", "target": "self", "value": -1},
                 ],
-                "targetedUnit" : None
+                "targetedUnit" : None,
             },
             {
                 "name": "Shove",
@@ -62,8 +63,18 @@ class Unit:
                     {"type": "move", "target": "targetunit", "distance": 1},
                     {"type": "changeActionPoints", "target": "self", "value": -1},
                 ],
-                "targetedUnit" : None
-            }
+                "targetedUnit" : None,
+            },
+            {
+                "name": "Ranged Strike",
+                "cost": 1,
+                "range": 3,
+                "events": [
+                    {"type": "changeHP", "target": "targetunit", "value": -1},
+                    {"type": "changeActionPoints", "target": "self", "value": -1},
+                ],
+                "targetedUnit" : None,
+            },
         ]
         return abilities
     def unitValidForTurn(self):

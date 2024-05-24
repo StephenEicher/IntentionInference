@@ -41,6 +41,21 @@ class UnitsMap:
                         targets.append(adjUnit)
 
             return targets
+        if isinstance(event, eTargetsInRange):
+            targets = []
+            xBounds = np.array([event.unit.position[0] - event.range, event.unit.position[0] + event.range])
+            yBounds = np.array([event.unit.position[1] - event.range, event.unit.position[1] + event.range])
+            xBounds = np.clip(xBounds, 0, len(self.map)-1)
+            yBounds = np.clip(yBounds, 0, len(self.map)-1)
+            #xMax = self.unit.position[0] + self.range
+
+            tilesToCheck = self.map[xBounds[0]:xBounds[1]][yBounds[0]:yBounds[1]]
+            #Flatten list:
+            tilesToCheck = [x for xs in tilesToCheck for x in xs]
+            for unit in tilesToCheck:
+                if isinstance(unit, u.Unit):
+                    targets.append(unit)
+            return targets
 
 class Noise:
     def __init__(self, maxY, maxX):
@@ -272,6 +287,12 @@ class eMeleeTargets:
     def __init__(self, unit):
         self.unit = unit
 
+class eTargetsInRange:
+    def __init__(self, unit, abilityRange):
+        self.unit = unit
+        self.range = abilityRange
+            
+
 class eRangeTargets:
     def __init__(self, unit):
         self.unit = unit
@@ -312,6 +333,7 @@ class Board:
         self.dispatcher.addListener(eMove, self.instUM.UMhandleEvent)
         self.dispatcher.addListener(eMeleeTargets, self.instUM.UMhandleEvent)
         self.dispatcher.addListener(eRangeTargets, self.instUM.UMhandleEvent)
+        self.dispatcher.addListener(eTargetsInRange, self.instUM.UMhandleEvent)
         self.unitsMap = self.instUM.map
 
         if self.bPygame:
@@ -474,26 +496,34 @@ class Board:
                 if "target" in event:
                     if event.get("target") == "targetunit":
                         range = ability.get("range")
-                        
-                        if range == 1:
-                            event = eMeleeTargets(unit)
-                            responseTuple = (self.dispatcher.dispatch(event))
-                            meleeTargets = responseTuple[0][1]
+                        event = eTargetsInRange(unit, range)
+                        responseTuple = (self.dispatcher.dispatch(event))
+                        meleeTargets = responseTuple[0][1]
 
-                            if len(meleeTargets) > 0: 
-                                validAbilities.append(ability)
-                            if len(meleeTargets) == 0:
-                                invalidAbilities[ability["name"]] = ability.get("cost")
+                        if len(meleeTargets) > 0: 
+                            validAbilities.append(ability)
+                        if len(meleeTargets) == 0:
+                            invalidAbilities[ability["name"]] = ability.get("cost")
+                                                
+                        # if range == 1:
+                        #     event = eMeleeTargets(unit)
+                        #     responseTuple = (self.dispatcher.dispatch(event))
+                        #     meleeTargets = responseTuple[0][1]
 
-                        if range > 1:
-                            event = eRangeTargets(unit)
-                            responseTuple = (self.dispatcher.dispatch(event))
-                            rangeTargets = responseTuple[0][1]
+                        #     if len(meleeTargets) > 0: 
+                        #         validAbilities.append(ability)
+                        #     if len(meleeTargets) == 0:
+                        #         invalidAbilities[ability["name"]] = ability.get("cost")
 
-                            if len(rangeTargets) > 0: 
-                                validAbilities.append(ability)
-                            if len(rangeTargets) == 0:
-                                invalidAbilities[ability["name"]] = ability.get("cost")
+                        # if range > 1:
+                        #     event = eRangeTargets(unit)
+                        #     responseTuple = (self.dispatcher.dispatch(event))
+                        #     rangeTargets = responseTuple[0][1]
+
+                        #     if len(rangeTargets) > 0: 
+                        #         validAbilities.append(ability)
+                        #     if len(rangeTargets) == 0:
+                        #         invalidAbilities[ability["name"]] = ability.get("cost")
 
         for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
             if ability not in validAbilities and ability.get("range") == 0:
