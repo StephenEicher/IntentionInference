@@ -6,7 +6,9 @@ class Sprites:
     def __init__(self):
         spritesDict = {
             "Moo": pygame.image.load(r".\sprites\sprite_moo.PNG"),
-            "Haku": pygame.image.load(r".\sprites\sprite_haku.PNG")
+            "Haku": pygame.image.load(r".\sprites\sprite_haku.PNG"),
+            "Moo_ranged" : pygame.image.load(r".\sprites\ranged_unit.PNG"),
+            "Moo_melee" : pygame.image.load(r".\sprites\melee_unit.PNG"),
         }
         
         self.spritesDictScaled = {}
@@ -37,7 +39,7 @@ class Unit:
         self.currentMovement = self.movement
         self.currentJump = self.jump
         self.currentActionPoints = self.actionPoints
-        
+        self.unitAbilities = self.abilities()
         if image is not None:
             self.sprite = UnitSprite(self, image)
         else:
@@ -65,16 +67,6 @@ class Unit:
                 ],
                 "targetedUnit" : None,
             },
-            {
-                "name": "Ranged Strike",
-                "cost": 1,
-                "range": 100,
-                "events": [
-                    {"type": "changeHP", "target": "targetunit", "value": -1},
-                    {"type": "changeActionPoints", "target": "self", "value": -1},
-                ],
-                "targetedUnit" : None,
-            },
         ]
         return abilities
     def unitValidForTurn(self):
@@ -84,15 +76,45 @@ class Unit:
             print("toggling to False!")
             self.Avail = False
             return False
-        
+    def resetForEndTurn(self):
+        if self.Alive:
+            self.Avail = True
+            self.canMove = True
+            self.canAct = True
+            self.currentMovement = self.movement
+            self.currentActionPoints = self.actionPoints
+
 class meleeUnit(Unit):
     def __init__(self, agentIndex, unitID, position, game, image=None):
-        super().__init__(agentIndex, unitID, position, game, image=None)
+        super().__init__(agentIndex, unitID, position, game, image)
         self.unitSymbol = "M"
         self.movement = 2
         self.currentMovement = 2
         self.HP = 200
         self.currentHP = 200
+        
+class rangedUnit(Unit):
+    def __init__(self, agentIndex, unitID, position, game, image=None):
+        super().__init__(agentIndex, unitID, position, game, image)
+        self.unitSymbol = "R"
+        self.movement = 4
+        self.currentMovement = 4
+        self.HP = 100
+        self.currentHP = 100
+
+        rangedStrike = {
+                "name": "Ranged Strike",
+                "cost": 1,
+                "range": 100,
+                "events": [
+                    {"type": "changeHP", "target": "targetunit", "value": -1},
+                    {"type": "changeActionPoints", "target": "self", "value": -1},
+                ],
+                "targetedUnit" : None,
+            }
+        self.unitAbilities.append(rangedStrike)
+
+        
 
 class UnitSprite(pygame.sprite.Sprite):
     def __init__(self, parent, image):

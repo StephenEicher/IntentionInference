@@ -78,39 +78,36 @@ class GameManager:
                 print("===================================")
                 print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
             
-            # if selectedUnit.Avail is False:
+            # ifx selectedUnit.Avail is False:
             #     print("Unit is NOT Avail!")
             #     self.gPygame.unitToMove = None
             # else:
             #     continue
             
-            totalUnavail = 0
-            for unit in self.currentAgent.team:
-                if unit.Avail:
-                    if noMovesOrAbilities:
-                        unit.Avail = False
+                totalUnavail = 0
+                for unit in self.currentAgent.team:
+                    if unit.Avail:
+                        if noMovesOrAbilities:
+                            unit.Avail = False
+                        else:
+                            break
                     else:
-                        break
-                else:
-                    totalUnavail += 1
+                        totalUnavail += 1
+                if len(self.currentAgent.team) == totalUnavail:
+                    currentTurnActive = False
             
-                
-            
+            for unit in self.currentAgent.team: # Reset availability for next time that agent is up for turn
+                if unit.Alive:
+                    unit.resetForEndTurn()
+            currentTurnActive = True
+            self.agentTurnIndex ^= 1
 
-            if len(self.currentAgent.team) == totalUnavail:
-                for unit in self.currentAgent.team: # Reset availability for next time that agent is up for turn
-                    if unit.Alive:
-                        unit.Avail = True
-                        unit.canMove = True
-                        unit.canAct = True
-                        unit.movement = 4
-                        unit.actionPoints = 2
-                currentTurnActive = True
-                self.agentTurnIndex ^= 1
     def getAgentWaitingUnitsAndAbilities(self, agent):
         waitingUnits = []
         allActions= {}
         noMovesOrAbilities = True
+        endTurn = {'name' : 'End Unit Turn'}
+
         for curUnit in agent.team:
             if curUnit.Alive and curUnit.Avail:
                 waitingUnits.append(curUnit)
@@ -123,6 +120,7 @@ class GameManager:
             curDict['abilities'] = validAbilities
             if bool( curDict['moves']) or bool(curDict['abilities']):
                 noMovesOrAbilities = False
+            curDict['abilities'].append(endTurn)
             allActions[curUnit.ID] = curDict
             
         return waitingUnits, allActions, noMovesOrAbilities
@@ -151,7 +149,7 @@ class HumanAgent(Agent):
 
         # print((f"\nSelect from avail Units: {waitingUnitsIDs}\n"))
         self.aPygame.drawButtons({}, None)
-        self.aPygame.drawSelectUnit(waitingUnits)
+        
         self.aPygame.getInput = True
         time.sleep(0.1)
         unitDict = self.game.actionQueue.get()
@@ -164,14 +162,13 @@ class HumanAgent(Agent):
         #         return unit
 
     def selectAction(self, waitingUnits, board, allActions):
+        self.aPygame.drawSelectUnit(waitingUnits)
         if self.selectedUnit is None:
-            
             unit = self.selectUnit(waitingUnits)
         else:
             if self.selectedUnit.ID not in allActions.keys():
                 unit = self.selectUnit(waitingUnits)
             unit = self.selectedUnit
-        
         unitAbilitiesDict = allActions[unit.ID]
         validAbilities = unitAbilitiesDict['abilities']
         validMoveDirections = unitAbilitiesDict['moves']

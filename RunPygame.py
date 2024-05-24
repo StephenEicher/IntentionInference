@@ -86,9 +86,12 @@ class Pygame:
                             else:
                                 continue                                         
                             if pReturnDict["type"] == "castAbility":
-                                self.getTarget = True
-                                self.actionDictAwaitingTarget = pReturnDict
-                                #self.game.moveQueue.put(pReturnDict)
+                                if pReturnDict["abilityDict"].get("name") == "End Unit Turn":
+                                    self.game.actionQueue.put(pReturnDict)
+                                else:
+                                    self.getTarget = True
+                                    self.actionDictAwaitingTarget = pReturnDict
+                                    #self.game.moveQueue.put(pReturnDict)
                             else: 
                                 self.game.actionQueue.put(pReturnDict)
 

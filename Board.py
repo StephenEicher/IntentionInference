@@ -336,13 +336,13 @@ class Board:
         self.unitsMap = self.instUM.map
 
         if self.bPygame:
-            p1a = u.Unit(0, 1, (0,0), self.game, self.bPygame.spritesImageDict.get("Moo"))
+            p1a = u.meleeUnit(0, 1, (0,0), self.game, self.bPygame.spritesImageDict.get("Moo_melee"))
             self.bPygame.spriteGroup.add(p1a.sprite)
-            p1b = u.Unit(0, 2, (0,1), self.game, self.bPygame.spritesImageDict.get("Moo"))
+            p1b = u.rangedUnit(0, 2, (0,1), self.game, self.bPygame.spritesImageDict.get("Moo_ranged"))
             self.bPygame.spriteGroup.add(p1b.sprite)
-            p2a = u.Unit(1, 3, (1,0), self.game, self.bPygame.spritesImageDict.get("Haku"))
+            p2a = u.meleeUnit(1, 3, (1,0), self.game, self.bPygame.spritesImageDict.get("Haku"))
             self.bPygame.spriteGroup.add(p2a.sprite)
-            p2b = u.Unit(1, 4, (1,1), self.game, self.bPygame.spritesImageDict.get("Haku"))
+            p2b = u.rangedUnit(1, 4, (1,1), self.game, self.bPygame.spritesImageDict.get("Haku"))
             self.bPygame.spriteGroup.add(p2b.sprite)
             print(f"p2a rect: {p2a.sprite.rect.topleft}")
             print(f"p2b rect: {p2b.sprite.rect.topleft}")
@@ -470,7 +470,7 @@ class Board:
         return validDirections
     
     def getValidAbilities(self, unit):
-        unitAbilities = unit.abilities()
+        unitAbilities = unit.unitAbilities
         # Access dictionary of class actions and their action points cost
         # Return all, but denote which are actually allowed by current action points
         # Highest level keys are 'name,''cost,' and 'events' which consists of type of events (dictionaries) involved in constructing the ability
@@ -503,26 +503,6 @@ class Board:
                             validAbilities.append(ability)
                         if len(meleeTargets) == 0:
                             invalidAbilities[ability["name"]] = ability.get("cost")
-                                                
-                        # if range == 1:
-                        #     event = eMeleeTargets(unit)
-                        #     responseTuple = (self.dispatcher.dispatch(event))
-                        #     meleeTargets = responseTuple[0][1]
-
-                        #     if len(meleeTargets) > 0: 
-                        #         validAbilities.append(ability)
-                        #     if len(meleeTargets) == 0:
-                        #         invalidAbilities[ability["name"]] = ability.get("cost")
-
-                        # if range > 1:
-                        #     event = eRangeTargets(unit)
-                        #     responseTuple = (self.dispatcher.dispatch(event))
-                        #     rangeTargets = responseTuple[0][1]
-
-                        #     if len(rangeTargets) > 0: 
-                        #         validAbilities.append(ability)
-                        #     if len(rangeTargets) == 0:
-                        #         invalidAbilities[ability["name"]] = ability.get("cost")
 
         for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
             if ability not in validAbilities and ability.get("range") == 0:
@@ -532,14 +512,6 @@ class Board:
 
         return (validAbilities, invalidAbilities)
     
-    # def getTarget(self, ability):
-        # if ability.get("range") == 1:
-            # print("\nAvailable targets:") 
-            # unitIDs = [unit.ID for unit in self.meleeRangeTargets]
-            # targetUnitID = int(input(f"To select target, type its unitID: {unitIDs}\n")) # call another target acquisition method on the current agent acting !!!!!!!!!!!!!!!!!!!!!!!!!!
-            # for unit in self.meleeRangeTargets:
-            #     if targetUnitID == unit.ID:
-            #         return unit
 
     def rayCast(self, origin, target, castingUnit, targetUnit, gameObjectTree, unitsMap, zMap):
         
@@ -643,7 +615,11 @@ class Board:
         if actionDict.get("type") == "move":
             self.move(selectedUnit, actionDict["directionDict"])
         if actionDict.get("type") == "castAbility":
-            self.cast(selectedUnit, actionDict["abilityDict"])
+            if actionDict['abilityDict'].get("name") == "End Unit Turn":
+                selectedUnit.Avail = False
+                return
+            else:
+                self.cast(selectedUnit, actionDict["abilityDict"])
 
     def move(self, entity, dict):
             if isinstance(entity, u.Unit):
