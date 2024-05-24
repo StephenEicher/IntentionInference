@@ -68,7 +68,7 @@ class Unit:
             {
                 "name": "Ranged Strike",
                 "cost": 1,
-                "range": 3,
+                "range": 100,
                 "events": [
                     {"type": "changeHP", "target": "targetunit", "value": -1},
                     {"type": "changeActionPoints", "target": "self", "value": -1},

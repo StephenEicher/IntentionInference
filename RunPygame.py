@@ -59,18 +59,21 @@ class Pygame:
                         self.prevRects = []
                         self.trackMouseHover(mousePos)
                         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                            
-                            targetedUnit = self.handleTargeting(mousePos)
-                            if targetedUnit is None:
-                                continue
+                            mouseClickDict = self.handleMouseInput(mousePos)
+                            if mouseClickDict is not None:
+                                self.game.actionQueue.put(mouseClickDict)
                             else:
-                                pReturnDict = self.actionDictAwaitingTarget
-                                abilityDict = pReturnDict["abilityDict"]
-                                abilityDict["targetedUnit"] = targetedUnit
-                                pReturnDict["abilityDict"] = abilityDict
-                                self.game.actionQueue.put(pReturnDict)
-                                self.hoveredSprite = None
-                                self.getTarget = False
+                                targetedUnit = self.handleTargeting(mousePos)
+                                if targetedUnit is None:
+                                    continue
+                                else:
+                                    pReturnDict = self.actionDictAwaitingTarget
+                                    abilityDict = pReturnDict["abilityDict"]
+                                    abilityDict["targetedUnit"] = targetedUnit
+                                    pReturnDict["abilityDict"] = abilityDict
+                                    self.game.actionQueue.put(pReturnDict)
+                                    self.hoveredSprite = None
+                                    self.getTarget = False
                     else:
                         mouseTrackReturn = self.trackMouseAndDisplayMove(mousePos)
                         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:

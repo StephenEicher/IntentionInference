@@ -113,7 +113,7 @@ class GameManager:
             id = curUnit.ID
             curDict = {}
             curDict['moves'] = self.board.getValidDirections(curUnit)
-            curUnit.canAct = bool(curDict['moves'])
+            curUnit.canMove = bool(curDict['moves'])
             validAbilities, _ = self.board.getValidAbilities(curUnit)
             curDict['abilities'] = validAbilities
             curUnit.canAct = bool(curDict['abilities'])
@@ -182,6 +182,7 @@ class HumanAgent(Agent):
         if actionDict is not None:
             if actionDict["type"] == "unit":
                 self.selectedUnit = actionDict["unit"]
+                self.aPygame.getTarget = False
                 (unit, actionDict) = self.selectAction(waitingUnits, board, allActions)
 
 
