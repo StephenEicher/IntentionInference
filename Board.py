@@ -507,8 +507,6 @@ class Board:
         for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
             if ability not in validAbilities and ability.get("range") == 0:
                 validAbilities.append(ability)
-        if len(validAbilities) == 0:
-            unit.canAct = False
 
         return (validAbilities, invalidAbilities)
     

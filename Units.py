@@ -91,16 +91,16 @@ class meleeUnit(Unit):
         self.movement = 2
         self.currentMovement = 2
         self.HP = 200
-        self.currentHP = 200
+        self.currentHP = self.HP
         
 class rangedUnit(Unit):
     def __init__(self, agentIndex, unitID, position, game, image=None):
         super().__init__(agentIndex, unitID, position, game, image)
         self.unitSymbol = "R"
         self.movement = 4
-        self.currentMovement = 9999
+        self.currentMovement = 4
         self.HP = 100
-        self.currentHP = 100
+        self.currentHP = self.HP
 
         rangedStrike = {
                 "name": "Ranged Strike",

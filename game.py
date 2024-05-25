@@ -26,9 +26,10 @@ class GameManager:
         if self.inclPygame:
             print('Including pygame...')
             import RunPygame as rp
-            self.gPygame = rp.Pygame(self)            
-            self.buttonsToBlit = []
-            self.board = b.Board(25, 25, self, self.gPygame)
+            maxX = 25
+            maxY = 25
+            self.gPygame = rp.Pygame(self, maxX, maxY)            
+            self.board = b.Board(maxX, maxY, self, self.gPygame)
 
             self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
             self.pygameThread.daemon = True
@@ -42,7 +43,7 @@ class GameManager:
         team1 = []
         team0.extend([allUnits[0], allUnits[1]])
         team1.extend([allUnits[2], allUnits[3]])
-
+        self.allUnits = allUnits
         self.p1 = HumanAgent('Ally', 0, team0, self, self.gPygame)
         self.p2 = HumanAgent('Bob', 1, team1, self, self.gPygame)
         self.allAgents = []
@@ -74,7 +75,9 @@ class GameManager:
                 print("===================================")
                 print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
             
-            
+
+                self.updateUnitStatus(self.allUnits)
+
                 totalUnavail = 0
                 for unit in self.currentAgent.team:
                     if unit.Avail:
@@ -92,6 +95,15 @@ class GameManager:
                     unit.resetForEndTurn()
             currentTurnActive = True
             self.agentTurnIndex ^= 1
+    def updateUnitStatus(self, waitingUnits):
+           for curUnit in waitingUnits:
+            if curUnit.currentMovement <= 0:
+                curUnit.canMove = False
+            if curUnit.currentActionPoints <= 0:
+                curUnit.canAct = False
+            if curUnit.currentHP <= 0:
+                curUnit.Alive = False
+            
 
     def getAgentWaitingUnitsAndAbilities(self, agent):
         waitingUnits = []
@@ -152,6 +164,7 @@ class HumanAgent(Agent):
         validAbilities = unitAbilitiesDict['abilities']
         validMoveDirections = unitAbilitiesDict['moves']
         if unit.canMove is False and unit.canAct is False:
+            print("Warning! This should never happen, unit that cannot act and cannot move in waitingUnits List")
             unit.Avail = False
             return (None, None)
         if unit.canMove or unit.canAct:
@@ -171,6 +184,7 @@ class HumanAgent(Agent):
 
 
             self.aPygame.getInput = False
+            self.aPygame.getTarget = False
             return (unit, actionDict)
         else:
             return (None, None)

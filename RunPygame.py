@@ -9,7 +9,7 @@ import copy
 import queue
 
 class Pygame:
-    def __init__(self, game):
+    def __init__(self, game, maxX, maxY):
         self.c = c.config
         self.game = game
 
@@ -33,6 +33,7 @@ class Pygame:
         self.uiElementsScaled = {}
         for name, surface in uiElements.items():
             self.uiElementsScaled[name] = pygame.transform.scale(surface, (self.c.widthFactor, self.c.heightFactor))
+        self.boardBoundsPx = (maxX * self.c.widthFactor, maxY * self.c.heightFactor)
 
     def startup(self):
         pygame.init()
@@ -59,9 +60,15 @@ class Pygame:
                         self.prevRects = []
                         self.trackMouseHover(mousePos)
                         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                            mouseClickDict = self.handleMouseInput(mousePos)
-                            if mouseClickDict is not None:
-                                self.game.actionQueue.put(mouseClickDict)
+                            buttonClickDict = self.handleMouseInput(mousePos)
+                            if buttonClickDict is not None:
+                                if buttonClickDict["type"] == "castAbility":
+                                    if buttonClickDict["abilityDict"].get("name") == "End Unit Turn":
+                                        self.game.actionQueue.put(buttonClickDict)
+                                    else:
+                                        self.actionDictAwaitingTarget = buttonClickDict
+                                elif  buttonClickDict["type"] == "unit":
+                                    self.game.actionQueue.put(buttonClickDict)
                             else:
                                 targetedUnit = self.handleTargeting(mousePos)
                                 if targetedUnit is None:
@@ -166,9 +173,12 @@ class Pygame:
         self.abilityButtons = []
         self.unitToMove = unit
 
-        # Draw buttons for valid abilities
+        # Draw buttons for valid abilities  
         for i, ability in enumerate(validAbilities):
-            buttonRect = pygame.Rect(10, self.screen.get_height() - (50 * (len(validAbilities) - i)), 200, 40)  # Adjust dimensions as needed
+            #buttonRect = pygame.Rect(10, self.screen.get_height() - (50 * (len(validAbilities) - i)), 200, 40)  # Adjust dimensions as needed
+            box_width = 200
+            box_spacing = 10
+            buttonRect = pygame.Rect((box_width + box_spacing)*i + box_spacing ,self.screen.get_height() - 50, box_width, 40)  # Adjust dimensions as needed
             self.abilityButtons.append((buttonRect, ability))
 
             # Render text on button (ability name)
@@ -207,13 +217,21 @@ class Pygame:
                 print("not within range!")
                     
     def updateScreen(self):
+
+
+        self.screen.fill((0, 0, 0))  # Clear the screen with black
+        boardRect = pygame.Rect(0, 0, self.boardBoundsPx[0], self.boardBoundsPx[1])
+        pygame.draw.rect(self.screen, (100, 100, 100), boardRect)
+        self.screen.blit(self.unitsLayer, (0, 0))  # Blit the units layer onto the screen
         self.unitsLayer.fill((0, 0, 0, 0))  # Clear units layer with transparent black
+        
         self.spriteGroup.draw(self.unitsLayer)  # Draw units on the units layer
         if self.hoveredSprite is not None:
             self.unitsLayer.blit(self.uiElementsScaled["select_hover"], self.hoveredSprite.rect)
 
-        self.screen.fill((0, 0, 0))  # Clear the screen with black
-        self.screen.blit(self.unitsLayer, (0, 0))  # Blit the units layer onto the screen
+
+
+
 
         for (rect, image) in self.prevRects:
             self.screen.blit(image, rect)
