@@ -43,6 +43,13 @@ class Pygame:
         temp = u.Sprites()
         self.spritesImageDict = temp.spritesDictScaled
         self.screen = pygame.display.set_mode((self.c.windowWidth, self.c.windowHeight))
+        turnInfoButtonSize = (200, 100)
+        self.turnInfoButton = pygame.Rect(0, 0, turnInfoButtonSize[0], turnInfoButtonSize[1])
+        self.turnInfoButton.bottomright = (self.screen.get_width(), self.screen.get_height())
+
+        self.rightPanelCenterX = self.screen.get_width()  - 0.5*(self.screen.get_width() - self.boardBoundsPx[0])
+
+
 
     def pygameLoop(self):
         self.startup()
@@ -163,8 +170,12 @@ class Pygame:
         self.unitButtons = []
         self.game.getInput = True
         for i, unit in enumerate(unitRefs):
-            buttonRect = pygame.Rect((720 + 144), (50 * (len(unitRefs) - i)), 50, 40)  # Adjust dimensions as needed
+            buttonSize = (100, 100)
+            spacing = 10
+            buttonRect = pygame.Rect(0, 0, buttonSize[0], buttonSize[1])  # Adjust dimensions as needed
+            buttonRect.center = (self.rightPanelCenterX, (buttonSize[1] + spacing)* (len(unitRefs) - i))
             image = unit.sprite.image
+            image = pygame.transform.scale(image, buttonRect.size)
             self.unitButtonsToBlit.append((buttonRect, image, buttonRect, (0, 0, 255)))
             self.unitButtons.append((buttonRect, unit))
 
@@ -217,11 +228,24 @@ class Pygame:
                 print("not within range!")
                     
     def updateScreen(self):
-
-
         self.screen.fill((0, 0, 0))  # Clear the screen with black
+
+        #Draw the board in a grey color
         boardRect = pygame.Rect(0, 0, self.boardBoundsPx[0], self.boardBoundsPx[1])
         pygame.draw.rect(self.screen, (100, 100, 100), boardRect)
+
+
+        
+        font = pygame.font.Font(None, 24)
+        if self.game is not None:
+            if self.game.currentAgent is not None:
+                aTurnText = font.render(f'Turn: {self.game.currentAgent.name}', True, (255, 255, 255))
+                dy = 10
+                turnTextCenter = np.array(self.turnInfoButton.midtop) + np.array((0, 0.5*aTurnText.get_size()[1])) + dy
+                aTextRect = aTurnText.get_rect(center= tuple(turnTextCenter))
+                pygame.draw.rect(self.screen, (30, 30, 30), self.turnInfoButton)
+                self.screen.blit(aTurnText, aTextRect)
+
         self.screen.blit(self.unitsLayer, (0, 0))  # Blit the units layer onto the screen
         self.unitsLayer.fill((0, 0, 0, 0))  # Clear units layer with transparent black
         
@@ -231,7 +255,7 @@ class Pygame:
 
 
 
-
+        
 
         for (rect, image) in self.prevRects:
             self.screen.blit(image, rect)
