@@ -219,7 +219,7 @@ class Pygame:
                 break  # Stop checking once a hovering sprite is found
 
     def displayStats(self, sprite):
-        pass
+        
 
     def handleTargeting(self, mousePos):
         for sprite in self.spriteGroup:

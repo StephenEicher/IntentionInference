@@ -336,13 +336,13 @@ class Board:
         self.unitsMap = self.instUM.map
 
         if self.bPygame:
-            p1a = u.meleeUnit(0, 1, (0,0), self.game, self.bPygame.spritesImageDict.get("Moo_melee"))
+            p1a = u.meleeUnit(0, 1, (0,0), self, self.game, self.bPygame.spritesImageDict.get("Moo_melee"))
             self.bPygame.spriteGroup.add(p1a.sprite)
-            p1b = u.rangedUnit(0, 2, (0,1), self.game, self.bPygame.spritesImageDict.get("Moo_ranged"))
+            p1b = u.rangedUnit(0, 2, (0,1), self, self.game, self.bPygame.spritesImageDict.get("Moo_ranged"))
             self.bPygame.spriteGroup.add(p1b.sprite)
-            p2a = u.meleeUnit(1, 3, (1,0), self.game, self.bPygame.spritesImageDict.get("Haku"))
+            p2a = u.meleeUnit(1, 3, (1,0), self, self.game, self.bPygame.spritesImageDict.get("Haku"))
             self.bPygame.spriteGroup.add(p2a.sprite)
-            p2b = u.rangedUnit(1, 4, (1,1), self.game, self.bPygame.spritesImageDict.get("Haku"))
+            p2b = u.rangedUnit(1, 4, (1,1), self, self.game, self.bPygame.spritesImageDict.get("Haku"))
             self.bPygame.spriteGroup.add(p2b.sprite)
             print(f"p2a rect: {p2a.sprite.rect.topleft}")
             print(f"p2b rect: {p2b.sprite.rect.topleft}")
@@ -631,8 +631,8 @@ class Board:
                     entity.sprite.rect.topleft = entity.sprite.convertToRect((destination[1][0], destination[1][1]))
                     entity.currentMovement -= 1
 
-                if entity.currentMovement == 0:
-                    entity.canMove = False
+                # if entity.currentMovement == 0:
+                #     entity.canMove = False
 
             self.drawMap(self.unitsMap)
 

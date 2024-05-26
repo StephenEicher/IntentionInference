@@ -51,8 +51,6 @@ class GameManager:
         self.gameLoop()
           
     def gameLoop(self):
-        if len(self.p1.team) == 0 and len(self.p2.team) == 0:
-            self.gameOver = True
 
         if self.inclPygame:      
             self.actionQueue = queue.Queue(maxsize = 1)    
@@ -71,7 +69,7 @@ class GameManager:
                 if actionDict is None:
                     break
                 self.board.updateBoard(selectedUnit, actionDict)
-                print(f"Current unit: {selectedUnit.ID}")
+                print(f"\nCurrent unit: {selectedUnit.ID}")
                 print("===================================")
                 print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
             
@@ -81,10 +79,10 @@ class GameManager:
                 totalUnavail = 0
                 for unit in self.currentAgent.team:
                     if unit.Avail:
-                        if noMovesOrAbilities:
-                            unit.Avail = False
-                        else:
-                            break
+                        # if noMovesOrAbilities:
+                        #     unit.Avail = False
+                        # else:
+                        continue
                     else:
                         totalUnavail += 1
                 if len(self.currentAgent.team) == totalUnavail:
@@ -95,15 +93,27 @@ class GameManager:
                     unit.resetForEndTurn()
             currentTurnActive = True
             self.agentTurnIndex ^= 1
+
+            if len(self.p1.team) == 0 or len(self.p2.team) == 0:
+                self.gameOver = True
+
+        if self.gameOver:
+             if len(self.p1.team) == 0:
+                print(f"\n{self.p2.name} wins")
+             if len(self.p2.team) == 0:
+                print(f"\n{self.p1.name} wins")
+
     def updateUnitStatus(self, waitingUnits):
            for curUnit in waitingUnits:
             if curUnit.currentMovement <= 0:
                 curUnit.canMove = False
             if curUnit.currentActionPoints <= 0:
                 curUnit.canAct = False
+            if not curUnit.canAct and not curUnit.canMove:
+                curUnit.Avail = False
             if curUnit.currentHP <= 0:
                 curUnit.Alive = False
-            
+                curUnit.dispose()
 
     def getAgentWaitingUnitsAndAbilities(self, agent):
         waitingUnits = []
@@ -121,7 +131,7 @@ class GameManager:
             curDict['moves'] = self.board.getValidDirections(curUnit)
             validAbilities, _ = self.board.getValidAbilities(curUnit)
             curDict['abilities'] = validAbilities
-            if bool( curDict['moves']) or bool(curDict['abilities']):
+            if bool(curDict['moves']) or bool(curDict['abilities']):
                 noMovesOrAbilities = False
             curDict['abilities'].append(endTurn)
             allActions[curUnit.ID] = curDict
@@ -164,7 +174,7 @@ class HumanAgent(Agent):
         validAbilities = unitAbilitiesDict['abilities']
         validMoveDirections = unitAbilitiesDict['moves']
         if unit.canMove is False and unit.canAct is False:
-            print("Warning! This should never happen, unit that cannot act and cannot move in waitingUnits List")
+            print(f"Warning! This should never happen, unit {unit.ID} that cannot act and cannot move in waitingUnits List")
             unit.Avail = False
             return (None, None)
         if unit.canMove or unit.canAct:

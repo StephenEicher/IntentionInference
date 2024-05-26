@@ -16,11 +16,12 @@ class Sprites:
             self.spritesDictScaled[name] = pygame.transform.scale(surface, (config.widthFactor, config.heightFactor))
 
 class Unit:
-    def __init__(self, agentIndex, unitID, position, game, image=None):
+    def __init__(self, agentIndex, unitID, position, board, game, image=None):
         self.agentIndex = agentIndex
         self.ID = unitID
         self.unitSymbol = "U"
         self.position = position
+        self.board = board
         self.game = game
 
         self.Alive = True
@@ -69,13 +70,13 @@ class Unit:
             },
         ]
         return abilities
-    def unitValidForTurn(self):
-        if self.currentHP > 0 and (self.canMove or self.canAct):
-            return True
-        else:
-            print("toggling to False!")
-            self.Avail = False
-            return False
+    # def unitValidForTurn(self):
+    #     if self.currentHP > 0 and (self.canMove or self.canAct):
+    #         return True
+    #     else:
+    #         print("toggling to False!")
+    #         self.Avail = False
+    #         return False
     def resetForEndTurn(self):
         if self.Alive:
             self.Avail = True
@@ -83,23 +84,32 @@ class Unit:
             self.canAct = True
             self.currentMovement = self.movement
             self.currentActionPoints = self.actionPoints
+    def dispose(self):
+        posessingAgent = self.game.allAgents[self.agentIndex]
+        team = posessingAgent.team
+        for unit in team:
+            if unit.ID == self.ID:
+                team.remove(unit)
+                self.board.bPygame.spriteGroup.remove(unit.sprite)
+                self.board.unitsMap[unit.position[0]][unit.position[1]] = None
+                print(f"{unit.ID} is disposed")
 
 class meleeUnit(Unit):
-    def __init__(self, agentIndex, unitID, position, game, image=None):
-        super().__init__(agentIndex, unitID, position, game, image)
+    def __init__(self, agentIndex, unitID, position, board, game, image=None):
+        super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "M"
         self.movement = 2
         self.currentMovement = 2
-        self.HP = 200
+        self.HP = 2
         self.currentHP = self.HP
         
 class rangedUnit(Unit):
-    def __init__(self, agentIndex, unitID, position, game, image=None):
-        super().__init__(agentIndex, unitID, position, game, image)
+    def __init__(self, agentIndex, unitID, position, board, game, image=None):
+        super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "R"
         self.movement = 4
         self.currentMovement = 4
-        self.HP = 100
+        self.HP = 1
         self.currentHP = self.HP
 
         rangedStrike = {
