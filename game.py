@@ -35,10 +35,11 @@ class GameManager:
             self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
             self.pygameThread.daemon = True
             self.pygameThread.start()
-
+            time.sleep(1.5)
+ 
         else:
             self.board = b.Board(25, 25, self, None)
-        time.sleep(1)
+        
         allUnits = self.board.initializeUnits()
         team0 = []
         team1 = []

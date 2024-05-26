@@ -20,28 +20,60 @@ class GameObject:
 
     def invoke(self, unitInvoking, game):
         pass
+    def deactivate(self):
+        if self.sprite is not None:
+            self.sprite.kill()
 # class Elements(GameObject):
 #     elemRandMultiplierBounds = (1, 4)
 
-class PowerUp(GameObject):
-    def invoke(self, unitInvoking, game):
-        agentInvoking = game.allAgents[unitInvoking.agentIndex]
-        for idx, agent in enumerate(game.allAgents):
-            if idx is not unitInvoking.agentIndex:
-                opponentAgent = agent
-        for unit in opponentAgent.team:
-                    godsWrath = {
-                "name": "Wrath of God",
-                "cost": 0,
-                "range": -1,
-                "events": [
-                    {"type": "changeHP", "target": "targetunit", "value": -100},
-                    {"type": "changeActionPoints", "target": "self", "value": 0},
-                ],
-                "targetedUnit" : unit,
-            }
-        game.board.cast(godsWrath)
+class InvokeAbilty(GameObject):
+    def __init__(self, name, position, z, image=None):
+        super().__init__(name, position, z, image)
+        self.target = self.getOpponentUnits
+        self.events = {}
+        self.abilityName = None
+        self.range = None
 
+    def getAlliedUnits(self, unit, game):
+        agentInvoking = game.allAgents[unit.agentIndex]
+        return agentInvoking.team
+    def getOpponentUnits(self, unit, game):
+        for idx, agent in enumerate(game.allAgents):
+            if idx is not unit.agentIndex:
+                opponentAgent = agent
+        return opponentAgent.team
+    def invoke(self, unitInvoking, game):
+        ability = {
+        "name": self.abilityName,
+        "cost": 0,
+        "range": self.range,
+        "events": self.events,
+        }    
+        if self.target is not None:
+            for unit in self.target(unitInvoking, game):
+                ability["targetedUnit"] = unit
+                game.board.cast(unit, ability)     
+        else:
+            game.board.cast(unit, ability)
+        
+        return game.board.gameObjectDict.removeGO(self)
+
+
+
+
+class Rapture(InvokeAbilty):
+    def __init__(self, name, position, z, image=None):
+        super().__init__(name, position, z, image)
+        self.events = [{"type": "changeHP", "target": "targetunit", "value": -100}]
+        self.target = self.getOpponentUnits
+        self.name = "Rapture"
+
+class Blessings(InvokeAbilty):
+    def __init__(self, name, position, z, image=None):
+        super().__init__(name, position, z, image)
+        self.events = [{"type": "changeHP", "target": "targetunit", "value": 50}]
+        self.target = self.getAlliedUnits
+        self.name = "Rapture"    
 
 class Terrain(GameObject):
     pass

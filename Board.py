@@ -325,9 +325,9 @@ class Board:
         for ID in IDs:
             if self.bPygame:
                 image = temp.spritesDictScaled["Charlie"]
-                dummyObjects.append(go.GameObject(ID, pos, 0, image))
+                dummyObjects.append(go.Rapture(ID, pos, 0, image))
             else:
-                dummyObjects.append(go.GameObject(ID, pos, 0))
+                dummyObjects.append(go.Rapture(ID, pos, 0))
         return dummyObjects
 
         # dummya = go.GameObject('a', (0,1), 0)
@@ -680,8 +680,16 @@ class Board:
             for k, v in event.items():
                 if v == "changeHP":
                     castTarget.currentHP += event["value"]
+                    castTarget.currentHP = np.min([castTarget.currentHP, castTarget.HP])
                 if v == "changeActionPoints":
                     entity.currentActionPoints += event["value"]
+                
+                if v == "changeMaxActionPoints":
+                    delta = event["value"]
+                    entity.actionPoints += delta
+                if v == "changeMovement":
+                    delta = event["value"]
+                    entity.actionPoints += delta
         
     def drawMap(self, map):
             # cMap = plt.cm.terrain
@@ -754,3 +762,8 @@ class GameObjectDict:
                 if go is not None:
                     allGOs.append(go)
         return allGOs
+    def removeGO(self, GO):
+        key = GO.position
+        if self.GOmap.get(key, None) is not None:
+            self.GOmap[key].remove(GO)
+            GO.deactivate()

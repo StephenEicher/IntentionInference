@@ -46,12 +46,11 @@ class Pygame:
         temp = sc.Sprites()
         self.spritesImageDict = temp.spritesDictScaled
         self.screen = pygame.display.set_mode((self.c.windowWidth, self.c.windowHeight))
-        turnInfoButtonSize = (200, 100)
+        turnInfoButtonSize = (self.screen.get_width() - self.boardBoundsPx[0], 50)
         self.turnInfoButton = pygame.Rect(0, 0, turnInfoButtonSize[0], turnInfoButtonSize[1])
-        self.turnInfoButton.bottomright = (self.screen.get_width(), self.screen.get_height())
-
+        self.turnInfoButton.topright = (self.screen.get_width(), 0)
         self.rightPanelCenterX = self.screen.get_width()  - 0.5*(self.screen.get_width() - self.boardBoundsPx[0])
-
+        self.botPanelCenterY = self.screen.get_height() - 0.5 * (self.screen.get_height() - self.boardBoundsPx[1])
 
 
     def pygameLoop(self):
@@ -173,14 +172,18 @@ class Pygame:
         self.unitButtons = []
         self.game.getInput = True
         for i, unit in enumerate(unitRefs):
-            buttonSize = (100, 100)
+            buttonSize = (self.screen.get_width() - self.boardBoundsPx[0], 75)
+            imageSize = (75, 75)
             spacing = 10
             buttonRect = pygame.Rect(0, 0, buttonSize[0], buttonSize[1])  # Adjust dimensions as needed
             buttonRect.center = (self.rightPanelCenterX, (buttonSize[1] + spacing)* (len(unitRefs) - i))
+            imageRect = pygame.Rect(0, 0, imageSize[0], imageSize[1])
+            imageRect.center = (self.rightPanelCenterX, (buttonSize[1] + spacing)* (len(unitRefs) - i))
             image = unit.sprite.image
-            image = pygame.transform.scale(image, buttonRect.size)
-            self.unitButtonsToBlit.append((buttonRect, image, buttonRect, (0, 0, 255)))
+            image = pygame.transform.scale(image, imageSize)
+            self.unitButtonsToBlit.append((buttonRect, image, imageRect, (0, 0, 255)))
             self.unitButtons.append((buttonRect, unit))
+
 
     def drawButtons(self, validAbilities, unit):
         self.buttonsToBlit = []  # Initialize the list to store buttons and text
@@ -191,8 +194,10 @@ class Pygame:
         for i, ability in enumerate(validAbilities):
             #buttonRect = pygame.Rect(10, self.screen.get_height() - (50 * (len(validAbilities) - i)), 200, 40)  # Adjust dimensions as needed
             box_width = 200
+            box_height = 50
             box_spacing = 10
-            buttonRect = pygame.Rect((box_width + box_spacing)*i + box_spacing ,self.screen.get_height() - 50, box_width, 40)  # Adjust dimensions as needed
+            buttonRect = pygame.Rect((box_width + box_spacing)*i + box_spacing ,self.botPanelCenterY, box_width, box_height)  # Adjust dimensions as needed
+            buttonRect.centery = self.botPanelCenterY
             self.abilityButtons.append((buttonRect, ability))
 
             # Render text on button (ability name)
@@ -257,6 +262,23 @@ class Pygame:
    
         try:
             self.spriteGroup.draw(self.unitsLayer)  # Draw units on the units layer
+            nSprites = len(self.game.allUnits)
+            increment = self.boardBoundsPx[0] / nSprites
+            idx = 0
+            for sprite in self.spriteGroup:
+                if isinstance(sprite.parent, u.Unit):
+                    xPx = increment*idx
+                    yPx = self.boardBoundsPx[1]+1
+                    hpIndRect = pygame.Rect(0,0, increment, 50)
+                    hpIndRect.topleft = (xPx, yPx)
+                    image = sprite.image
+                    self.screen.blit(image, hpIndRect)
+                    idx = idx + 1
+                    barXpx = xPx + image.get_size()[0]
+                    ratio = sprite.parent.currentHP / sprite.parent.HP
+                    pygame.draw.rect(self.screen, "red", (barXpx, yPx, increment - image.get_size()[0], image.get_size()[1]))
+                    pygame.draw.rect(self.screen, "green", (barXpx, yPx, ratio*(increment - image.get_size()[0]), image.get_size()[1]))
+
         except:
             print('Warning! Unknown error in sprite group draw')
         if self.hoveredSprite is not None:
