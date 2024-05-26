@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import copy
 import queue
+import SpriteClasses as sc
 
 class Pygame:
     def __init__(self, game, maxX, maxY):
@@ -25,7 +26,8 @@ class Pygame:
         self.getTarget = False
         self.getInput = False
         self.actionDictAwaitingTarget = None
-
+        self.spriteGroup = pygame.sprite.Group()
+        
         uiElements = {
             "select_hover": pygame.image.load(r".\sprites\select_target_hover.PNG"),
             "select_confirm": pygame.image.load(r".\sprites\select_target_confirm.PNG")
@@ -38,9 +40,10 @@ class Pygame:
     def startup(self):
         pygame.init()
         self.unitsLayer = pygame.Surface((self.c.windowWidth, self.c.windowHeight), pygame.SRCALPHA)
-        self.spriteGroup = pygame.sprite.Group()
         
-        temp = u.Sprites()
+
+        
+        temp = sc.Sprites()
         self.spritesImageDict = temp.spritesDictScaled
         self.screen = pygame.display.set_mode((self.c.windowWidth, self.c.windowHeight))
         turnInfoButtonSize = (200, 100)
@@ -245,17 +248,21 @@ class Pygame:
                 aTextRect = aTurnText.get_rect(center= tuple(turnTextCenter))
                 pygame.draw.rect(self.screen, (30, 30, 30), self.turnInfoButton)
                 self.screen.blit(aTurnText, aTextRect)
-
+           
         self.screen.blit(self.unitsLayer, (0, 0))  # Blit the units layer onto the screen
         self.unitsLayer.fill((0, 0, 0, 0))  # Clear units layer with transparent black
         
-        self.spriteGroup.draw(self.unitsLayer)  # Draw units on the units layer
+
+
+   
+        try:
+            self.spriteGroup.draw(self.unitsLayer)  # Draw units on the units layer
+        except:
+            print('Warning! Unknown error in sprite group draw')
         if self.hoveredSprite is not None:
             self.unitsLayer.blit(self.uiElementsScaled["select_hover"], self.hoveredSprite.rect)
 
 
-
-        
 
         for (rect, image) in self.prevRects:
             self.screen.blit(image, rect)
@@ -271,7 +278,6 @@ class Pygame:
             pygame.draw.rect(self.screen, color, buttonRect)  # Draw the rectangle
             if text is not None:
                 self.screen.blit(text, rect)  # Blit the text on top of the rectangle
-
         
 
         pygame.display.update()  # Update the display

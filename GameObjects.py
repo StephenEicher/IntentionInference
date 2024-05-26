@@ -1,3 +1,5 @@
+import SpriteClasses as sc
+
 class GameObject:
     """
     In-game object class that represents a generic "game object" from which child classes
@@ -6,14 +8,40 @@ class GameObject:
     occupied = False
     symbol = None
 
-    def __init__(self, name, position, z):
+    def __init__(self, name, position, z, image=None):
         self.name = name
         self.position = position
         self.z = z
         self.occupied = self.symbol != '.'
+        if image is not None:
+            self.sprite = sc.UnitSprite(self, image)
+        else:
+            self.sprite = None
 
+    def invoke(self, unitInvoking, game):
+        pass
 # class Elements(GameObject):
 #     elemRandMultiplierBounds = (1, 4)
+
+class PowerUp(GameObject):
+    def invoke(self, unitInvoking, game):
+        agentInvoking = game.allAgents[unitInvoking.agentIndex]
+        for idx, agent in enumerate(game.allAgents):
+            if idx is not unitInvoking.agentIndex:
+                opponentAgent = agent
+        for unit in opponentAgent.team:
+                    godsWrath = {
+                "name": "Wrath of God",
+                "cost": 0,
+                "range": -1,
+                "events": [
+                    {"type": "changeHP", "target": "targetunit", "value": -100},
+                    {"type": "changeActionPoints", "target": "self", "value": 0},
+                ],
+                "targetedUnit" : unit,
+            }
+        game.board.cast(godsWrath)
+
 
 class Terrain(GameObject):
     pass

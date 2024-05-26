@@ -1,19 +1,8 @@
 import pygame
-from config import config
 import Board as b
+import SpriteClasses as sc
 
-class Sprites:
-    def __init__(self):
-        spritesDict = {
-            "Moo": pygame.image.load(r".\sprites\sprite_moo.PNG"),
-            "Haku": pygame.image.load(r".\sprites\sprite_haku.PNG"),
-            "Moo_ranged" : pygame.image.load(r".\sprites\ranged_unit.PNG"),
-            "Moo_melee" : pygame.image.load(r".\sprites\melee_unit.PNG"),
-        }
-        
-        self.spritesDictScaled = {}
-        for name, surface in spritesDict.items():
-            self.spritesDictScaled[name] = pygame.transform.scale(surface, (config.widthFactor, config.heightFactor))
+
 
 class Unit:
     def __init__(self, agentIndex, unitID, position, game, image=None):
@@ -41,7 +30,7 @@ class Unit:
         self.currentActionPoints = self.actionPoints
         self.unitAbilities = self.abilities()
         if image is not None:
-            self.sprite = UnitSprite(self, image)
+            self.sprite = sc.UnitSprite(self, image)
         else:
             self.sprite = None
         
@@ -85,7 +74,11 @@ class Unit:
             self.currentActionPoints = self.actionPoints
 
 class meleeUnit(Unit):
-    def __init__(self, agentIndex, unitID, position, game, image=None):
+    def __init__(self, agentIndex, unitID, position, game):
+        if agentIndex == 0:
+            image = game.gPygame.spritesImageDict['Moo_melee']
+        else:
+            image = game.gPygame.spritesImageDict['Haku']
         super().__init__(agentIndex, unitID, position, game, image)
         self.unitSymbol = "M"
         self.movement = 2
@@ -94,11 +87,15 @@ class meleeUnit(Unit):
         self.currentHP = self.HP
         
 class rangedUnit(Unit):
-    def __init__(self, agentIndex, unitID, position, game, image=None):
+    def __init__(self, agentIndex, unitID, position, game):
+        if agentIndex == 0:
+            image = game.gPygame.spritesImageDict['Moo_ranged']
+        else:
+            image = game.gPygame.spritesImageDict['Haku']
         super().__init__(agentIndex, unitID, position, game, image)
         self.unitSymbol = "R"
-        self.movement = 4
-        self.currentMovement = 4
+        self.movement = 9999
+        self.currentMovement = self.movement
         self.HP = 100
         self.currentHP = self.HP
 
@@ -114,23 +111,4 @@ class rangedUnit(Unit):
             }
         self.unitAbilities.append(rangedStrike)
 
-        
-
-class UnitSprite(pygame.sprite.Sprite):
-    def __init__(self, parent, image):
-        self.parent = parent
-        pygame.sprite.Sprite.__init__(self)
-
-        rectTopLeft = self.convertToRect(parent.position)
-
-        # Initialize sprite image and position
-        self.image = image
-        self.rect = self.image.get_rect()
-        self.rect.topleft = (rectTopLeft)
-
-    def convertToRect(self, position):
-        rectX = position[1] * config.widthFactor
-        rectY = position[0] * config.heightFactor
-
-        return (rectX, rectY)
     

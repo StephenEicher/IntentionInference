@@ -11,6 +11,7 @@ import abc
 import Units as u
 import Board as b
 import GameObjects as go
+import SpriteClasses as sc
 
 class GameManager:
     def __init__(self, inclPygame = True):
@@ -20,6 +21,7 @@ class GameManager:
         # self.gameLoopEvent = threading.Event()
         self.currentAgent = None
         self.inputReady = False
+        
         self.start()
 
     def start(self):
@@ -30,7 +32,6 @@ class GameManager:
             maxY = 25
             self.gPygame = rp.Pygame(self, maxX, maxY)            
             self.board = b.Board(maxX, maxY, self, self.gPygame)
-
             self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
             self.pygameThread.daemon = True
             self.pygameThread.start()
