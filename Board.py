@@ -466,8 +466,9 @@ class Board:
         takeFallDamage = False
         addSurfaces = []
         validDirections = {}
+        flatValidDirections = []
         for direction, position in validAdjPositions.items():
-
+            
             # Check if adjacent Unit exists
             if (direction, position) in unitsMapR:
                 if unitsMapR[(direction, position)] != None:
@@ -495,8 +496,9 @@ class Board:
 
             # If the position is valid, add it to the validDirections dictionary
             validDirections[(direction, position)] = (takeFallDamage, addSurfaces)
+            flatValidDirections.append((unit, {"type" : "move", "directionDict" : {(direction, position) : (takeFallDamage, addSurfaces)}}))
 
-        return validDirections
+        return validDirections, flatValidDirections
     
     def getValidAbilities(self, unit):
         unitAbilities = unit.unitAbilities
@@ -507,10 +509,11 @@ class Board:
         affordableAbilities = []
         validAbilities = []
         invalidAbilities = {}
+        flatAbilities = []
 
         if unit.canAct is False:
             invalidAbilities=unitAbilities
-            return (validAbilities, invalidAbilities)
+            return (validAbilities, invalidAbilities, flatAbilities)
 
         for ability in unitAbilities:
             if ability.get("cost") <= unit.currentActionPoints:
@@ -518,6 +521,9 @@ class Board:
             if ability.get("cost") > unit.currentActionPoints:
                 invalidAbilities[ability["name"]] = ability.get("cost")
 
+
+       
+        
         for ability in affordableAbilities:
             for event in ability.get("events"):
                 
@@ -526,18 +532,26 @@ class Board:
                         range = ability.get("range")
                         event = eTargetsInRange(unit, range)
                         responseTuple = (self.dispatcher.dispatch(event))
-                        meleeTargets = responseTuple[0][1]
+                        viableTargets = responseTuple[0][1]
 
-                        if len(meleeTargets) > 0: 
+                        if len(viableTargets) > 0: 
                             validAbilities.append(ability)
-                        if len(meleeTargets) == 0:
+                        if len(viableTargets) == 0:
                             invalidAbilities[ability["name"]] = ability.get("cost")
+
+                        for target in viableTargets:
+                            abilityWithTarget = dict(ability)
+                            abilityWithTarget["targetedUnit"] = target
+                            flatAbilities.append((unit, {"type" : "castAbility", "abilityDict" : abilityWithTarget}))
+                else:
+                    flatAbilities.append((unit, {"type" : "castAbility", "abilityDict" : ability}))
 
         for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
             if ability not in validAbilities and ability.get("range") == 0:
                 validAbilities.append(ability)
+                
 
-        return (validAbilities, invalidAbilities)
+        return (validAbilities, invalidAbilities, flatAbilities)
     
 
     def rayCast(self, origin, target, castingUnit, targetUnit, gameObjectTree, unitsMap, zMap):
