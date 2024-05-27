@@ -27,6 +27,7 @@ class Pygame:
         self.getInput = False
         self.actionDictAwaitingTarget = None
         self.spriteGroup = pygame.sprite.Group()
+        self.obstacleGroup = pygame.sprite.Group()
         
         uiElements = {
             "select_hover": pygame.image.load(r".\sprites\select_target_hover.PNG"),
@@ -263,6 +264,10 @@ class Pygame:
    
         try:
             self.spriteGroup.draw(self.unitsLayer)  # Draw units on the units layer
+            self.obstacleGroup.draw(self.unitsLayer)
+            
+            
+            
             nSprites = len(self.game.allUnits)
             increment = self.boardBoundsPx[0] / nSprites
             idx = 0

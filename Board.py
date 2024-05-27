@@ -65,7 +65,7 @@ class Noise:
         self.maxX = maxX
 
     def genNoise(self, scales, amplis, minZ, maxZ):
-        simplex = OpenSimplex(seed = 0)
+        simplex = OpenSimplex(random.randint(0,10000000))
         noiseMap = np.zeros((self.maxY, self.maxX))
 
         # Generate noise for the left triangular half of the grid (grid split across main diagonal)
@@ -152,7 +152,7 @@ class ZMap(Noise):
     def __init__(self, maxY, maxX, board):
         super().__init__(maxY, maxX)
         self.board = board
-        comboMap = self.genNoise(0.1, 1, 0, 10)
+        comboMap = self.genNoise(0.1, 1, 0, 0)
         self.map = comboMap[0]
 
     def ZMhandleEvent(self, event):
@@ -234,10 +234,10 @@ class OMap(Noise):
         self.GOT = GOT
         
         comboMap = self.genNoise(0.5, 0.1, 0, 2)
-        map = comboMap[0]
-        map[map < 2] = 0
-        map[map == 2] = 1 # Convert to bool
-        self.createObstacles(map)
+        self.map = comboMap[0]
+        self.map[self.map < 2] = 0
+        self.map[self.map == 2] = 1 # Convert to bool
+        self.createObstacles(self.map)
 
     def createObstacles(self, map): # Should this function exist on the class or should the board pass the instance to the GameObjectTree?
         coordArrays = np.where(map)
@@ -246,7 +246,8 @@ class OMap(Noise):
         temp = sc.Sprites()
         for i in range(len(obstacleCoords)):
             row, col = obstacleCoords[i]
-            newObstacle = go.Obstacles(None, (row, col), 0, temp.spritesDictScaled["obstacle"])
+            newObstacle = go.Obstacles(None, (row, col), 1, temp.spritesDictScaled["obstacle"])
+            self.board.bPygame.obstacleGroup.add(newObstacle.sprite)
             self.GOT.insert(newObstacle)
 
 class EventDispatcher:
@@ -380,10 +381,10 @@ class Board:
         self.instZM = ZMap(self.maxY, self.maxX, self)
         self.dispatcher.addListener(eMove, self.instZM.ZMhandleEvent)
         self.zMap = self.instZM.map
+        self.drawMap(self.zMap)
 
     def initializeOMap(self):
         self.instOM = OMap(self.maxY, self.maxX, self, self.GOT)
-        self.instOM.createObstacles()
         self.drawMap(self.instOM.map)
 
     def getAdjDirections(self, unit):
@@ -447,7 +448,7 @@ class Board:
         # Unpack listenerResponses
         #gameObjectTreeR = listenerResponses[0][1]
         gameObjectTreeR = listenerResponses[0][1]
-        zMapR = listenerResponses[1][1]
+        zMapR = listenerResponses[2][1]
 
         unitsMapR = listenerResponses[3][1]
 
@@ -455,32 +456,72 @@ class Board:
         addSurfaces = []
         validDirections = {}
         flatValidDirections = []
+        
         for direction, position in validAdjPositions.items():
-            
+    
             # Check if adjacent Unit exists
             if (direction, position) in unitsMapR:
-                if unitsMapR[(direction, position)] != None:
+                if unitsMapR[(direction, position)] is not None:
                     continue
 
-            # # Calculate elevation difference and check if it's too great, parse out gameObjectTreeR
-            # if gameObjectTreeR != []:
-            #     for dict in gameObjectTreeR:
-            #         if position == dict.get("position"):
-            #             stackZ = dict.get("stackZ")
-            #             surfaces = dict.get("surfaces")
-            #             totalZ = zMapR[(direction, position)] + stackZ
-            #             if len(surfaces) != 0:
-            #                 addSurfaces.append(surfaces)
+            # Calculate elevation difference and check if it's too great, parse out gameObjectTreeR
+            if gameObjectTreeR:
+                for dict in gameObjectTreeR:
+                    if position == dict.get("position"):
+                        stackZ = dict.get("stackZ")
+                        surfaces = dict.get("surfaces")
+                        totalZ = zMapR[(direction, position)] + stackZ
+                        if surfaces:
+                            addSurfaces.append(surfaces)
 
-            totalZ = zMapR[direction, position]
-            unitZ = zMapR[unit.position]
+                        unitZ = zMapR[unit.position]
+                        break  # Break the loop once we have found and assigned totalZ and unitZ
+                else:
+                    # If we do not break the loop, it means no matching position was found
+                    totalZ = zMapR[direction, position]
+                    unitZ = zMapR[unit.position]
+            else:
+                totalZ = zMapR[direction, position]
+                unitZ = zMapR[unit.position]
 
             if (totalZ - unitZ) > unit.jump:
                 continue
+                
+        
+        
+        
+        
+        
+        # for direction, position in validAdjPositions.items():
+            
+        #     # Check if adjacent Unit exists
+        #     if (direction, position) in unitsMapR:
+        #         if unitsMapR[(direction, position)] != None:
+        #             continue
 
-            # Check for fall damage
-            if (totalZ - unitZ) < -abs(unit.jump):
-                takeFallDamage = True
+        #     # Calculate elevation difference and check if it's too great, parse out gameObjectTreeR
+        #     if gameObjectTreeR != []:
+        #         for dict in gameObjectTreeR:
+        #             if position == dict.get("position"):
+        #                 stackZ = dict.get("stackZ")
+        #                 surfaces = dict.get("surfaces")
+        #                 totalZ = zMapR[(direction, position)] + stackZ
+        #                 if len(surfaces) != 0:
+        #                     addSurfaces.append(surfaces)
+
+        #                 totalZ = zMapR[direction, position]
+        #                 unitZ = zMapR[unit.position]
+
+        #     if gameObjectTreeR == []:
+        #         totalZ = zMapR[direction, position]
+        #         unitZ = zMapR[unit.position]
+
+        #     if (totalZ - unitZ) > unit.jump:
+        #         continue
+
+        #     # Check for fall damage
+        #     if (totalZ - unitZ) < -abs(unit.jump):
+        #         takeFallDamage = True
 
             # If the position is valid, add it to the validDirections dictionary
             validDirections[(direction, position)] = (takeFallDamage, addSurfaces)

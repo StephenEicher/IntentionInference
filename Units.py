@@ -21,7 +21,7 @@ class Unit:
         # Initialize the default stats for the unit
         self.HP = 100
         self.movement = 4
-        self.jump = 2
+        self.jump = 0
         self.actionPoints = 2
         
         # Initialize current stats
@@ -93,8 +93,8 @@ class meleeUnit(Unit):
             image = sc.Sprites().spritesDictScaled['Haku']
         super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "M"
-        self.movement = 2
-        self.currentMovement = 2
+        self.movement = 6
+        self.currentMovement = self.movement
         self.HP = 2
         self.currentHP = self.HP
         
