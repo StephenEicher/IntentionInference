@@ -1,6 +1,7 @@
 import abc
 import time
 import random
+import MCTS
 
 class Agent(metaclass=abc.ABCMeta):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):       
@@ -25,6 +26,17 @@ class RandomAgent(Agent):
         unit, actionDict = random.choice(flatActionSpace)    
         return (unit, actionDict)
 
+class MCTSAgent(Agent):
+    def selectAction(self, waitingUnits, board, allActions, flatActionSpace):
+        pass
+        # gamma = 0.9
+        # problem = MCTS.MDP(gamma, None, getActionFunction, None, getRewardFunction, getTransitionRewardFunction)
+        # d = 12 #Tree depth
+        # m = 500 #num simulations
+        # c = 500 #exploration
+        # solver = MCTS.MonteCarloTreeSearch(problem, {}, {}, d, m, c, dc.getValue)
+        # return solver(dc)
+    
 class HumanAgent(Agent):
     selectedUnit = None
     def selectUnit(self, waitingUnits):
