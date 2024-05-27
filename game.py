@@ -155,4 +155,4 @@ class GameManager:
     
     def clone(self):
         cloned_game = GameManager()
-a = GameManager(True
+a = GameManager(True)
