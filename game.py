@@ -152,5 +152,7 @@ class GameManager:
             allActions[curUnit.ID] = curDict
             
         return waitingUnits, allActions, flatActionSpace, noMovesOrAbilities
-
-a = GameManager(True)
+    
+    def clone(self):
+        cloned_game = GameManager()
+a = GameManager(True
