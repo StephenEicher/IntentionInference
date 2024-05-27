@@ -6,7 +6,7 @@ import numpy as np
 from  opensimplex import OpenSimplex
 import matplotlib.pyplot as plt
 import time
-import abc
+import AgentClasses as ac
 
 import Units as u
 import Board as b
@@ -35,7 +35,7 @@ class GameManager:
             self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
             self.pygameThread.daemon = True
             self.pygameThread.start()
-            time.sleep(1.5)
+            time.sleep(0.1)
  
         else:
             self.board = b.Board(25, 25, self, None)
@@ -46,8 +46,8 @@ class GameManager:
         team0.extend([allUnits[0], allUnits[1]])
         team1.extend([allUnits[2], allUnits[3]])
         self.allUnits = allUnits
-        self.p1 = HumanAgent('Ally', 0, team0, self, self.gPygame)
-        self.p2 = HumanAgent('Bob', 1, team1, self, self.gPygame)
+        self.p1 = ac.HumanAgent('Ally', 0, team0, self, self.gPygame)
+        self.p2 = ac.RandomAgent('Bob', 1, team1, self, self.gPygame)
         self.allAgents = []
         self.allAgents.extend([self.p1, self.p2])
         self.gameLoop()
@@ -66,8 +66,8 @@ class GameManager:
             #print(f"Selected {selectedUnit.ID}")   
             currentTurnActive= True
             while currentTurnActive:
-                waitingUnits, allActions, noMovesOrAbilities = self.getAgentWaitingUnitsAndAbilities(self.currentAgent)
-                selectedUnit, actionDict = self.currentAgent.selectAction(waitingUnits, self.board, allActions)
+                waitingUnits, allActions, flatActionSpace, noMovesOrAbilities = self.getAgentWaitingUnitsAndAbilities(self.currentAgent)
+                selectedUnit, actionDict = self.currentAgent.selectAction(waitingUnits, self.board, allActions, flatActionSpace)
                 if actionDict is None:
                     break
                 self.board.updateBoard(selectedUnit, actionDict)
@@ -100,10 +100,12 @@ class GameManager:
                 self.gameOver = True
 
         if self.gameOver:
-             if len(self.p1.team) == 0:
+            if len(self.p1.team) == 0:
                 print(f"\n{self.p2.name} wins")
-             if len(self.p2.team) == 0:
+            if len(self.p2.team) == 0:
                 print(f"\n{self.p1.name} wins")
+            if self.inclPygame:
+                pygame.quit()
 
     def updateUnitStatus(self, waitingUnits):
            for curUnit in waitingUnits:
@@ -122,84 +124,33 @@ class GameManager:
         allActions= {}
         noMovesOrAbilities = True
         endTurn = {'name' : 'End Unit Turn'}
-
+        flatActionSpace = []
         for curUnit in agent.team:
             if curUnit.Alive and curUnit.Avail:
                 waitingUnits.append(curUnit)
                 allActions[curUnit.ID] = {}
- 
+
         for curUnit in waitingUnits:
             curDict = {}
-            curDict['moves'] = self.board.getValidDirections(curUnit)
-            validAbilities, _ = self.board.getValidAbilities(curUnit)
-            curDict['abilities'] = validAbilities
-            if bool(curDict['moves']) or bool(curDict['abilities']):
+            if curUnit.canMove:
+                curDict['moves'], flatValidDirections = self.board.getValidDirections(curUnit)
+                flatActionSpace.extend(flatValidDirections)
+            if curUnit.canAct:
+                validAbilities, _, flatAbilities = self.board.getValidAbilities(curUnit)
+                flatActionSpace.extend(flatAbilities)
+                curDict['abilities'] = validAbilities
+            flatEndTurn = (curUnit, {'type' : 'castAbility', 'abilityDict' : endTurn})
+            flatActionSpace.extend([flatEndTurn])
+
+            
+            if bool(curDict.get('moves', None)) or bool(curDict.get('abilities', None)):
                 noMovesOrAbilities = False
-            curDict['abilities'].append(endTurn)
+            if 'abilities' in curDict.keys():
+                curDict['abilities'].append(endTurn)
+            else:
+                curDict['abilities'] = [endTurn]
             allActions[curUnit.ID] = curDict
             
-        return waitingUnits, allActions, noMovesOrAbilities
-
-class Agent(metaclass=abc.ABCMeta):
-    def __init__(self, name, agentIndex, team, game = None, pygame = None):       
-        self.name = name
-        self.agentIndex = agentIndex
-        self.team = team
-        self.game = game
-        self.aPygame = pygame
-        self.inputReady = False
-    @abc.abstractmethod
-    def selectUnit(self):
-        pass
-
-class HumanAgent(Agent):
-    selectedUnit = None
-    def selectUnit(self, waitingUnits):
-        self.aPygame.drawButtons({}, None)
-        
-        self.aPygame.getInput = True
-        time.sleep(0.1)
-        unitDict = self.game.actionQueue.get()
-        selectedUnit = unitDict["unit"]
-        self.selectedUnit = selectedUnit
-        return selectedUnit
-    
-    def selectAction(self, waitingUnits, board, allActions):
-        self.aPygame.drawSelectUnit(waitingUnits)
-        if self.selectedUnit is None:
-            unit = self.selectUnit(waitingUnits)
-        else:
-            if self.selectedUnit.ID not in allActions.keys():
-                unit = self.selectUnit(waitingUnits)
-            unit = self.selectedUnit
-        unitAbilitiesDict = allActions[unit.ID]
-        validAbilities = unitAbilitiesDict['abilities']
-        validMoveDirections = unitAbilitiesDict['moves']
-        if unit.canMove is False and unit.canAct is False:
-            print(f"Warning! This should never happen, unit {unit.ID} that cannot act and cannot move in waitingUnits List")
-            unit.Avail = False
-            return (None, None)
-        if unit.canMove or unit.canAct:
-            self.aPygame.getInput = True
-        
-        
-        self.aPygame.validDirections = validMoveDirections
-        
-        self.aPygame.drawButtons(validAbilities, unit)
-
-        actionDict = self.game.actionQueue.get()
-        if actionDict is not None:
-            if actionDict["type"] == "unit":
-                self.selectedUnit = actionDict["unit"]
-                self.aPygame.getTarget = False
-                (unit, actionDict) = self.selectAction(waitingUnits, board, allActions)
-
-
-            self.aPygame.getInput = False
-            self.aPygame.getTarget = False
-            return (unit, actionDict)
-        else:
-            return (None, None)
-        
+        return waitingUnits, allActions, flatActionSpace, noMovesOrAbilities
 
 a = GameManager(True)

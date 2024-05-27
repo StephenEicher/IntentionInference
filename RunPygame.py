@@ -113,7 +113,8 @@ class Pygame:
 
             self.updateScreen()
             clock.tick(30)
-
+            if self.game.gameOver:
+                run = False
         pygame.display.quit()
         pygame.quit()
         self.game.gameOver = True

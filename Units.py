@@ -86,9 +86,11 @@ class Unit:
 class meleeUnit(Unit):
     def __init__(self, agentIndex, unitID, position, board, game):
         if agentIndex == 0:
-            image = game.gPygame.spritesImageDict['Moo_melee']
+            # image = game.gPygame.spritesImageDict['Moo_melee']
+            image = sc.Sprites().spritesDictScaled['Moo_melee']
         else:
-            image = game.gPygame.spritesImageDict['Haku']
+            # image = game.gPygame.spritesImageDict['Haku']
+            image = sc.Sprites().spritesDictScaled['Haku']
         super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "M"
         self.movement = 2
@@ -99,14 +101,16 @@ class meleeUnit(Unit):
 class rangedUnit(Unit):
     def __init__(self, agentIndex, unitID, position, board, game):
         if agentIndex == 0:
-            image = game.gPygame.spritesImageDict['Moo_ranged']
+            # image = game.gPygame.spritesImageDict['Moo_ranged']
+            image = sc.Sprites().spritesDictScaled['Moo_ranged']
         else:
-            image = game.gPygame.spritesImageDict['Haku']
+            # image = game.gPygame.spritesImageDict['Haku']
+            image = sc.Sprites().spritesDictScaled['Haku']
         super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "R"
-        self.movement = 9999
+        self.movement = 4
         self.currentMovement = self.movement
-        self.HP = 100
+        self.HP = 100 
         self.currentHP = self.HP
 
         rangedStrike = {
