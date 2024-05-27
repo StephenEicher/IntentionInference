@@ -311,10 +311,10 @@ class Board:
         # self.allElemPositions = set()
         # self.allSeedPositions = set()
         self.dispatcher = EventDispatcher(self)
-        # self.initializeObjectTree()
+        self.initializeObjectTree()
         self.initializeObjectDict()
         self.initializeZMap()
-        # self.initializeOMap()
+        self.initializeOMap()
 
     def createDummyGameObjects(self):
         dummyObjects = []
@@ -448,9 +448,10 @@ class Board:
         # Unpack listenerResponses
         #gameObjectTreeR = listenerResponses[0][1]
         gameObjectTreeR = listenerResponses[0][1]
+
         zMapR = listenerResponses[2][1]
 
-        unitsMapR = listenerResponses[2][1]
+        unitsMapR = listenerResponses[3][1]
 
         takeFallDamage = False
         addSurfaces = []
