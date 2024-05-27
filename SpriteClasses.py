@@ -7,7 +7,8 @@ class Sprites:
             "Haku": pygame.image.load(r".\sprites\sprite_haku.PNG"),
             "Moo_ranged" : pygame.image.load(r".\sprites\ranged_unit.PNG"),
             "Moo_melee" : pygame.image.load(r".\sprites\melee_unit.PNG"),
-            "Charlie" : pygame.image.load(r".\sprites\sprite_charlie.PNG")
+            "Charlie" : pygame.image.load(r".\sprites\sprite_charlie.PNG"),
+            "obstacle" : pygame.image.load(r".\sprites\sprite_obstacle.PNG")
         }
         
         self.spritesDictScaled = {}

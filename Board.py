@@ -11,6 +11,7 @@ import SpriteClasses as sc
 
 import Units as u
 import GameObjects as go
+import RunPygame as rp
 import config
 
 class UnitsMap:
@@ -227,29 +228,26 @@ class ZMap(Noise):
         }
 
 class OMap(Noise):
-    def __init__(self, maxY, maxX, board):
+    def __init__(self, maxY, maxX, board, GOT):
         super().__init__(maxY, maxX)
         self.board = board
-        comboMap = self.genNoise(0.4, 1, 0, 3)
-        self.map = comboMap[0]
-    #     self.createMask(map)
+        self.GOT = GOT
         
+        comboMap = self.genNoise(0.5, 0.1, 0, 2)
+        map = comboMap[0]
+        map[map < 2] = 0
+        map[map == 2] = 1 # Convert to bool
+        self.createObstacles(map)
 
-    # def createMask(self, map):
-
-
-    # def OMhandleEvent(self, event):        
-    #     if isinstance(event, eMove):
-
-    #         adjZs = {}
-    #         for direction, (adjY, adjX) in self.board.validAdjPositions.items():
-    #             adjZ = self.map[adjY, adjX]
-    #             unitZ = self.map[event.unit.position[0], event.unit.position[1]]
-
-    #             adjZs[(event.unit.position[0], event.unit.position[1])] = unitZ
-    #             adjZs[(direction, (adjY, adjX))] = adjZ
-
-    #         return adjZs
+    def createObstacles(self, map): # Should this function exist on the class or should the board pass the instance to the GameObjectTree?
+        coordArrays = np.where(map)
+        rows, cols = coordArrays
+        obstacleCoords = list(zip(rows, cols))
+        temp = sc.Sprites()
+        for i in range(len(obstacleCoords)):
+            row, col = obstacleCoords[i]
+            newObstacle = go.Obstacles(None, (row, col), 0, temp.spritesDictScaled["obstacle"])
+            self.GOT.insert(newObstacle)
 
 class EventDispatcher:
     def __init__(self, board):
@@ -312,7 +310,7 @@ class Board:
         # self.allElemPositions = set()
         # self.allSeedPositions = set()
         self.dispatcher = EventDispatcher(self)
-        #self.initializeObjectTree()
+        self.initializeObjectTree()
         self.initializeObjectDict()
         self.initializeZMap()
         self.initializeOMap()
@@ -330,18 +328,9 @@ class Board:
                 dummyObjects.append(go.Rapture(ID, pos, 0))
         return dummyObjects
 
-        # dummya = go.GameObject('a', (0,1), 0)
-        # self.dummyb = go.GameObject('b', (0,1), 0)
-        # self.dummyc = go.GameObject('c', (0,1), 0)
-        # self.dummyd = go.GameObject('d', (0,1), 0)
-
     def initializeObjectTree(self):
-        self.gameObjectTree = got.GameObjectTree(self.defaultMinPoint, self.maxPoint, self)
-        self.dispatcher.addListener(eMove, self.gameObjectTree.GOThandleEvent)
-        self.gameObjectTree.insert(self.dummya)
-        self.gameObjectTree.insert(self.dummyb)
-        self.gameObjectTree.insert(self.dummyc)
-        self.gameObjectTree.insert(self.dummyd)
+        self.GOT = got.GameObjectTree(self.defaultMinPoint, self.maxPoint, self)
+        self.dispatcher.addListener(eMove, self.GOT.GOThandleEvent)
 
     def initializeObjectDict(self):
         self.gameObjectDict= GameObjectDict(self)
@@ -393,10 +382,9 @@ class Board:
         self.zMap = self.instZM.map
 
     def initializeOMap(self):
-        self.instOM = OMap(self.maxY, self.maxX, self)
-        self.dispatcher.addListener(eMove, self.instZM.ZMhandleEvent)
-        self.oMap = self.instOM.map
-        self.drawMap(self.oMap)
+        self.instOM = OMap(self.maxY, self.maxX, self, self.GOT)
+        self.instOM.createObstacles()
+        self.drawMap(self.instOM.map)
 
     def getAdjDirections(self, unit):
         unitY, unitX = unit.position

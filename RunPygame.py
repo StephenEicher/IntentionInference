@@ -43,7 +43,7 @@ class Pygame:
         
 
         
-        temp = sc.Sprites()
+        temp = sc.Sprites() # Does this isntance get automatically recycled/'deleted'?
         self.spritesImageDict = temp.spritesDictScaled
         self.screen = pygame.display.set_mode((self.c.windowWidth, self.c.windowHeight))
         turnInfoButtonSize = (self.screen.get_width() - self.boardBoundsPx[0], 50)

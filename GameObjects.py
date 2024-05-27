@@ -78,8 +78,8 @@ class Blessings(InvokeAbilty):
 class Terrain(GameObject):
     pass
     
-# class Obstacles(Terrain):
-#     pass
+class Obstacles(Terrain):
+    pass
 
 # class Water(Elements):
 #     debugName = 'Water'

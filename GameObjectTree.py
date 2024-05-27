@@ -1,3 +1,4 @@
+import Board as b
 
 class GameObjectTree:
     def __init__(self, minPoint, maxPoint, board, capacity = 4, depth = 0, maxDepth = 5):
@@ -15,33 +16,44 @@ class GameObjectTree:
     def insert(self, gameObject):
         gameObjectTreeY = self.board.maxY - 1 - gameObject.position[0]
         stackPosition = (gameObject.position[1], gameObjectTreeY)
-        if stackPosition not in self.stacks and len(self.stacks) < self.capacity:
-            # Initialize a new stack (list) at the key stackPosition if it does not exist
-            self.stacks[stackPosition] = []
 
         # Check if gameObject position is within limits of current node
         if not self.isWithinBounds(stackPosition):
             return False
 
-        # If current node's stack is not full, insert GameObject
-        stack = self.stacks[stackPosition]
-        if len(stack) < self.defaultStackHeight:
-            stack.append(gameObject)
-            # print(f'Inserting GameObject into stack at ({stackPosition[0]},{stackPosition[1]} (X,Y)')
-            return True
+        if stackPosition not in self.stacks:
+            if len(self.stacks) < self.capacity:
+                # Initialize a new stack (list) at the key stackPosition if it does not exist
+                self.stacks[stackPosition] = []                
+            elif self.children:
+                for child in self.children:
+                    if child.insert(gameObject): # maybe replace with try..
+                        return True
+                    else:
+                        child.subdivide(gameObject) # .. and except?
+            else:
+                self.subdivide(gameObject)
 
-        if len(stack) == self.defaultStackHeight and not self.isLeaf:
-            if not self.children:
-                self.subdivide()
-        
-        # Attempt to insert the game object into child nodes
-        for child in self.children:
-            if child.insert(gameObject):
+        # If current node's stack is not full, insert GameObject
+        if stackPosition in self.stacks:
+            stack = self.stacks[stackPosition]
+            if len(stack) < self.defaultStackHeight:
+                stack.append(gameObject)
+                print(f'Inserting GameObject into stack at ({stackPosition[0]},{stackPosition[1]}) (X,Y) at depth {self.depth}')
                 return True
+
+        # if len(stack) == self.defaultStackHeight and not self.isLeaf:
+        #     if not self.children:
+        #         self.subdivide(gameObject)
+        
+        # # Attempt to insert the game object into child nodes
+        # if self.children:
+        #     for child in self.children:
+        #         if child.insert(gameObject):
+        #             return True
 
         if len(stack) == self.defaultStackHeight and self.isLeaf:
             raise ValueError(f"Stack at position {stackPosition} is full. Could not insert game object {gameObject}.")
-        return False
         
     def subdivide(self, gameObject):
         midX = (self.minPoint[0] + self.maxPoint[0]) / 2
@@ -57,15 +69,23 @@ class GameObjectTree:
         # Redistribute game objects from the current node to child nodes
         for stackPosition, stack in self.stacks.items():
             # Try to insert each game object from the stack into the child nodes
-            for gameObject in stack:
+            for existingGameObject in stack:
                 inserted = False
                 for child in self.children:
-                    if child.insert(gameObject):
+                    if child.insert(existingGameObject):
                         inserted = True
                         break
                 if not inserted:
-                    raise ValueError(f"Failed to insert game object {gameObject} into any child node.")
-        
+                    raise ValueError(f"Failed to insert existing game object {existingGameObject} into any child node.")
+
+        inserted = False
+        for child in self.children:
+            if child.insert(gameObject):
+                inserted = True
+                break
+        if not inserted:
+            raise ValueError(f"Failed to insert new game object {existingGameObject} into any child node.")
+
         # Clear the current node's list of game objects after redistributing them
         self.stacks = {}
         
@@ -114,7 +134,7 @@ class GameObjectTree:
         return minX <= position[0] <= maxX and minY <= position[1] <= maxY
     
     def GOThandleEvent(self, event):
-        if isinstance(event, eMove):
+        if isinstance(event, b.eMove):
             queriedStacks = self.propagateEvent(event)
             return queriedStacks
 
@@ -131,7 +151,7 @@ class GameObjectTree:
                 print("propagate!\n")
 
     def processEvent(self, event):           
-        if isinstance(event, eMove):
+        if isinstance(event, b.eMove):
             queriedStacks = []
             stacks = self.querySpace(event.minPoint, event.maxPoint)
             for stack in stacks:
