@@ -14,13 +14,15 @@ import GameObjects as go
 import SpriteClasses as sc
 
 class GameManager:
-    def __init__(self, inclPygame = True):
+    def __init__(self, p1Class, p2Class, inclPygame = True, ):
         self.agentTurnIndex = 0
         self.gameOver = False
         self.inclPygame = inclPygame
         # self.gameLoopEvent = threading.Event()
         self.currentAgent = None
         self.inputReady = False
+        self.p1Class = p1Class
+        self.p2Class = p2Class
         
         self.start()
 
@@ -46,8 +48,8 @@ class GameManager:
         team0.extend([allUnits[0], allUnits[1]])
         team1.extend([allUnits[2], allUnits[3]])
         self.allUnits = allUnits
-        self.p1 = ac.HumanAgent('Ally', 0, team0, self, self.gPygame)
-        self.p2 = ac.RandomAgent('Bob', 1, team1, self, self.gPygame)
+        self.p1 = self.p1Class('Ally', 0, team0, self, self.gPygame)
+        self.p2 = self.p2Class('Bob', 1, team1, self, self.gPygame)
         self.allAgents = []
         self.allAgents.extend([self.p1, self.p2])
         self.gameLoop()
@@ -154,5 +156,17 @@ class GameManager:
         return waitingUnits, allActions, flatActionSpace, noMovesOrAbilities
     
     def clone(self):
-        cloned_game = GameManager()
-a = GameManager(True)
+        cloned_game = GameManager.__new__(GameManager)
+        cloned_game.agentTurnIndex = self.agentTurnIndex
+        cloned_game.currentAgent = self.currentAgent
+        cloned_game.board = self.board.clone()
+        team0 = []
+        for unit in self.p1.team:
+            team0.extend(unit.clone())
+        team1 = []
+        for unit in self.p2.team:
+            team1.extend(unit.clone())
+
+        cloned_game.p1 = self.p1Class(self.p1.name)
+        self.p1Class('Ally', 0, team0, self, self.gPygame)
+a = GameManager(ac.HumanAgent, ac.RandomAgent, True)
