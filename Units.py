@@ -108,7 +108,7 @@ class rangedUnit(Unit):
             image = sc.Sprites().spritesDictScaled['Haku']
         super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "R"
-        self.movement = 4
+        self.movement = 20
         self.currentMovement = self.movement
         self.HP = 100 
         self.currentHP = self.HP
@@ -116,7 +116,7 @@ class rangedUnit(Unit):
         rangedStrike = {
                 "name": "Ranged Strike",
                 "cost": 1,
-                "range": 100,
+                "range": 3,
                 "events": [
                     {"type": "changeHP", "target": "targetunit", "value": -1},
                     {"type": "changeActionPoints", "target": "self", "value": -1},

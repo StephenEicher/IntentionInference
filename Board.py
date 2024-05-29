@@ -41,6 +41,7 @@ class UnitsMap:
                         targets.append(adjUnit)
 
             return targets
+
         if isinstance(event, eTargetsInRange):
             targets = []
             rowBounds = np.array([event.unit.position[0] - event.range, event.unit.position[0] + event.range])
@@ -51,13 +52,33 @@ class UnitsMap:
             tilesToCheck = []
             for row in np.arange(rowBounds[0], rowBounds[1]+1):
                 for col in np.arange(colBounds[0], colBounds[1]+1):
-                    tilesToCheck.append(self.map[row][col])
+                    tilesToCheck.append(self.map[row][col]) # already appends all objects found at coordinates and excludes empty tiles
 
             for unit in tilesToCheck:
                 if isinstance(unit, u.Unit):
                     if unit.ID is not event.unit.ID and unit.agentIndex is not event.unit.agentIndex:
-                        targets.append(unit)
-            return targets
+                        if unit.position[0] == event.unit.position[0] or unit.position[1] == event.unit.position[1]:
+                            if abs(unit.position[0] - event.unit.position[0]) <= event.range or abs(unit.position[1] - event.unit.position[1]) <= event.range:
+                                targets.append(unit)
+           
+            self.board.GOT.incomingUM.put(targets)
+            
+            # unitsAndPaths = {}
+            # for unit in tilesToCheck:
+            #     path = []
+            #     if isinstance(unit, u.Unit):
+            #         if unit.ID is not event.unit.ID and unit.agentIndex is not event.unit.agentIndex:
+            #             if unit.position[0] == event.unit.position[0]:
+            #                 for col in range(event.position[1], unit.position[1]): # No need to include the potential target unit's position in the path
+            #                     tile = (unit.position[0], col)
+            #                     path.append(tile)
+            #             elif unit.position[1] == event.unit.position[1]:
+            #                 for row in range(event.position[0], unit.position[0]): # No need to include the potential target unit's position in the path
+            #                     tile = (row, unit.position[1])
+            #                     path.append(tile)
+            #             unitsAndPaths[unit] = path
+            
+            return None # refer to GOT's response for final list of viable targets
 
 class Noise:
     def __init__(self, maxY, maxX):
@@ -253,19 +274,36 @@ class OMap(Noise):
 class EventDispatcher:
     def __init__(self, board):
         self.board = board
-        self.listeners = {}
+        self.genericListeners = {}
+        self.indexedListeners = {}
+        self.orderSensitiveEvents = []
 
-    def addListener(self, eventType, listener):
-        if eventType not in self.listeners:
-            self.listeners[eventType] = []
-        self.listeners[eventType].append(listener)
+    def addListener(self, event, listener, index = None, allListenersAdded = False):
+        listenerEstablished = False
+        if index:
+            if event not in self.orderSensitiveEvents:
+                self.orderSensitiveEvents.append(event)
+                self.indexedListeners[event] = []
+            self.indexedListeners.get(event).append((listener, index))
+
+            if allListenersAdded:
+                self.indexedListeners.get(event).sort(key=lambda x: x[1]) # During initialization after all listeners have been added, reorganize the listeners according to their indices
+                return True
+            
+            return True
+            
+        if event not in self.genericListeners:
+            self.genericListeners[event] = []
+        
+        list = self.genericListeners.get(event)
+        list.append(listener)
 
     def dispatch(self, event):
         eventType = type(event)
         responseList = []
 
-        if eventType in self.listeners:
-            for listener in self.listeners[eventType]:
+        if eventType in self.genericListeners:
+            for listener in self.genericListeners[eventType]:
                 listenerName = listener.__name__
                 response = listener(event)
                 # self.board.manageScreen(None, None, response)
@@ -273,7 +311,12 @@ class EventDispatcher:
                 responseList.append(listenerTuple)
 
         else:
-                return []
+            for listener, _ in self.indexedListeners[eventType]:
+                listenerName = listener.__name__
+                response = listener(event)
+                # self.board.manageScreen(None, None, response)
+                listenerTuple = (listenerName, response)
+                responseList.append(listenerTuple)
 
         return responseList
 
@@ -283,8 +326,6 @@ class eMove:
         self.minPoint = minPoint
         self.maxPoint = maxPoint
 
-
-
 class eMeleeTargets:
     def __init__(self, unit):
         self.unit = unit
@@ -292,8 +333,10 @@ class eMeleeTargets:
 class eTargetsInRange:
     def __init__(self, unit, abilityRange):
         self.unit = unit
+        self.checkUnit = None
         self.range = abilityRange
-            
+        self.minPoint = None
+        self.maxPoint = None
 
 class eRangeTargets:
     def __init__(self, unit):
@@ -332,6 +375,7 @@ class Board:
     def initializeObjectTree(self):
         self.GOT = got.GameObjectTree(self.defaultMinPoint, self.maxPoint, self)
         self.dispatcher.addListener(eMove, self.GOT.GOThandleEvent)
+        self.dispatcher.addListener(eTargetsInRange, self.GOT.GOThandleEvent, 2)
 
     def initializeObjectDict(self):
         self.gameObjectDict= GameObjectDict(self)
@@ -350,7 +394,7 @@ class Board:
         self.dispatcher.addListener(eMove, self.instUM.UMhandleEvent)
         self.dispatcher.addListener(eMeleeTargets, self.instUM.UMhandleEvent)
         self.dispatcher.addListener(eRangeTargets, self.instUM.UMhandleEvent)
-        self.dispatcher.addListener(eTargetsInRange, self.instUM.UMhandleEvent)
+        self.dispatcher.addListener(eTargetsInRange, self.instUM.UMhandleEvent, 1, True)
         self.unitsMap = self.instUM.map
 
         if self.bPygame:
@@ -381,11 +425,11 @@ class Board:
         self.instZM = ZMap(self.maxY, self.maxX, self)
         self.dispatcher.addListener(eMove, self.instZM.ZMhandleEvent)
         self.zMap = self.instZM.map
-        self.drawMap(self.zMap)
+        # self.drawMap(self.zMap)
 
     def initializeOMap(self):
         self.instOM = OMap(self.maxY, self.maxX, self, self.GOT)
-        self.drawMap(self.instOM.map)
+        # self.drawMap(self.instOM.map)
 
     def getAdjDirections(self, unit):
         unitY, unitX = unit.position
@@ -487,42 +531,6 @@ class Board:
 
             if (totalZ - unitZ) > unit.jump:
                 continue
-                
-        
-        
-        
-        
-        
-        # for direction, position in validAdjPositions.items():
-            
-        #     # Check if adjacent Unit exists
-        #     if (direction, position) in unitsMapR:
-        #         if unitsMapR[(direction, position)] != None:
-        #             continue
-
-        #     # Calculate elevation difference and check if it's too great, parse out gameObjectTreeR
-        #     if gameObjectTreeR != []:
-        #         for dict in gameObjectTreeR:
-        #             if position == dict.get("position"):
-        #                 stackZ = dict.get("stackZ")
-        #                 surfaces = dict.get("surfaces")
-        #                 totalZ = zMapR[(direction, position)] + stackZ
-        #                 if len(surfaces) != 0:
-        #                     addSurfaces.append(surfaces)
-
-        #                 totalZ = zMapR[direction, position]
-        #                 unitZ = zMapR[unit.position]
-
-        #     if gameObjectTreeR == []:
-        #         totalZ = zMapR[direction, position]
-        #         unitZ = zMapR[unit.position]
-
-        #     if (totalZ - unitZ) > unit.jump:
-        #         continue
-
-        #     # Check for fall damage
-        #     if (totalZ - unitZ) < -abs(unit.jump):
-        #         takeFallDamage = True
 
             # If the position is valid, add it to the validDirections dictionary
             validDirections[(direction, position)] = (takeFallDamage, addSurfaces)
@@ -551,9 +559,6 @@ class Board:
             if ability.get("cost") > unit.currentActionPoints:
                 invalidAbilities[ability["name"]] = ability.get("cost")
 
-
-       
-        
         for ability in affordableAbilities:
             for event in ability.get("events"):
                 
@@ -561,12 +566,12 @@ class Board:
                     if event.get("target") == "targetunit":
                         range = ability.get("range")
                         event = eTargetsInRange(unit, range)
-                        responseTuple = (self.dispatcher.dispatch(event))
-                        viableTargets = responseTuple[0][1]
+                        responseList = self.dispatcher.dispatch(event)
+                        viableTargets = responseList[1][1] # for first index: 0 for UMHandleEvent's response, 1 for ZMHandleEvent's response, 2 for GOTHandleEvent's response
 
-                        if len(viableTargets) > 0: 
+                        if viableTargets:
                             validAbilities.append(ability)
-                        if len(viableTargets) == 0:
+                        if viableTargets is None:
                             invalidAbilities[ability["name"]] = ability.get("cost")
 
                         for target in viableTargets:

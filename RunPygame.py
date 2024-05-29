@@ -235,7 +235,6 @@ class Pygame:
         for sprite in self.spriteGroup:
             if sprite.rect.collidepoint(mousePos):
                 return sprite.parent
-                print("not within range!")
                     
     def updateScreen(self):
         self.screen.fill((0, 0, 0))  # Clear the screen with black
