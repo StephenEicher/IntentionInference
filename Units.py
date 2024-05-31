@@ -21,12 +21,15 @@ class Unit:
         # Initialize the default stats for the unit
         self.HP = 100
         self.movement = 4
+        self.momentum = 0
+        self.massConstant = 1
         self.jump = 0
         self.actionPoints = 2
         
         # Initialize current stats
         self.currentHP = self.HP
         self.currentMovement = self.movement
+        self.currentMomentum = 0
         self.currentJump = self.jump
         self.currentActionPoints = self.actionPoints
         self.unitAbilities = self.abilities()
@@ -52,7 +55,7 @@ class Unit:
                 "cost": 1,
                 "range": 1,
                 "events": [
-                    {"type": "move", "target": "targetunit", "distance": 1},
+                    {"type": "displace", "target": "targetunit", "distance": 1},
                     {"type": "changeActionPoints", "target": "self", "value": -1},
                 ],
                 "targetedUnit" : None,

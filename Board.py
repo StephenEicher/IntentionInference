@@ -33,16 +33,16 @@ class UnitsMap:
                         
             return adjUnits
 
-        if isinstance(event, eMeleeTargets):
-            targets = []
-            for direction, (adjY, adjX) in self.board.getAdjDirections(event.unit).items():
-                    adjUnit = self.map[adjY][adjX]
-                    if isinstance(adjUnit, u.Unit):
-                        targets.append(adjUnit)
+        # if isinstance(event, eMeleeTargets):
+        #     targets = []
+        #     for direction, (adjY, adjX) in self.board.getAdjDirections(event.unit).items():
+        #             adjUnit = self.map[adjY][adjX]
+        #             if isinstance(adjUnit, u.Unit):
+        #                 targets.append(adjUnit)
 
             return targets
 
-        if isinstance(event, eTargetsInRange):
+        elif isinstance(event, eTargetsInRange):
             targets = []
             rowBounds = np.array([event.unit.position[0] - event.range, event.unit.position[0] + event.range])
             colBounds = np.array([event.unit.position[1] - event.range, event.unit.position[1] + event.range])
@@ -50,9 +50,9 @@ class UnitsMap:
             colBounds = np.clip(colBounds, 0, len(self.map)-1)
             #xMax = self.unit.position[0] + self.range
             tilesToCheck = []
-            for row in np.arange(rowBounds[0], rowBounds[1]+1):
+            for row in np.arange(rowBounds[0], rowBounds[1]+1): # checks rectangular area defined with sides defined by length of bounds
                 for col in np.arange(colBounds[0], colBounds[1]+1):
-                    tilesToCheck.append(self.map[row][col]) # already appends all objects found at coordinates and excludes empty tiles
+                    tilesToCheck.append(self.map[row][col]) # already appends all objects found at coordinates and excludes empty tiles                
 
             for unit in tilesToCheck:
                 if isinstance(unit, u.Unit):
@@ -60,25 +60,79 @@ class UnitsMap:
                         if unit.position[0] == event.unit.position[0] or unit.position[1] == event.unit.position[1]:
                             if abs(unit.position[0] - event.unit.position[0]) <= event.range or abs(unit.position[1] - event.unit.position[1]) <= event.range:
                                 targets.append(unit)
+                        if abs(event.unit.position[0] - unit.position[0]) == abs(event.unit.position[1] - unit.position[1]):
+                            if abs(unit.position[0] - event.unit.position[0]) <= event.range or abs(unit.position[1] - event.unit.position[1]) <= event.range:
+                                targets.append(unit)
            
             self.board.GOT.incomingUM.put(targets)
             
-            # unitsAndPaths = {}
-            # for unit in tilesToCheck:
-            #     path = []
-            #     if isinstance(unit, u.Unit):
-            #         if unit.ID is not event.unit.ID and unit.agentIndex is not event.unit.agentIndex:
-            #             if unit.position[0] == event.unit.position[0]:
-            #                 for col in range(event.position[1], unit.position[1]): # No need to include the potential target unit's position in the path
-            #                     tile = (unit.position[0], col)
-            #                     path.append(tile)
-            #             elif unit.position[1] == event.unit.position[1]:
-            #                 for row in range(event.position[0], unit.position[0]): # No need to include the potential target unit's position in the path
-            #                     tile = (row, unit.position[1])
-            #                     path.append(tile)
-            #             unitsAndPaths[unit] = path
-            
             return None # refer to GOT's response for final list of viable targets
+
+        elif isinstance(event, eDisplace):
+            if abs(event.unit.position[0] - event.castTarget.position[0]) == abs(event.unit.position[1] - event.castTarget.position[1]):
+                if event.unit.position[0] - event.castTarget.position[0] >= 0:
+                    if event.unit.position[1] - event.castTarget.position[1] >= 0:
+                        delta = np.array([-1, -1])
+                    else:
+                        delta = np.array([-1, 1])
+                else:
+                    if event.unit.position[1] - event.castTarget.position[1] >= 0:
+                        delta = np.array([1, -1])
+                    else:
+                        delta = np.array([1, 1])
+            if event.unit.position[0] == event.castTarget.position[0]:
+                delta = np.array([0, 1])
+            if event.unit.position[1] == event.castTarget.position[1]:
+                delta = np.array([1, 0])
+
+            collateralUnits = []
+            self.spatialLinearizedList = [None for _ in event.displaceDistance]
+            start = np.array(list(event.castTarget.position))
+            for i in range(event.displaceDistance):
+                start += delta
+                if self.map[start[0]][start[1]]:
+                    unit = self.map[start[0]][start[1]]
+                    if unit.ID is not event.unit.ID:
+                        collateralUnits.append(unit)
+                        self.spatialLinearizedList[i] = unit
+
+            unitsAndDisplacement = (collateralUnits, start, delta)
+
+            self.board.GOT.incomingUM.put(unitsAndDisplacement)
+            
+
+            return None
+
+        else:
+            return None
+
+    def determineUnitCollision(self, unit, collateralTargets, maxDisplaceDistance, delta):
+        """
+        for each collision, decrease the maxDisplaceDistance which prior to unit collision checking
+        is the product of the ability displace distance * displacing unit's massConstant
+
+        for now, idea is that maxDisplaceDistance is the amount of tiles that a displacing unit or group of units
+        due to collision will be displaced at the end of the sequence
+
+        """
+        for i, tile in enumerate(self.spatialLinearizedList):
+            if isinstance(tile, u.Unit):
+                for unit in collateralTargets:
+                    if tile == unit:
+                        continue
+                    else:
+                        # This potential collateral unit is separated from the displacing unit by an impassable object
+                        lastUnitIndex = i - 1
+                        break
+        
+        groupToDisplace = []
+        for _ in range(lastUnitIndex):
+            for unit in self.spatialLinearizedList:
+                maxDisplaceDistance -= unit.massConstant
+
+                
+        
+        
 
 class Noise:
     def __init__(self, maxY, maxX):
@@ -279,7 +333,6 @@ class EventDispatcher:
         self.orderSensitiveEvents = []
 
     def addListener(self, event, listener, index = None, allListenersAdded = False):
-        listenerEstablished = False
         if index:
             if event not in self.orderSensitiveEvents:
                 self.orderSensitiveEvents.append(event)
@@ -326,6 +379,17 @@ class eMove:
         self.minPoint = minPoint
         self.maxPoint = maxPoint
 
+class eDisplace:
+    def __init__(self, unit, castTarget, displaceDistance):
+        self.unit = unit
+        self.castTarget = castTarget
+        self.displaceDistance = displaceDistance
+
+class meCollision:
+    def __init__(self, minPoint, maxPoint):
+        self.minPoint = minPoint
+        self.maxPoint = maxPoint
+
 class eMeleeTargets:
     def __init__(self, unit):
         self.unit = unit
@@ -337,10 +401,6 @@ class eTargetsInRange:
         self.range = abilityRange
         self.minPoint = None
         self.maxPoint = None
-
-class eRangeTargets:
-    def __init__(self, unit):
-        self.unit = unit
 
 class Board:
     defaultMinPoint = (0,0)
@@ -376,6 +436,7 @@ class Board:
         self.GOT = got.GameObjectTree(self.defaultMinPoint, self.maxPoint, self)
         self.dispatcher.addListener(eMove, self.GOT.GOThandleEvent)
         self.dispatcher.addListener(eTargetsInRange, self.GOT.GOThandleEvent, 2)
+        self.dispatcher.addListener(eDisplace, self.GOT.GOThandleEvent, 2)
 
     def initializeObjectDict(self):
         self.gameObjectDict= GameObjectDict(self)
@@ -392,9 +453,9 @@ class Board:
     def initializeUnits(self):
         self.instUM = UnitsMap(self.maxY, self.maxX, self)
         self.dispatcher.addListener(eMove, self.instUM.UMhandleEvent)
-        self.dispatcher.addListener(eMeleeTargets, self.instUM.UMhandleEvent)
-        self.dispatcher.addListener(eRangeTargets, self.instUM.UMhandleEvent)
+        # self.dispatcher.addListener(eMeleeTargets, self.instUM.UMhandleEvent)
         self.dispatcher.addListener(eTargetsInRange, self.instUM.UMhandleEvent, 1, True)
+        self.dispatcher.addListener(eDisplace, self.instUM.UMhandleEvent, 1, True)
         self.unitsMap = self.instUM.map
 
         if self.bPygame:
@@ -471,9 +532,9 @@ class Board:
 
         maxPoint = (maxPointX, maxPointY)
 
-        moveEvent = eMove(unit, minPoint, maxPoint)
+        event = eMove(unit, minPoint, maxPoint)
         
-        listenerResponses = self.dispatcher.dispatch(moveEvent)
+        listenerResponses = self.dispatcher.dispatch(event)
         # A list of tuples (listener name, its response)
         # Each response always occurs in the same order in the list:
             # Within UnitsMap response: dictionary
@@ -584,7 +645,6 @@ class Board:
         for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
             if ability not in validAbilities and ability.get("range") == 0:
                 validAbilities.append(ability)
-                
 
         return (validAbilities, invalidAbilities, flatAbilities)
     
@@ -730,9 +790,19 @@ class Board:
                 if v == "changeHP":
                     castTarget.currentHP += event["value"]
                     castTarget.currentHP = np.min([castTarget.currentHP, castTarget.HP])
+
+
+                if v == "displace":
+                    displaceDistance = event.get("distance")
+                    castTarget.currentMomentum = displaceDistance * castTarget.massConstant
+                    event = eDisplace(entity, castTarget, displaceDistance)
+                    self.dispatcher.dispatch(event)
+
+                    castTarget.position = event["value"]
+
+
                 if v == "changeActionPoints":
                     entity.currentActionPoints += event["value"]
-                
                 if v == "changeMaxActionPoints":
                     delta = event["value"]
                     entity.actionPoints += delta

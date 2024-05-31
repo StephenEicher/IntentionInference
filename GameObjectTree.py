@@ -1,6 +1,7 @@
 import Board as b
 import GameObjects as go
 import queue
+import numpy as np
 
 class GameObjectTree:
     def __init__(self, minPoint, maxPoint, board, capacity = 4, depth = 0, maxDepth = 5):
@@ -146,6 +147,98 @@ class GameObjectTree:
                     viableTargets.append(validTarget)
 
             return viableTargets # a list of units
+        
+        if isinstance(event, b.eDisplace):
+            """
+            T represents the unit which displace is acting upon
+            C represents the collateral units returned by UM
+            O represents a game object which for now can only be an obstacle
+
+            Possible scenarios for GOT to handle:
+            
+            1 collateral unit only:
+            T - C
+            T - C - O
+            T - O - C -> not included
+
+            multiple collateral units:
+            T - C - C..
+            T - C - C.. - O
+            T - O - C - C.. -> not included
+
+            collateralTargets is the list of collateralUnits which the displaced unit has direct LOS to
+            """
+
+            unitsAndDisplacement = self.incomingUM.get(False)
+            if unitsAndDisplacement[0]:
+                UMcollateralUnits = True
+            else:
+                UMcollateralUnits = False
+        
+            if UMcollateralUnits:
+                # First, determine obstacle collision via LOS check
+                newEvent = b.eTargetsInRange(event.castTarget, None)
+                collateralTargets = self.GOThandleEvent(newEvent)
+                if collateralTargets is None: # Implies that an impassable obstacle exists in between the displacing unit and collateralTargets
+                    # Determine obstacle collision for displacing unit...obstacle scenario:
+                    maxDisplacementPoint = self.convertToGOT(unitsAndDisplacement[1])
+                    displacingUnitPosition = self.convertToGOT(event.castTarget)
+                    collisionDict = self.determineObstacleCollisionAndSurfaces(displacingUnitPosition, maxDisplacementPoint)
+                else: # Implies that between potential obstacle and displacing unit, there exist other collateral units
+                # Determine collision first with units along the path of displacement
+                # Upon 'collision' with collateral units, move them as a group if they have 'momentum'
+                # If 'momentum' still exists by the time the group reaches an obstacle, determine damage of impact
+                
+                    self.board.instUM.determineUnitCollision(event.castTarget, collateralTargets, event.displaceDistance, unitsAndDisplacement[2])
+
+
+
+
+
+                    # Determine obstacle collision 'displaceDistance' distance away for the furthest collateralTarget via LOS check
+                    # The last element in the units list should be the "last in line" and closest to any potential obstacle
+                    lastCollateralUnitIndex = len(UMcollateralUnits) - 1
+                    delta = unitsAndDisplacement[2]
+                    displacementAlongAxis = np.array(list(delta)) * np.array(list(event.displaceDistance, event.displaceDistance))
+                    newMaxDisplacementPoint = self.convertToGOT(tuple(np.array(list(UMcollateralUnits[lastCollateralUnitIndex].position)) + displacementAlongAxis))
+                    displacingUnitPosition = self.convertToGOT(UMcollateralUnits[lastCollateralUnitIndex])
+                    collisionDict = self.determineObstacleCollisionAndSurfaces(displacingUnitPosition, maxDisplacementPoint)
+
+                    # Then 
+            else:
+                # Determine obstacle collision
+
+    def determineObstacleCollisionAndSurfaces(self, displacingUnitPosition, maxDisplacementPoint):
+        """
+        I think due to the fact that subdivision will always empty parent nodes of stacks, I have to create a new event
+        to be propagated down to the deepest level of nodes which overlap with the query. Otherwise I think the attempt
+        to access stacks at higher level nodes will result in some kind of unboundLocalError?
+
+        Since the event involved is not one that requires passage through the dispatcher, I decided to prefix it with
+        'me' meaning 'mini event' lol. This architecture as well as the instance above of creating another eTargetsInRange
+        event without passing it first through the dispatcher doesn't feel very clean but whatever for now I guess.
+        """
+        newmEvent = b.meCollision(displacingUnitPosition, maxDisplacementPoint)
+        queriedStacks = self.propagateEvent(newmEvent) # keys: stack position, stackZ, surfaces, obstructing bool
+        orderedStacks = []
+        for stack in queriedStacks:
+            deltaCoord= abs(np.array(list(event.castTarget.position)) - np.array(list(stack.get("position"))))
+            deltaInt = deltaCoord[0] + deltaCoord[1]
+            orderedStacks.append((stack, deltaInt))
+        orderedStacks.sort(key=lambda x: x[1])
+        queuedSurfaces = []
+        for stack in orderedStacks:
+            if stack.get("obstructing"):
+                displacementEndPoint = stack.get("position")
+                break
+            else:
+                for surface in stack.get("surfaces"): # compile all surfaces to parse through later to inflict status conditions if applicable
+                    queuedSurfaces.append(surface)
+        collisionDict = {}
+        collisionDict["displacementEndPoint"] = displacementEndPoint
+        collisionDict["surfaces"] = queuedSurfaces
+
+        return collisionDict
 
     def convertToGOT(self, position):
         newY = len(self.board.unitsMap) - 1 - position[0]
@@ -226,6 +319,32 @@ class GameObjectTree:
             
             else:
                 return event.checkUnit
+
+        if isinstance(event, b.meCollision):
+            queriedStacks = []
+            stacks = self.querySpace(event.minPoint, event.maxPoint)
+            for stack in stacks:
+                stackZ = 0
+                surfaces = []
+                for gameObject in stack:
+                    if isinstance(gameObject, go.Surface):
+                        surfaces.append(gameObject)
+                    else:
+                        stackZ += gameObject.z
+
+                stackDict["position"] = stack[0].position
+                stackDict["stackZ"] = stackZ
+                stackDict["surfaces"] = surfaces
+                if stackZ > 0:
+                    stackDict["obstructing"] = True
+                else:
+                    stackDict["obstructing"] = False
+
+                queriedStacks.append(stackDict)
+
+            return queriedStacks
+
+
 
 # def genElems(self, elemTypes):
     #     print('\n--- Starting genElems ---')
