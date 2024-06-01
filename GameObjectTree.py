@@ -18,7 +18,6 @@ class GameObjectTree:
 
     def addListeners(self, dispatcher):
         dispatcher.addListener(e.eMove, self.GOThandleEvent)
-        dispatcher.addListener(e.eTargetsInRange, self.GOThandleEvent, 2)
         dispatcher.addListener(e.eDisplace, self.GOThandleEvent, 2)
         
     def insert(self, gameObject):
@@ -137,20 +136,7 @@ class GameObjectTree:
             queriedStacks = self.propagateEvent(event)
             return queriedStacks
         
-        if isinstance(event, e.eTargetsInRange):
-            validUnits = self.incomingUM.get()
-            viableTargets = []
-            castingUnitPosition = self.convertToGOT(event.unit.position)
-            event.minPoint = (castingUnitPosition[0], castingUnitPosition[1])
-            for unit in validUnits:
-                targetUnitPosition = self.convertToGOT(unit.position)
-                event.maxPoint = (targetUnitPosition[0], targetUnitPosition[1])
-                event.checkUnit = unit
-                validTarget = self.propagateEvent(event)
-                if validTarget:
-                    viableTargets.append(validTarget)
 
-            return viableTargets # a list of units
         
         if isinstance(event, e.eDisplace):
             """
@@ -261,6 +247,7 @@ class GameObjectTree:
                 child.propagateEvent(event)
                 print("propagate!\n")
 
+
     def processEvent(self, event):           
         if isinstance(event, e.eMove):
             queriedStacks = []
@@ -306,24 +293,7 @@ class GameObjectTree:
                     queriedStacks.append(stackDict)
 
             return queriedStacks
-        
-        if isinstance(event, e.eTargetsInRange):      
-            stacks = self.querySpace(event.minPoint, event.maxPoint)
-            pathInvalid = False
-            for stack in stacks: # ASSUMING only stacks within the same row/col are returned!
-                # in the future, if casting unit and target unit are on same z-level of map, may decide to implement height of units as being factor for determining target validity (for deciding if 'taking cover' is possible)
-                totalZ = 0 
-                for object in stack:
-                    totalZ += object.z
-                if totalZ > 0: # for now will make target invalid if there is anything with z > 0 in the path
-                    pathInvalid = True
-                    break
-            
-            if pathInvalid:
-                return None
-            
-            else:
-                return event.checkUnit
+
 
         if isinstance(event, e.meCollision):
             queriedStacks = []
@@ -348,8 +318,38 @@ class GameObjectTree:
                 queriedStacks.append(stackDict)
 
             return queriedStacks
+        
+        if isinstance(event, e.eTargetsInRange):      
+            stacks = self.querySpace(event.minPoint, event.maxPoint)
+            pathInvalid = False
+            for stack in stacks: # ASSUMING only stacks within the same row/col are returned!
+                # in the future, if casting unit and target unit are on same z-level of map, may decide to implement height of units as being factor for determining target validity (for deciding if 'taking cover' is possible)
+                totalZ = 0 
+                for object in stack:
+                    totalZ += object.z
+                if totalZ > 0: # for now will make target invalid if there is anything with z > 0 in the path
+                    pathInvalid = True
+                    break
+            
+            if pathInvalid:
+                return None
+            
+            else:
+                return event.checkUnit
+            
+    def checkforObstructions(self, event, validUnits):
+                viableTargets = []
+                castingUnitPosition = self.convertToGOT(event.unit.position)
+                event.minPoint = (castingUnitPosition[0], castingUnitPosition[1])
+                for unit in validUnits:
+                    targetUnitPosition = self.convertToGOT(unit.position)
+                    event.maxPoint = (targetUnitPosition[0], targetUnitPosition[1])
+                    event.checkUnit = unit
+                    validTarget = self.propagateEvent(event)
+                    if validTarget:
+                        viableTargets.append(validTarget)
 
-
+                return viableTargets # a list of units
 
 # def genElems(self, elemTypes):
     #     print('\n--- Starting genElems ---')

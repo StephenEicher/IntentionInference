@@ -66,9 +66,8 @@ class UnitsMap:
                             #     if abs(unit.position[0] - event.unit.position[0]) <= event.range or abs(unit.position[1] - event.unit.position[1]) <= event.range:
                             #         targets.append(unit)
            
-            self.board.GOT.incomingUM.put(targets)
-            
-            return None # refer to GOT's response for final list of viable targets
+            validTargets = self.board.GOT.checkforObstructions(event, targets)
+            return validTargets # refer to GOT's response for final list of viable targets
 
         elif isinstance(event, e.eDisplace):
             if abs(event.unit.position[0] - event.castTarget.position[0]) == abs(event.unit.position[1] - event.castTarget.position[1]):
@@ -177,7 +176,7 @@ class Board:
         cloned_board.instUM = self.instUM.clone()
         cloned_board.instUM.board = cloned_board
         cloned_board.instUM.assignListeners(cloned_board.dispatcher)
-
+        cloned_board.bPygame = False
         cloned_board.GOT = copy.deepcopy(self.GOT)
         cloned_board.GOT.board = cloned_board
         cloned_board.GOT.addListeners(cloned_board.dispatcher)
@@ -400,7 +399,7 @@ class Board:
                         range = ability.get("range")
                         event = e.eTargetsInRange(unit, range)
                         responseList = self.dispatcher.dispatch(event)
-                        viableTargets = responseList[1][1] # for first index: 0 for UMHandleEvent's response, 1 for ZMHandleEvent's response, 2 for GOTHandleEvent's response
+                        viableTargets = responseList[0][1] # for first index: 0 for UMHandleEvent's response, 1 for ZMHandleEvent's response, 2 for GOTHandleEvent's response
 
                         if viableTargets:
                             validAbilities.append(ability)
