@@ -7,7 +7,7 @@ from  opensimplex import OpenSimplex
 import matplotlib.pyplot as plt
 import time
 import AgentClasses as ac
-
+import copy
 import Units as u
 import Board as b
 import GameObjects as go
@@ -162,11 +162,19 @@ class GameManager:
         cloned_game.board = self.board.clone()
         team0 = []
         for unit in self.p1.team:
-            team0.extend(unit.clone())
+            newUnit = copy.deepcopy(unit)
+            newUnit.game = self
+            newUnit.board = cloned_game.board
+            team1.extend(newUnit)
         team1 = []
         for unit in self.p2.team:
-            team1.extend(unit.clone())
+            newUnit = copy.deepcopy(unit)
+            newUnit.game = self
+            newUnit.board = cloned_game.board
+            team1.extend(newUnit)
+        cloned_game.p1 = self.p1Class(self.p1.name, team0, self, self.gPygame)
+        cloned_game.p2 = self.p2Class(self.p2.name, team1, self, self.gPygame)
+        return cloned_game
 
-        cloned_game.p1 = self.p1Class(self.p1.name)
-        self.p1Class('Ally', 0, team0, self, self.gPygame)
+        
 a = GameManager(ac.HumanAgent, ac.RandomAgent, True)

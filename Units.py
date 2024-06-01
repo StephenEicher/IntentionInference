@@ -1,7 +1,7 @@
 import pygame
 import Board as b
 import SpriteClasses as sc
-
+import copy
 
 
 class Unit:
@@ -37,7 +37,7 @@ class Unit:
             self.sprite = sc.UnitSprite(self, image)
         else:
             self.sprite = None
-        
+
     def abilities(self):
         abilities = [
             {

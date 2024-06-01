@@ -13,6 +13,7 @@ import Units as u
 import GameObjects as go
 import RunPygame as rp
 import config
+import copy
 
 class UnitsMap:
     def __init__(self, maxY, maxX, board):
@@ -130,6 +131,7 @@ class UnitsMap:
             for unit in self.spatialLinearizedList:
                 maxDisplaceDistance -= unit.massConstant
 
+ 
                 
         
         
@@ -405,6 +407,11 @@ class eTargetsInRange:
 
 class Board:
     defaultMinPoint = (0,0)
+    GOT = None
+    gameObjectDict = None
+    instUM = None
+    instZM = None
+    instOM = None
 
     def __init__(self, maxY, maxX, game, pygame = None):
         self.maxY = maxY
@@ -419,6 +426,25 @@ class Board:
         self.initializeObjectDict()
         self.initializeZMap()
         self.initializeOMap()
+
+    def clone(self, game):
+        cloned_board = Board.__new__(Board)
+        cloned_board.maxX = self.maxY
+        cloned_board.maxY = self.maxX
+        cloned_board.game = game
+        cloned_board.dispatcher = copy.deepcopy(self.dispatcher)
+        cloned_board.dispatcher.board = cloned_board
+        cloned_board.instOM = copy.deepcopy(self.instOM)
+        cloned_board.instOM.board = cloned_board
+        cloned_board.instUM = copy.deepcopy(self.instUM)
+        cloned_board.instUM.board = cloned_board
+        cloned_board.instZM = copy.deepcopy(self.instZM)
+        cloned_board.instZM.board = cloned_board
+        cloned_board.GOT = copy.deepcopy(cloned_board.GOT)
+        cloned_board.GOT.board = cloned_board
+        cloned_board.gameObjectDict = copy.deepcopy(cloned_board.gameObjectDict)
+        return cloned_board
+
 
     def createDummyGameObjects(self):
         dummyObjects = []
