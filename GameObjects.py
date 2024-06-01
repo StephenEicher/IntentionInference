@@ -1,5 +1,5 @@
 import SpriteClasses as sc
-
+import copy
 class GameObject:
     """
     In-game object class that represents a generic "game object" from which child classes
@@ -23,6 +23,23 @@ class GameObject:
     def deactivate(self):
         if self.sprite is not None:
             self.sprite.kill()
+    def __deepcopy__(self, memo):
+        # Create a new instance of GameObject without calling __init__
+        cloned_GO = self.__class__.__new__(self.__class__)
+        # Add the new instance to the memo dictionary
+        memo[id(self)] = cloned_GO
+
+        # Deepcopy each attribute
+        cloned_GO.name = copy.deepcopy(self.name, memo)
+        cloned_GO.position = copy.deepcopy(self.position, memo)
+        cloned_GO.z = copy.deepcopy(self.z, memo)
+        cloned_GO.occupied = copy.deepcopy(self.occupied, memo)
+        cloned_GO.symbol = copy.deepcopy(self.symbol, memo)
+        cloned_GO.sprite = None
+
+
+        return cloned_GO
+    
 # class Elements(GameObject):
 #     elemRandMultiplierBounds = (1, 4)
 

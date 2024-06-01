@@ -37,6 +37,42 @@ class Unit:
             self.sprite = sc.UnitSprite(self, image)
         else:
             self.sprite = None
+    def __deepcopy__(self, memo):
+        # Create a new instance of Unit without calling __init__
+        cloned_unit = self.__class__.__new__(self.__class__)
+        # Add the new instance to the memo dictionary
+        memo[id(self)] = cloned_unit
+
+        # Deepcopy each attribute
+        cloned_unit.agentIndex = copy.deepcopy(self.agentIndex, memo)
+        cloned_unit.ID = copy.deepcopy(self.ID, memo)
+        cloned_unit.unitSymbol = copy.deepcopy(self.unitSymbol, memo)
+        cloned_unit.position = copy.deepcopy(self.position, memo)
+        
+        cloned_unit.Alive = copy.deepcopy(self.Alive, memo)
+        cloned_unit.Avail = copy.deepcopy(self.Avail, memo)
+        cloned_unit.canMove = copy.deepcopy(self.canMove, memo)
+        cloned_unit.canAct = copy.deepcopy(self.canAct, memo)
+
+        cloned_unit.HP = copy.deepcopy(self.HP, memo)
+        cloned_unit.movement = copy.deepcopy(self.movement, memo)
+        cloned_unit.momentum = copy.deepcopy(self.momentum, memo)
+        cloned_unit.massConstant = copy.deepcopy(self.massConstant, memo)
+        cloned_unit.jump = copy.deepcopy(self.jump, memo)
+        cloned_unit.actionPoints = copy.deepcopy(self.actionPoints, memo)
+
+        cloned_unit.currentHP = copy.deepcopy(self.currentHP, memo)
+        cloned_unit.currentMovement = copy.deepcopy(self.currentMovement, memo)
+        cloned_unit.currentMomentum = copy.deepcopy(self.currentMomentum, memo)
+        cloned_unit.currentJump = copy.deepcopy(self.currentJump, memo)
+        cloned_unit.currentActionPoints = copy.deepcopy(self.currentActionPoints, memo)
+        cloned_unit.unitAbilities = copy.deepcopy(self.unitAbilities, memo)
+
+        # Do not copy the sprite
+        cloned_unit.sprite = None
+
+        return cloned_unit
+
 
     def abilities(self):
         abilities = [
@@ -83,7 +119,7 @@ class Unit:
             if unit.ID == self.ID:
                 team.remove(unit)
                 self.board.bPygame.spriteGroup.remove(unit.sprite)
-                self.board.unitsMap[unit.position[0]][unit.position[1]] = None
+                self.board.instUM.map[unit.position[0]][unit.position[1]] = None
                 print(f"{unit.ID} is disposed")
 
 class meleeUnit(Unit):

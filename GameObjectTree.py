@@ -1,8 +1,7 @@
-import Board as b
 import GameObjects as go
 import queue
 import numpy as np
-
+import eventClasses as e
 class GameObjectTree:
     def __init__(self, minPoint, maxPoint, board, capacity = 4, depth = 0, maxDepth = 5):
         self.minPoint = minPoint
@@ -15,8 +14,13 @@ class GameObjectTree:
         self.stacks = {}  # Dictionary of stacks: keys are positions, values are lists of game objects
         self.children = None
         self.isLeaf = (depth == maxDepth)
-        self.incomingUM = queue.Queue(maxsize=1)
+        # self.incomingUM = queue.Queue(maxsize=1)
 
+    def addListeners(self, dispatcher):
+        dispatcher.addListener(e.eMove, self.GOThandleEvent)
+        dispatcher.addListener(e.eTargetsInRange, self.GOThandleEvent, 2)
+        dispatcher.addListener(e.eDisplace, self.GOThandleEvent, 2)
+        
     def insert(self, gameObject):
         gameObjectTreeY = self.board.maxY - 1 - gameObject.position[0]
         stackPosition = (gameObject.position[1], gameObjectTreeY)
@@ -129,11 +133,11 @@ class GameObjectTree:
         return minX <= position[0] <= maxX and minY <= position[1] <= maxY
     
     def GOThandleEvent(self, event):
-        if isinstance(event, b.eMove):
+        if isinstance(event, e.eMove):
             queriedStacks = self.propagateEvent(event)
             return queriedStacks
         
-        if isinstance(event, b.eTargetsInRange):
+        if isinstance(event, e.eTargetsInRange):
             validUnits = self.incomingUM.get()
             viableTargets = []
             castingUnitPosition = self.convertToGOT(event.unit.position)
@@ -148,7 +152,7 @@ class GameObjectTree:
 
             return viableTargets # a list of units
         
-        if isinstance(event, b.eDisplace):
+        if isinstance(event, e.eDisplace):
             """
             T represents the unit which displace is acting upon
             C represents the collateral units returned by UM
@@ -177,7 +181,7 @@ class GameObjectTree:
         
             if UMcollateralUnits:
                 # First, determine obstacle collision via LOS check
-                newEvent = b.eTargetsInRange(event.castTarget, None)
+                newEvent = e.eTargetsInRange(event.castTarget, None)
                 collateralTargets = self.GOThandleEvent(newEvent)
                 if collateralTargets is None: # Implies that an impassable obstacle exists in between the displacing unit and collateralTargets
                     # Determine obstacle collision for displacing unit...obstacle scenario:
@@ -219,7 +223,7 @@ class GameObjectTree:
         'me' meaning 'mini event' lol. This architecture as well as the instance above of creating another eTargetsInRange
         event without passing it first through the dispatcher doesn't feel very clean but whatever for now I guess.
         """
-        newmEvent = b.meCollision(displacingUnitPosition, maxDisplacementPoint)
+        newmEvent = e.meCollision(displacingUnitPosition, maxDisplacementPoint)
         queriedStacks = self.propagateEvent(newmEvent) # keys: stack position, stackZ, surfaces, obstructing bool
         orderedStacks = []
         for stack in queriedStacks:
@@ -242,7 +246,7 @@ class GameObjectTree:
         return collisionDict
 
     def convertToGOT(self, position):
-        newY = len(self.board.unitsMap) - 1 - position[0]
+        newY = len(self.board.instUM.map) - 1 - position[0]
         return (position[1], newY)
 
     def propagateEvent(self, event):
@@ -258,7 +262,7 @@ class GameObjectTree:
                 print("propagate!\n")
 
     def processEvent(self, event):           
-        if isinstance(event, b.eMove):
+        if isinstance(event, e.eMove):
             queriedStacks = []
             stacks = self.querySpace(event.minPoint, event.maxPoint)
             for stack in stacks:
@@ -303,7 +307,7 @@ class GameObjectTree:
 
             return queriedStacks
         
-        if isinstance(event, b.eTargetsInRange):      
+        if isinstance(event, e.eTargetsInRange):      
             stacks = self.querySpace(event.minPoint, event.maxPoint)
             pathInvalid = False
             for stack in stacks: # ASSUMING only stacks within the same row/col are returned!
@@ -321,7 +325,7 @@ class GameObjectTree:
             else:
                 return event.checkUnit
 
-        if isinstance(event, b.meCollision):
+        if isinstance(event, e.meCollision):
             queriedStacks = []
             stacks = self.querySpace(event.minPoint, event.maxPoint)
             for stack in stacks:

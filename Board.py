@@ -1,27 +1,28 @@
 import pygame
 import random
 import numpy as np
-from  opensimplex import OpenSimplex
+
 import matplotlib.pyplot as plt
-from scipy.ndimage import gaussian_filter, zoom
+
 import GameObjectTree as got
 # from skimage.morphology import disk
 import queue
 import SpriteClasses as sc
-
+import GameObjectDict as god
 import Units as u
 import GameObjects as go
 import RunPygame as rp
 import config
 import copy
-
+import eventClasses as e
+import noiseMaps as maps
 class UnitsMap:
     def __init__(self, maxY, maxX, board):
         self.board = board
         self.map = [[None for _ in range(maxX)] for _ in range(maxY)]
 
     def UMhandleEvent(self, event):
-        if isinstance(event, eMove):
+        if isinstance(event, e.eMove):
             adjUnits = {}
             adjUnits[(event.unit.position[0], event.unit.position[1])] = event.unit
             for direction, (adjY, adjX) in self.board.getAdjDirections(event.unit).items():
@@ -35,7 +36,7 @@ class UnitsMap:
             return adjUnits
 
 
-        elif isinstance(event, eTargetsInRange):
+        elif isinstance(event, e.eTargetsInRange):
             targets = []
             rowBounds = np.array([event.unit.position[0] - event.range, event.unit.position[0] + event.range])
             colBounds = np.array([event.unit.position[1] - event.range, event.unit.position[1] + event.range])
@@ -69,7 +70,7 @@ class UnitsMap:
             
             return None # refer to GOT's response for final list of viable targets
 
-        elif isinstance(event, eDisplace):
+        elif isinstance(event, e.eDisplace):
             if abs(event.unit.position[0] - event.castTarget.position[0]) == abs(event.unit.position[1] - event.castTarget.position[1]):
                 if event.unit.position[0] - event.castTarget.position[0] >= 0:
                     if event.unit.position[1] - event.castTarget.position[1] >= 0:
@@ -131,279 +132,17 @@ class UnitsMap:
             for unit in self.spatialLinearizedList:
                 maxDisplaceDistance -= unit.massConstant
 
- 
-                
+    def assignListeners(self, dispatcher):
+        dispatcher.addListener(e.eMove, self.UMhandleEvent)
+        dispatcher.addListener(e.eTargetsInRange, self.UMhandleEvent, 1, True)
+        dispatcher.addListener(e.eDisplace, self.UMhandleEvent, 1, True)
         
+    def clone(self):
+        cloned_UM = UnitsMap.__new__(UnitsMap)
+        cloned_UM.map = copy.deepcopy(self.map)
+        return cloned_UM
         
 
-class Noise:
-    def __init__(self, maxY, maxX):
-        self.maxY = maxY
-        self.maxX = maxX
-
-    def genNoise(self, scales, amplis, minZ, maxZ):
-        simplex = OpenSimplex(random.randint(0,10000000))
-        noiseMap = np.zeros((self.maxY, self.maxX))
-
-        # Generate noise for the left triangular half of the grid (grid split across main diagonal)
-        s = scales
-        a = amplis
-        for y in range(self.maxY):
-            for x in range(self.maxX):
-                if y - x > 0:
-                    noise = simplex.noise2(x * s, y * s) * a
-                    noiseMap[y, x] += noise
-
-        # Calculate minimum noise value in the noiseMap
-        minNoise = noiseMap.min()
-        # Shift the entire noiseMap up by adding the absolute of the minimum value to exclude negative values
-        noiseMap += abs(minNoise)
-
-        # Mirror the lower half of the left triangular half across the center of grid
-        for y in range(self.maxY):
-            for x in range(self.maxX):
-                if y > x and y + x >= self.maxY - 1:  # Points within lower half of left triangular half
-                    newY = self.maxY - y - 1
-                    newX = self.maxX - x - 1
-                    noiseMap[newY, newX] = noiseMap[y, x]
-        
-        # Mirror the upper half of the left triangular half across center of grid
-        for y in range(self.maxY):
-            for x in range(self.maxX):
-                if y > x and y + x <= self.maxY - 1: # Points within upper half of left triangular half
-                    newY = self.maxY - y - 1
-                    newX = self.maxX - x - 1
-                    noiseMap[newY, newX] = noiseMap[y, x]
- 
-        self.smoothen(noiseMap)
-                    
-        # Normalize the mirrored map
-        noiseMapNormalized = (noiseMap - noiseMap.min()) #Make smallest value 0
-        noiseMapNormalized = noiseMapNormalized/ noiseMapNormalized.max() #Scale all values from 0 to 1
-        # print(f"minZ = {noiseMap.min()} maxZ = {noiseMap.max()}")
-        scaledNoiseMapFloat = noiseMapNormalized * (maxZ - minZ)
-        scaledNoiseMapInt = np.round(scaledNoiseMapFloat).astype(int)
-        # borderWidth = 3
-
-        # for y in range(self.maxY):
-        #     for x in range(self.maxX):
-        #         # Calculate the distance from the diagonal and antidiagonal lines
-        #         distFromDiag = abs(y - x)
-        #         distFromAntidiag = abs((y + x) - (self.maxY - 1))
-                
-        #         # Check if the point is within the border width of the diagonal or antidiagonal lines
-        #         if (
-        #             distFromDiag <= borderWidth or
-        #             distFromAntidiag <= borderWidth
-        #         ):
-        #             # Set the value to zero to create a border zone
-        #             scaledNoiseMapInt[y, x] = 0
-
-        return [scaledNoiseMapInt, noiseMapNormalized]
-
-    def smoothen(self, map):
-        # GENERALIZE FUNCTION SO AS TO MASK -> THRESHOLD -> SMOOTHEN
-        # Create a mask that includes the seam and adjacent tiles up to a certain distance (seam_width)
-        mask = np.zeros_like(map, dtype=bool)
-        length = len(map)
-        
-        sigma = 1
-        seamWidth = 1
-
-        # Define the area around the seam
-        for i in range(length):
-            # Apply the mask along the main diagonal and its adjacent tiles up to seam_width
-            for j in range(max(0, i - seamWidth), min(length, i + seamWidth + 1)):
-                mask[i, j] = True
-                mask[j, i] = True  # Add adjacent tiles along the diagonal
-        
-        # Apply Gaussian blur to the entire map
-        blurredMap = gaussian_filter(map, sigma=sigma)
-        
-        # Blend the blurred map back into the original map using the mask
-        map[mask] = blurredMap[mask]
-        
-        return map
-
-class ZMap(Noise):
-    def __init__(self, maxY, maxX, board):
-        super().__init__(maxY, maxX)
-        self.board = board
-        comboMap = self.genNoise(0.1, 1, 0, 0)
-        self.map = comboMap[0]
-
-    def ZMhandleEvent(self, event):
-        if isinstance(event, eMove):
-
-            adjZs = {}
-            for direction, (adjY, adjX) in self.board.getAdjDirections(event.unit).items():
-                adjZ = self.map[adjY, adjX]
-                unitZ = self.map[event.unit.position[0], event.unit.position[1]]
-
-                adjZs[(event.unit.position[0], event.unit.position[1])] = unitZ
-                adjZs[(direction, (adjY, adjX))] = adjZ
-
-            return adjZs
-        
-    def applyMasks(self, map, mask):
-        yScale = self.maxY/10
-        xScale = self.maxX/10
-        
-        masks = {
-        "twirl" :  [[1,0,0,0,0,0,0,0,0,0],
-                    [1,0,0,0,0,0,0,0,0,0],
-                    [0,1,0,0,0,0,0,0,0,0],
-                    [0,0,1,0,1,1,0,0,0,0],
-                    [0,0,0,1,0,0,1,0,0,0],
-                    [0,0,0,1,0,0,1,0,0,0],
-                    [0,0,0,0,1,1,0,1,0,0],
-                    [0,0,0,0,0,0,0,0,1,0],
-                    [0,0,0,0,0,0,0,0,0,1],
-                    [0,0,0,0,0,0,0,0,0,1]],
-        "ravine" : [[0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0]],
-        "woods" :  [[0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0]],
-        "delta" :  [[0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0],
-                    [0,0,0,0,0,0,0,0,0,0]]
-        }
-
-        selectedMask = masks.get("twirl")
-        scaledMask = zoom(selectedMask, (yScale, xScale), order = 0)
-
-    
-    def applyThresholds(self, type):
-        thresholds = {
-            "erode" : [],
-            "makepeaks" : [],
-            "flatten" : [],
-            "fracture" : []                
-        }
-
-class OMap(Noise):
-    def __init__(self, maxY, maxX, board, GOT):
-        super().__init__(maxY, maxX)
-        self.board = board
-        self.GOT = GOT
-        
-        comboMap = self.genNoise(0.5, 0.1, 0, 2)
-        self.map = comboMap[0]
-        self.map[self.map < 2] = 0
-        self.map[self.map == 2] = 1 # Convert to bool
-        self.createObstacles(self.map)
-
-    def createObstacles(self, map): # Should this function exist on the class or should the board pass the instance to the GameObjectTree?
-        coordArrays = np.where(map)
-        rows, cols = coordArrays
-        obstacleCoords = list(zip(rows, cols))
-        temp = sc.Sprites()
-        for i in range(len(obstacleCoords)):
-            row, col = obstacleCoords[i]
-            newObstacle = go.Obstacles(None, (row, col), 1, temp.spritesDictScaled["obstacle"])
-            self.board.bPygame.obstacleGroup.add(newObstacle.sprite)
-            self.GOT.insert(newObstacle)
-
-class EventDispatcher:
-    def __init__(self, board):
-        self.board = board
-        self.genericListeners = {}
-        self.indexedListeners = {}
-        self.orderSensitiveEvents = []
-
-    def addListener(self, event, listener, index = None, allListenersAdded = False):
-        if index:
-            if event not in self.orderSensitiveEvents:
-                self.orderSensitiveEvents.append(event)
-                self.indexedListeners[event] = []
-            self.indexedListeners.get(event).append((listener, index))
-
-            if allListenersAdded:
-                self.indexedListeners.get(event).sort(key=lambda x: x[1]) # During initialization after all listeners have been added, reorganize the listeners according to their indices
-                return True
-            
-            return True
-            
-        if event not in self.genericListeners:
-            self.genericListeners[event] = []
-        
-        list = self.genericListeners.get(event)
-        list.append(listener)
-
-    def dispatch(self, event):
-        eventType = type(event)
-        responseList = []
-
-        if eventType in self.genericListeners:
-            for listener in self.genericListeners[eventType]:
-                listenerName = listener.__name__
-                response = listener(event)
-                # self.board.manageScreen(None, None, response)
-                listenerTuple = (listenerName, response)
-                responseList.append(listenerTuple)
-
-        else:
-            for listener, _ in self.indexedListeners[eventType]:
-                listenerName = listener.__name__
-                response = listener(event)
-                # self.board.manageScreen(None, None, response)
-                listenerTuple = (listenerName, response)
-                responseList.append(listenerTuple)
-
-        return responseList
-
-class eMove:
-    def __init__(self, unit, minPoint, maxPoint):
-        self.unit = unit
-        self.minPoint = minPoint
-        self.maxPoint = maxPoint
-
-class eDisplace:
-    def __init__(self, unit, castTarget, displaceDistance):
-        self.unit = unit
-        self.castTarget = castTarget
-        self.displaceDistance = displaceDistance
-
-class meCollision:
-    def __init__(self, minPoint, maxPoint):
-        self.minPoint = minPoint
-        self.maxPoint = maxPoint
-
-class eMeleeTargets:
-    def __init__(self, unit):
-        self.unit = unit
-
-class eTargetsInRange:
-    def __init__(self, unit, abilityRange):
-        self.unit = unit
-        self.checkUnit = None
-        self.range = abilityRange
-        self.minPoint = None
-        self.maxPoint = None
-        self.OnlyCardinalDirs = True
 
 class Board:
     defaultMinPoint = (0,0)
@@ -421,8 +160,9 @@ class Board:
         self.bPygame = pygame
         # self.allElemPositions = set()
         # self.allSeedPositions = set()
-        self.dispatcher = EventDispatcher(self)
-        self.initializeObjectTree()
+        self.dispatcher = e.EventDispatcher(self)
+        self.initializeUMap()
+        self.initializeGameObjectTree()
         self.initializeObjectDict()
         self.initializeZMap()
         self.initializeOMap()
@@ -432,20 +172,30 @@ class Board:
         cloned_board.maxX = self.maxY
         cloned_board.maxY = self.maxX
         cloned_board.game = game
-        cloned_board.dispatcher = copy.deepcopy(self.dispatcher)
+        cloned_board.dispatcher = e.EventDispatcher(cloned_board)
         cloned_board.dispatcher.board = cloned_board
-        cloned_board.instOM = copy.deepcopy(self.instOM)
-        cloned_board.instOM.board = cloned_board
-        cloned_board.instUM = copy.deepcopy(self.instUM)
+        cloned_board.instUM = self.instUM.clone()
         cloned_board.instUM.board = cloned_board
+        cloned_board.instUM.assignListeners(cloned_board.dispatcher)
+
+        cloned_board.GOT = copy.deepcopy(self.GOT)
+        cloned_board.GOT.board = cloned_board
+        cloned_board.GOT.addListeners(cloned_board.dispatcher)
+        cloned_board.gameObjectDict = copy.deepcopy(self.gameObjectDict)
+        cloned_board.gameObjectDict.addListeners(cloned_board.dispatcher)
+
+
         cloned_board.instZM = copy.deepcopy(self.instZM)
         cloned_board.instZM.board = cloned_board
-        cloned_board.GOT = copy.deepcopy(cloned_board.GOT)
-        cloned_board.GOT.board = cloned_board
-        cloned_board.gameObjectDict = copy.deepcopy(cloned_board.gameObjectDict)
+        cloned_board.instZM.assignListeners(cloned_board.dispatcher)
+
+        cloned_board.instOM = self.instOM.clone()
+        cloned_board.instOM.board = cloned_board
+        cloned_board.instOM.GOT = cloned_board.GOT
         return cloned_board
 
-
+    def __deepcopy__(self, memo):
+        return None
     def createDummyGameObjects(self):
         dummyObjects = []
         IDs = ['a']
@@ -459,15 +209,13 @@ class Board:
                 dummyObjects.append(go.Rapture(ID, pos, 0))
         return dummyObjects
 
-    def initializeObjectTree(self):
+    def initializeGameObjectTree(self):
         self.GOT = got.GameObjectTree(self.defaultMinPoint, self.maxPoint, self)
-        self.dispatcher.addListener(eMove, self.GOT.GOThandleEvent)
-        self.dispatcher.addListener(eTargetsInRange, self.GOT.GOThandleEvent, 2)
-        self.dispatcher.addListener(eDisplace, self.GOT.GOThandleEvent, 2)
+        self.GOT.addListeners(self.dispatcher)       
 
     def initializeObjectDict(self):
-        self.gameObjectDict= GameObjectDict(self)
-        self.dispatcher.addListener(eMove, self.gameObjectDict.GODhandleEvent)
+        self.gameObjectDict= god.GameObjectDict(self)
+        self.gameObjectDict.addListeners(self.dispatcher)
         dummyGOs = self.createDummyGameObjects()
         for go in dummyGOs:
             self.gameObjectDict.insert(go)
@@ -476,15 +224,11 @@ class Board:
                 pass
                 self.bPygame.spriteGroup.add(go.sprite)
 
-
-    def initializeUnits(self):
+    def initializeUMap(self):
         self.instUM = UnitsMap(self.maxY, self.maxX, self)
-        self.dispatcher.addListener(eMove, self.instUM.UMhandleEvent)
-        # self.dispatcher.addListener(eMeleeTargets, self.instUM.UMhandleEvent)
-        self.dispatcher.addListener(eTargetsInRange, self.instUM.UMhandleEvent, 1, True)
-        self.dispatcher.addListener(eDisplace, self.instUM.UMhandleEvent, 1, True)
-        self.unitsMap = self.instUM.map
-
+        self.instUM.assignListeners(self.dispatcher)
+        
+    def initializeUnits(self):
         if self.bPygame:
             p1a = u.meleeUnit(0, 1, (0,0), self, self.game)
             self.bPygame.spriteGroup.add(p1a.sprite)
@@ -497,12 +241,12 @@ class Board:
             print(f"p2a rect: {p2a.sprite.rect.topleft}")
             print(f"p2b rect: {p2b.sprite.rect.topleft}")
 
-        self.unitsMap[0][0] = p1a
-        self.unitsMap[0][1] = p1b
-        self.unitsMap[1][0] = p2a
-        self.unitsMap[1][1] = p2b
+        self.instUM.map[0][0] = p1a
+        self.instUM.map[0][1] = p1b
+        self.instUM.map[1][0] = p2a
+        self.instUM.map[1][1] = p2b
 
-        self.drawMap(self.unitsMap)
+        self.drawMap(self.instUM.map)
 
         return [p1a, p1b, p2a, p2b]
 
@@ -510,13 +254,13 @@ class Board:
         self.noise = Noise(self.maxY, self.maxX)
 
     def initializeZMap(self):
-        self.instZM = ZMap(self.maxY, self.maxX, self)
-        self.dispatcher.addListener(eMove, self.instZM.ZMhandleEvent)
+        self.instZM = maps.ZMap(self.maxY, self.maxX, self)
+        self.instZM.assignListeners(self.dispatcher)
         self.zMap = self.instZM.map
         # self.drawMap(self.zMap)
 
     def initializeOMap(self):
-        self.instOM = OMap(self.maxY, self.maxX, self, self.GOT)
+        self.instOM = maps.OMap(self.maxY, self.maxX, self, self.GOT)
         # self.drawMap(self.instOM.map)
 
     def getAdjDirections(self, unit):
@@ -537,7 +281,7 @@ class Board:
     def getValidDirections(self, unit):
         validAdjPositions = self.getAdjDirections(unit)
 
-        GOY = len(self.unitsMap) - 1 - unit.position[0]
+        GOY = len(self.instUM.map) - 1 - unit.position[0]
         UX = unit.position[1]
 
         # Initialize minPoint to the desired values
@@ -551,15 +295,15 @@ class Board:
         maxPointX = minPointX + 2
         maxPointY = minPointY + 2  # maxPoint is calculated based on a 3x3 region
 
-        if maxPointX > (len(self.unitsMap) - 1):
+        if maxPointX > (len(self.instUM.map) - 1):
             maxPointX = self.maxX
         
-        if maxPointY > (len(self.unitsMap) - 1):
+        if maxPointY > (len(self.instUM.map) - 1):
             maxPointY = self.maxY
 
         maxPoint = (maxPointX, maxPointY)
 
-        event = eMove(unit, minPoint, maxPoint)
+        event = e.eMove(unit, minPoint, maxPoint)
         
         listenerResponses = self.dispatcher.dispatch(event)
         # A list of tuples (listener name, its response)
@@ -579,11 +323,12 @@ class Board:
   
         # Unpack listenerResponses
         #gameObjectTreeR = listenerResponses[0][1]
-        gameObjectTreeR = listenerResponses[0][1]
+        unitsMapR = listenerResponses[0][1]
+        gameObjectTreeR = listenerResponses[1][1]
+ 
+        zMapR = listenerResponses[3][1]
 
-        zMapR = listenerResponses[2][1]
-
-        unitsMapR = listenerResponses[3][1]
+        
 
         takeFallDamage = False
         addSurfaces = []
@@ -653,7 +398,7 @@ class Board:
                 if "target" in event:
                     if event.get("target") == "targetunit":
                         range = ability.get("range")
-                        event = eTargetsInRange(unit, range)
+                        event = e.eTargetsInRange(unit, range)
                         responseList = self.dispatcher.dispatch(event)
                         viableTargets = responseList[1][1] # for first index: 0 for UMHandleEvent's response, 1 for ZMHandleEvent's response, 2 for GOTHandleEvent's response
 
@@ -788,8 +533,8 @@ class Board:
             if isinstance(entity, u.Unit):
                 destination = list(dict.keys())
                 destination = destination[0]
-                self.unitsMap[destination[1][0]][destination[1][1]] = self.unitsMap[entity.position[0]][entity.position[1]] # (Y, X) format
-                self.unitsMap[entity.position[0]][entity.position[1]] = None
+                self.instUM.map[destination[1][0]][destination[1][1]] = self.instUM.map[entity.position[0]][entity.position[1]] # (Y, X) format
+                self.instUM.map[entity.position[0]][entity.position[1]] = None
                 entity.position = (destination[1][0], destination[1][1])
 
                 if self.bPygame:
@@ -804,7 +549,7 @@ class Board:
                     go.invoke(entity, self.game)
                 
 
-            self.drawMap(self.unitsMap)
+            self.drawMap(self.instUM.map)
 
     def cast(self, entity, ability):
         targetType = ability["events"][0].get("target")
@@ -874,42 +619,3 @@ class Board:
         return validDirections
 
 
-
-class GameObjectDict:
-    def __init__(self, board):
-        self.GOmap = {}
-
-    def insert(self, gameObject):
-        if self.GOmap.get(gameObject.position, None) is None:
-            self.GOmap[gameObject.position] = [gameObject]
-        else:
-            self.GOmap[gameObject.position].append(gameObject)
-
-    def query(self, positions):
-        if not isinstance(positions, list):
-            positions = [positions]
-        allObjs = []
-        for position in positions:
-            if self.GOmap.get(position, None) is not None:
-                for entry in self.GOmap.get(position, None):
-                    if entry is not None:
-                        allObjs.append(entry)
-        return allObjs
-    def GODhandleEvent(self, event):
-        if isinstance(event, eMove):
-
-            
-            pass
-            
-    def getAllGOs(self):
-        allGOs = []
-        for key in self.GOmap.keys():
-            for go in self.GOmap[key]:
-                if go is not None:
-                    allGOs.append(go)
-        return allGOs
-    def removeGO(self, GO):
-        key = GO.position
-        if self.GOmap.get(key, None) is not None:
-            self.GOmap[key].remove(GO)
-            GO.deactivate()

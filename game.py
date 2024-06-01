@@ -23,25 +23,15 @@ class GameManager:
         self.inputReady = False
         self.p1Class = p1Class
         self.p2Class = p2Class
-        
-        self.start()
-
-    def start(self):
         if self.inclPygame:
             print('Including pygame...')
             import RunPygame as rp
             maxX = 25
             maxY = 25
             self.gPygame = rp.Pygame(self, maxX, maxY)            
-            self.board = b.Board(maxX, maxY, self, self.gPygame)
-            self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
-            self.pygameThread.daemon = True
-            self.pygameThread.start()
-            time.sleep(0.1)
- 
+            self.board = b.Board(maxX, maxY, self, self.gPygame)        
         else:
             self.board = b.Board(25, 25, self, None)
-        
         allUnits = self.board.initializeUnits()
         team0 = []
         team1 = []
@@ -52,6 +42,14 @@ class GameManager:
         self.p2 = self.p2Class('Bob', 1, team1, self, self.gPygame)
         self.allAgents = []
         self.allAgents.extend([self.p1, self.p2])
+
+
+    def start(self):
+        if self.inclPygame:
+            self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
+            self.pygameThread.daemon = True
+            self.pygameThread.start()
+            time.sleep(0.1)
         self.gameLoop()
           
     def gameLoop(self):
@@ -159,22 +157,25 @@ class GameManager:
         cloned_game = GameManager.__new__(GameManager)
         cloned_game.agentTurnIndex = self.agentTurnIndex
         cloned_game.currentAgent = self.currentAgent
-        cloned_game.board = self.board.clone()
+        cloned_game.board = self.board.clone(cloned_game)
         team0 = []
+        team1 = []
         for unit in self.p1.team:
             newUnit = copy.deepcopy(unit)
             newUnit.game = self
             newUnit.board = cloned_game.board
-            team1.extend(newUnit)
-        team1 = []
+            team0.append(newUnit)
+        
         for unit in self.p2.team:
             newUnit = copy.deepcopy(unit)
             newUnit.game = self
             newUnit.board = cloned_game.board
-            team1.extend(newUnit)
+            team1.append(newUnit)
         cloned_game.p1 = self.p1Class(self.p1.name, team0, self, self.gPygame)
         cloned_game.p2 = self.p2Class(self.p2.name, team1, self, self.gPygame)
         return cloned_game
 
         
 a = GameManager(ac.HumanAgent, ac.RandomAgent, True)
+# a.start()
+a.clone()
