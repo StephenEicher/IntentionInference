@@ -50,16 +50,16 @@ class Unit:
                 ],
                 "targetedUnit" : None,
             },
-            {
-                "name": "Shove",
-                "cost": 1,
-                "range": 1,
-                "events": [
-                    {"type": "displace", "target": "targetunit", "distance": 1},
-                    {"type": "changeActionPoints", "target": "self", "value": -1},
-                ],
-                "targetedUnit" : None,
-            },
+            # {
+            #     "name": "Shove",
+            #     "cost": 1,
+            #     "range": 1,
+            #     "events": [
+            #         {"type": "displace", "target": "targetunit", "distance": 1},
+            #         {"type": "changeActionPoints", "target": "self", "value": -1},
+            #     ],
+            #     "targetedUnit" : None,
+            # },
         ]
         return abilities
     # def unitValidForTurn(self):

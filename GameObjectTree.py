@@ -207,6 +207,7 @@ class GameObjectTree:
                     # Then 
             else:
                 # Determine obstacle collision
+                pass
 
     def determineObstacleCollisionAndSurfaces(self, displacingUnitPosition, maxDisplacementPoint):
         """

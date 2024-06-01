@@ -17,7 +17,7 @@ class Agent(metaclass=abc.ABCMeta):
 
 class RandomAgent(Agent):
     def selectAction(self, waitingUnits, board, allActions, flatActionSpace):
-        time.sleep(0.5)
+        time.sleep(0.1)
         if len(flatActionSpace) > 3:
             for unit, actionDict in flatActionSpace:
                 if actionDict["type"] == "castAbility":

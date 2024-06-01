@@ -33,14 +33,6 @@ class UnitsMap:
                         
             return adjUnits
 
-        # if isinstance(event, eMeleeTargets):
-        #     targets = []
-        #     for direction, (adjY, adjX) in self.board.getAdjDirections(event.unit).items():
-        #             adjUnit = self.map[adjY][adjX]
-        #             if isinstance(adjUnit, u.Unit):
-        #                 targets.append(adjUnit)
-
-            return targets
 
         elif isinstance(event, eTargetsInRange):
             targets = []
@@ -54,15 +46,23 @@ class UnitsMap:
                 for col in np.arange(colBounds[0], colBounds[1]+1):
                     tilesToCheck.append(self.map[row][col]) # already appends all objects found at coordinates and excludes empty tiles                
 
+
             for unit in tilesToCheck:
                 if isinstance(unit, u.Unit):
                     if unit.ID is not event.unit.ID and unit.agentIndex is not event.unit.agentIndex:
-                        if unit.position[0] == event.unit.position[0] or unit.position[1] == event.unit.position[1]:
-                            if abs(unit.position[0] - event.unit.position[0]) <= event.range or abs(unit.position[1] - event.unit.position[1]) <= event.range:
-                                targets.append(unit)
-                        if abs(event.unit.position[0] - unit.position[0]) == abs(event.unit.position[1] - unit.position[1]):
-                            if abs(unit.position[0] - event.unit.position[0]) <= event.range or abs(unit.position[1] - event.unit.position[1]) <= event.range:
-                                targets.append(unit)
+
+                        if not event.OnlyCardinalDirs:
+                            targets.append(unit)
+                        else:
+                            #If on the same row or on the same column
+                            if unit.position[0] == event.unit.position[0] or unit.position[1] == event.unit.position[1]:
+                                selfPos = np.array(unit.position)
+                                unitPos = np.array(event.unit.position)
+                                if abs(np.linalg.norm(selfPos-unitPos)) <= event.range:
+                                    targets.append(unit)
+                            # if abs(event.unit.position[0] - unit.position[0]) == abs(event.unit.position[1] - unit.position[1]):
+                            #     if abs(unit.position[0] - event.unit.position[0]) <= event.range or abs(unit.position[1] - event.unit.position[1]) <= event.range:
+                            #         targets.append(unit)
            
             self.board.GOT.incomingUM.put(targets)
             
@@ -401,6 +401,7 @@ class eTargetsInRange:
         self.range = abilityRange
         self.minPoint = None
         self.maxPoint = None
+        self.OnlyCardinalDirs = True
 
 class Board:
     defaultMinPoint = (0,0)
