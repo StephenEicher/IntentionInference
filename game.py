@@ -14,7 +14,7 @@ import GameObjects as go
 import SpriteClasses as sc
 
 class GameManager:
-    def __init__(self, p1Class, p2Class, inclPygame = True, ):
+    def __init__(self, p1Class, p2Class, teamComp, inclPygame = True):
         self.agentTurnIndex = 0
         self.gameOver = False
         self.inclPygame = inclPygame
@@ -32,14 +32,12 @@ class GameManager:
             self.board = b.Board(maxX, maxY, self, self.gPygame)        
         else:
             self.board = b.Board(25, 25, self, None)
-        allUnits = self.board.initializeUnits()
-        team0 = []
-        team1 = []
-        team0.extend([allUnits[0], allUnits[1]])
-        team1.extend([allUnits[2], allUnits[3]])
-        self.allUnits = allUnits
-        self.p1 = self.p1Class('Ally', 0, team0, self, self.gPygame)
-        self.p2 = self.p2Class('Bob', 1, team1, self, self.gPygame)
+        team0, team1 = self.board.initializeUnits(teamComp)
+        self.allUnits = []
+        self.allUnits.extend(team1)
+        self.allUnits.extend(team0)
+        self.p1 = self.p1Class('P1', 0, team0, self, self.gPygame)
+        self.p2 = self.p2Class('P2', 1, team1, self, self.gPygame)
         self.allAgents = []
         self.allAgents.extend([self.p1, self.p2])
 
@@ -181,9 +179,13 @@ class GameManager:
         return waitingUnits, allActions, flatActionSpace, noMovesOrAbilities
     
 
+team1 = [ [(0, 0), u.meleeUnit],
+            [(0, 1), u.rangedUnit],]
+team2 =  [  [(1,0), u.meleeUnit],
+            [(1, 1), u.rangedUnit]]
 
-        
-a = GameManager(ac.HumanAgent, ac.RandomAgent, True)
+teamComp = [team1, team2]
+a = GameManager(ac.HumanAgent, ac.RandomAgent, teamComp, True)
 a.start()
 # b = a.clone()
 # b.start()

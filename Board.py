@@ -227,30 +227,50 @@ class Board:
         self.instUM = UnitsMap(self.maxY, self.maxX, self)
         self.instUM.assignListeners(self.dispatcher)
         
-    def initializeUnits(self):
-        if self.bPygame:
-            p1a = u.meleeUnit(0, 1, (0,0), self, self.game)
-            self.bPygame.spriteGroup.add(p1a.sprite)
-            p1b = u.rangedUnit(0, 2, (0,1), self, self.game)
-            self.bPygame.spriteGroup.add(p1b.sprite)
-            p2a = u.meleeUnit(1, 3, (1,0), self, self.game)
-            self.bPygame.spriteGroup.add(p2a.sprite)
-            p2b = u.rangedUnit(1, 4, (1,1), self, self.game)
-            self.bPygame.spriteGroup.add(p2b.sprite)
-            print(f"p2a rect: {p2a.sprite.rect.topleft}")
-            print(f"p2b rect: {p2b.sprite.rect.topleft}")
-
-        self.instUM.map[0][0] = p1a
-        self.instUM.map[0][1] = p1b
-        self.instUM.map[1][0] = p2a
-        self.instUM.map[1][1] = p2b
-
+    def initializeUnits(self, teamComp):
+        agentIndex = 0
+        unitIndex = 1
+        teams = []
+        for team in teamComp:
+            curTeam = []
+            for entry in team:
+                spawnLocation, unitClass = entry
+                newUnit = unitClass(agentIndex, unitIndex, spawnLocation, self, self.game)
+                curTeam.append(newUnit)
+                if self.bPygame:
+                    self.bPygame.spriteGroup.add(newUnit.sprite)
+                unitIndex+=1
+                self.instUM.map[spawnLocation[0]][spawnLocation[1]] = newUnit
+            agentIndex+=1
+            teams.append(curTeam)
         self.drawMap(self.instUM.map)
+        return (teams[0], teams[1])
 
-        return [p1a, p1b, p2a, p2b]
+
+        # if self.bPygame:
+        #     p1a = u.meleeUnit(0, 1, (0,0), self, self.game)
+        #     self.bPygame.spriteGroup.add(p1a.sprite)
+        #     p1b = u.rangedUnit(0, 2, (0,1), self, self.game)
+        #     self.bPygame.spriteGroup.add(p1b.sprite)
+        #     p2a = u.meleeUnit(1, 3, (1,0), self, self.game)
+        #     self.bPygame.spriteGroup.add(p2a.sprite)
+        #     p2b = u.rangedUnit(1, 4, (1,1), self, self.game)
+        #     self.bPygame.spriteGroup.add(p2b.sprite)
+        #     print(f"p2a rect: {p2a.sprite.rect.topleft}")
+        #     print(f"p2b rect: {p2b.sprite.rect.topleft}")
+        # else:
+
+        # self.instUM.map[0][0] = p1a
+        # self.instUM.map[0][1] = p1b
+        # self.instUM.map[1][0] = p2a
+        # self.instUM.map[1][1] = p2b
+
+        
+
+        # return [p1a, p1b, p2a, p2b]
 
     def initializeNoise(self):
-        self.noise = Noise(self.maxY, self.maxX)
+        self.noise = maps.Noise(self.maxY, self.maxX)
 
     def initializeZMap(self):
         self.instZM = maps.ZMap(self.maxY, self.maxX, self)
