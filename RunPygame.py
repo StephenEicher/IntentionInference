@@ -86,6 +86,7 @@ class Pygame:
                                 else:
                                     pReturnDict = self.actionDictAwaitingTarget
                                     abilityDict = pReturnDict["abilityDict"]
+                                    abilityDict = dict(abilityDict)
                                     abilityDict["targetedUnit"] = targetedUnit
                                     pReturnDict["abilityDict"] = abilityDict
                                     self.game.actionQueue.put(pReturnDict)

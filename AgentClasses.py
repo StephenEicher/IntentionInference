@@ -2,12 +2,12 @@ import abc
 import time
 import random
 import MCTS
-
 class Agent(metaclass=abc.ABCMeta):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):       
         self.name = name
         self.agentIndex = agentIndex
         self.team = team
+
         self.game = game
         self.aPygame = pygame
         self.inputReady = False
@@ -23,39 +23,33 @@ class RandomAgent(Agent):
                 if actionDict["type"] == "castAbility":
                     if actionDict['abilityDict'].get("name") == "End Unit Turn":
                        flatActionSpace.remove((unit, actionDict)) 
-        unit, actionDict = random.choice(flatActionSpace)    
-        game.executeMove((unit, actionDict))
+        unitID, actionDict = random.choice(flatActionSpace)  
+        return (unitID, actionDict) 
+
 
 class MCTSAgent(Agent):
     def selectAction(self, game, waitingUnits, allActions, flatActionSpace):
         gamma = 0.9
-        problem = MCTS.MDP(gamma, None, game.getCurrentStateActions, None, self.getReward, getTransitionRewardFunction)
-        d = 12 #Tree depth
-        m = 500 #num simulations
-        c = 500 #exploration
-        # solver = MCTS.MonteCarloTreeSearch(problem, {}, {}, d, m, c, dc.getValue)
-        # return solver(dc)
+        problem = MCTS.MDP(gamma, None, game.getCurrentStateActionsMDP, None, self.getReward, self.getTransitionReward)
+        d = 4 #Tree depth
+        m = 100 #num simulations
+        c = 1 #exploration
+        solver = MCTS.MonteCarloTreeSearch(problem, {}, {}, d, m, c, self.getValue)
+        out = solver(game)
+        return out
     def getReward(self, state):
         return random.randint(0, 10)
+    def getValue(self, state):
+        return random.randint(0, 10)
     
-    # def getTransitionReward(self, state, action):
-        
-    #     if pickName not in self.available_players.keys():
-    #         #Not a valid action
-    #         return -1
-    #     ECR, pickObj = state.available_players[pickName]
-    #     #Transition reward function will only ever be for Manager 0:
-    #     Ucur = state.getValue(self)
-    #     sprime = state.clone()
-    #     sprime.pickPlayer(self.agents[self.playerAgentName], pickName)
-    #     sprime.progressToPlayer()
-    #     if sprime.hasPosition(self.playerAgentName, 'QB')[1] > 2:
-    #         Uprime = -10000
-    #     elif sprime.hasPosition(self.playerAgentName,'TE')[1] > 2:
-    #         Uprime = -10000
-    #     else:
-    #         Uprime = sprime.getValue(self)
-    #     return (sprime, Uprime - Ucur)
+    def getTransitionReward(self, state, action):
+        #Transition reward function will only ever be for Manager 0:
+        Ucur = self.getValue(state)
+        sprime = state.clone()
+        sprime.executeMove(action)
+        sprime.progressToNextAgentTurn(self, False)
+        Uprime = self.getValue(sprime)
+        return (sprime, Uprime - Ucur)
     
 class HumanAgent(Agent):
     selectedUnit = None
@@ -71,7 +65,8 @@ class HumanAgent(Agent):
     
     def selectAction(self, game, waitingUnits, allActions, flatActionSpace):
         selectedUnit, actionDict = self.selectActionUI(game, waitingUnits, allActions, flatActionSpace)
-        game.executeMove((selectedUnit, actionDict))
+        return (selectedUnit.ID, actionDict)
+
     def selectActionUI(self, game, waitingUnits, allActions, flatActionSpace):
         self.aPygame.drawSelectUnit(waitingUnits)
         if self.selectedUnit is None:

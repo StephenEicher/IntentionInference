@@ -74,9 +74,17 @@ class InvokeAbilty(GameObject):
             game.board.cast(unit, ability)
         
         return game.board.gameObjectDict.removeGO(self)
+    def __deepcopy__(self, memo):
+        # Call the parent class's __deepcopy__ method
+        cloned_ability = super().__deepcopy__(memo)
 
+        # Additional deep copy for class-specific attributes
+        cloned_ability.target = copy.deepcopy(self.target, memo)
+        cloned_ability.events = copy.deepcopy(self.events, memo)
+        cloned_ability.abilityName = copy.deepcopy(self.abilityName, memo)
+        cloned_ability.range = copy.deepcopy(self.range, memo)
 
-
+        return cloned_ability
 
 class Rapture(InvokeAbilty):
     def __init__(self, name, position, z, image=None):

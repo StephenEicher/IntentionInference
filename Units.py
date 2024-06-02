@@ -2,7 +2,7 @@ import pygame
 import Board as b
 import SpriteClasses as sc
 import copy
-
+from immutables import Map
 
 class Unit:
     def __init__(self, agentIndex, unitID, position, board, game, image=None):
@@ -24,7 +24,7 @@ class Unit:
         self.momentum = 0
         self.massConstant = 1
         self.jump = 0
-        self.actionPoints = 2
+        self.actionPoints = 0
         
         # Initialize current stats
         self.currentHP = self.HP
@@ -76,26 +76,26 @@ class Unit:
 
     def abilities(self):
         abilities = [
-            {
+            Map({
                 "name": "Unarmed Strike",
                 "cost": 1,
                 "range": 1,
-                "events": [
-                    {"type": "changeHP", "target": "targetunit", "value": -1},
-                    {"type": "changeActionPoints", "target": "self", "value": -1},
-                ],
+                "events": (
+                    Map({"type": "changeHP", "target": "targetunit", "value": -1}),
+                    Map({"type": "changeActionPoints", "target": "self", "value": -1}),
+                ),
                 "targetedUnit" : None,
-            },
-            # {
+            }),
+            # Map({
             #     "name": "Shove",
             #     "cost": 1,
             #     "range": 1,
-            #     "events": [
-            #         {"type": "displace", "target": "targetunit", "distance": 1},
-            #         {"type": "changeActionPoints", "target": "self", "value": -1},
-            #     ],
+            #     "events": (
+            #         Map({"type": "displace", "target": "targetunit", "distance": 1}),
+            #         Map({"type": "changeActionPoints", "target": "self", "value": -1}),
+            #     ),
             #     "targetedUnit" : None,
-            # },
+            # }),
         ]
         return abilities
     # def unitValidForTurn(self):
@@ -118,7 +118,8 @@ class Unit:
         for unit in team:
             if unit.ID == self.ID:
                 team.remove(unit)
-                self.board.bPygame.spriteGroup.remove(unit.sprite)
+                if self.sprite is not None:
+                    self.board.bPygame.spriteGroup.remove(unit.sprite)
                 self.board.instUM.map[unit.position[0]][unit.position[1]] = None
                 print(f"{unit.ID} is disposed")
 
@@ -132,7 +133,7 @@ class meleeUnit(Unit):
             image = sc.Sprites().spritesDictScaled['Haku']
         super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "M"
-        self.movement = 6
+        self.movement = 1
         self.currentMovement = self.movement
         self.HP = 2
         self.currentHP = self.HP
@@ -147,21 +148,21 @@ class rangedUnit(Unit):
             image = sc.Sprites().spritesDictScaled['Haku']
         super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "R"
-        self.movement = 20
+        self.movement = 1
         self.currentMovement = self.movement
         self.HP = 100 
         self.currentHP = self.HP
 
-        rangedStrike = {
+        rangedStrike = Map({
                 "name": "Ranged Strike",
                 "cost": 1,
                 "range": 3,
-                "events": [
-                    {"type": "changeHP", "target": "targetunit", "value": -1},
-                    {"type": "changeActionPoints", "target": "self", "value": -1},
-                ],
+                "events": (
+                    Map({"type": "changeHP", "target": "targetunit", "value": -1}),
+                    Map({"type": "changeActionPoints", "target": "self", "value": -1}),
+                ),
                 "targetedUnit" : None,
-            }
+            })
         self.unitAbilities.append(rangedStrike)
 
 

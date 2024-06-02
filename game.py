@@ -12,9 +12,11 @@ import Units as u
 import Board as b
 import GameObjects as go
 import SpriteClasses as sc
+from immutables import Map
 
 class GameManager:
     def __init__(self, p1Class, p2Class, teamComp, inclPygame = True):
+        self.verbose = True
         self.agentTurnIndex = 0
         self.gameOver = False
         self.inclPygame = inclPygame
@@ -24,7 +26,7 @@ class GameManager:
         self.p1Class = p1Class
         self.p2Class = p2Class
         if self.inclPygame:
-            print('Including pygame...')
+            self.fprint('Including pygame...')
             import RunPygame as rp
             maxX = 25
             maxY = 25
@@ -41,11 +43,15 @@ class GameManager:
         self.p2 = self.p2Class('P2', 1, team1, self, self.gPygame)
         self.allAgents = []
         self.allAgents.extend([self.p1, self.p2])
-
+        self.currentAgent = self.allAgents[self.agentTurnIndex]
+    def fprint(self, string):
+        if self.verbose:
+            print(string)
     def clone(self):
         cloned_game = GameManager.__new__(GameManager)
         cloned_game.agentTurnIndex = self.agentTurnIndex
         cloned_game.board = self.board.clone(cloned_game)
+        self.gPygame = None
         team0 = []
         team1 = []
         for unit in self.p1.team:
@@ -59,14 +65,17 @@ class GameManager:
             newUnit.game = self
             newUnit.board = cloned_game.board
             team1.append(newUnit)
-        cloned_game.p1 = ac.RandomAgent(self.p1.name, 0, team0, self, self.gPygame)
-        cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, self, self.gPygame)
+        cloned_game.p1 = ac.RandomAgent(self.p1.name, 0, team0, self, None)
+        cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, self, None)
         cloned_game.allAgents = [cloned_game.p1, cloned_game.p2]
         cloned_game.inclPygame = False
         cloned_game.gameOver = self.gameOver
         cloned_game.currentAgent = cloned_game.allAgents[cloned_game.agentTurnIndex]
-        cloned_game.allUnits = team0
+        cloned_game.allUnits = list(team0)
         cloned_game.allUnits.extend(team1)
+        cloned_game.p1Class = self.p1Class
+        cloned_game.p2Class = self.p2Class
+        cloned_game.verbose = False
         
         return cloned_game
 
@@ -76,18 +85,19 @@ class GameManager:
             self.pygameThread.daemon = True
             self.pygameThread.start()
             time.sleep(0.1)
-        #self.gameLoop()
-        self.queryAgentForMove()
+        self.gameLoop()
+        #self.queryAgentForMove()
     
     def executeMove(self, action):
         self.gameOverCheck()
         if not self.gameOver:
             changeTurnAgent = True
-            selectedUnit, actionDict = action
+            selectedUnitID, actionDict = action
+            selectedUnit = self.getUnitByID(selectedUnitID)
             self.board.updateBoard(selectedUnit, actionDict)
-            print(f"\nCurrent unit: {selectedUnit.ID}")
-            print("===================================")
-            print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
+            self.fprint(f"\nCurrent unit: {selectedUnit.ID}")
+            self.fprint("===================================")
+            self.fprint(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
             self.updateUnitStatus(self.allUnits)
             totalAvail = 0
             for unit in self.currentAgent.team:
@@ -102,50 +112,62 @@ class GameManager:
                 self.agentTurnIndex ^= 1    
                 self.currentAgent = self.allAgents[self.agentTurnIndex]       
                 self.gameOverCheck()
-            self.queryAgentForMove()
+                
+    def progressToNextAgentTurn(self, agent, queryAgentAfter=True):
+        self.currentAgent = self.allAgents[self.agentTurnIndex] 
+        if self.sameAgent(self.currentAgent, agent):
+            if queryAgentAfter:
+                self.queryAgentForMove()
+        else:
+            while not self.sameAgent(self.currentAgent, agent):
+                self.queryAgentForMove()
 
+    def sameAgent(self, agent1, agent2):
+        return agent1.agentIndex == agent2.agentIndex
+    
     def queryAgentForMove(self):
         self.gameOverCheck()
         if not self.gameOver:
             self.currentAgent = self.allAgents[self.agentTurnIndex] 
-            print(f"\n-------- {self.currentAgent.name}'s turn --------")
-            waitingUnits, allActions, flatActionSpace, noMovesOrAbilities = self.getCurrentStateActions()
-            self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace)
+            self.fprint(f"\n-------- {self.currentAgent.name}'s turn --------")
+            flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.getCurrentStateActions(self)
+            action = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace)
+            self.executeMove(action)
 
     def gameOverCheck(self):
         if len(self.p1.team) == 0 or len(self.p2.team) == 0:
             self.gameOver = True
         if self.gameOver:
             if len(self.p1.team) == 0:
-                print(f"\n{self.p2.name} wins")
+                self.fprint(f"\n{self.p2.name} wins")
             else:
-                print(f"\n{self.p1.name} wins")
+                self.fprint(f"\n{self.p1.name} wins")
 
             if self.inclPygame:
                 pygame.quit()
-
+    def getUnitByID(self, ID):
+        for unit in self.allUnits:
+            if unit.ID == ID:
+                return unit
     def gameLoop(self):
-
-        if self.inclPygame:      
-            self.actionQueue = queue.Queue(maxsize = 1)    
-            
         while self.gameOver is False:
             self.currentAgent = self.allAgents[self.agentTurnIndex]
 
             
-            print(f"\n-------- {self.currentAgent.name}'s turn --------")
+            self.fprint(f"\n-------- {self.currentAgent.name}'s turn --------")
             #selectedUnit = self.currentAgent.selectUnit()
             #print(f"Selected {selectedUnit.ID}")   
             currentTurnActive= True
             while currentTurnActive:
-                waitingUnits, allActions, flatActionSpace, noMovesOrAbilities = self.getCurrentStateActions()
-                selectedUnit, actionDict = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace)
+                flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.getCurrentStateActions(self)
+                selectedUnitID, actionDict = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace)
+                selectedUnit = self.getUnitByID(selectedUnitID)
                 if actionDict is None:
                     break
                 self.board.updateBoard(selectedUnit, actionDict)
-                print(f"\nCurrent unit: {selectedUnit.ID}")
-                print("===================================")
-                print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
+                self.fprint(f"\nCurrent unit: {selectedUnit.ID}")
+                self.fprint("===================================")
+                self.fprint(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
             
 
                 self.updateUnitStatus(self.allUnits)
@@ -154,25 +176,19 @@ class GameManager:
                 for unit in self.currentAgent.team:
                     if unit.Avail:
                         totalAvail += 1
+                        break
                 if totalAvail == 0:
                     currentTurnActive = False
             
             for unit in self.currentAgent.team: # Reset availability for next time that agent is up for turn
                 if unit.Alive:
                     unit.resetForEndTurn()
+
             currentTurnActive = True
             self.agentTurnIndex ^= 1
+            self.gameOverCheck()
 
-            if len(self.p1.team) == 0 or len(self.p2.team) == 0:
-                self.gameOver = True
 
-        if self.gameOver:
-            if len(self.p1.team) == 0:
-                print(f"\n{self.p2.name} wins")
-            if len(self.p2.team) == 0:
-                print(f"\n{self.p1.name} wins")
-            if self.inclPygame:
-                pygame.quit()
 
     def updateUnitStatus(self, waitingUnits):
            for curUnit in waitingUnits:
@@ -185,13 +201,18 @@ class GameManager:
             if curUnit.currentHP <= 0:
                 curUnit.Alive = False
                 curUnit.dispose()
-
-    def getCurrentStateActions(self):
-        agent = self.allAgents[self.agentTurnIndex]
+    def getCurrentStateActionsMDP(self, state):
+        if self.gameOver:
+            return []
+        else:
+            flatActionSpace, _, _, _ = self.getCurrentStateActions(state)
+            return flatActionSpace
+    def getCurrentStateActions(self, state):
+        agent = state.allAgents[state.agentTurnIndex]
         waitingUnits = []
         allActions= {}
         noMovesOrAbilities = True
-        endTurn = {'name' : 'End Unit Turn'}
+        endTurn = Map({'name' : 'End Unit Turn'})
         flatActionSpace = []
         for curUnit in agent.team:
             if curUnit.Alive and curUnit.Avail:
@@ -201,13 +222,13 @@ class GameManager:
         for curUnit in waitingUnits:
             curDict = {}
             if curUnit.canMove:
-                curDict['moves'], flatValidDirections = self.board.getValidDirections(curUnit)
+                curDict['moves'], flatValidDirections = state.board.getValidDirections(curUnit)
                 flatActionSpace.extend(flatValidDirections)
             if curUnit.canAct:
-                validAbilities, _, flatAbilities = self.board.getValidAbilities(curUnit)
+                validAbilities, _, flatAbilities = state.board.getValidAbilities(curUnit)
                 flatActionSpace.extend(flatAbilities)
                 curDict['abilities'] = validAbilities
-            flatEndTurn = (curUnit, {'type' : 'castAbility', 'abilityDict' : endTurn})
+            flatEndTurn = (curUnit.ID, Map({'type' : 'castAbility', 'abilityDict' : endTurn}))
             flatActionSpace.extend([flatEndTurn])
 
             
@@ -219,8 +240,10 @@ class GameManager:
                 curDict['abilities'] = [endTurn]
             allActions[curUnit.ID] = curDict
             
-        return waitingUnits, allActions, flatActionSpace, noMovesOrAbilities
-    
+        return flatActionSpace, waitingUnits, allActions, noMovesOrAbilities
+
+
+
 
 team1 = [ [(0, 0), u.meleeUnit],
             [(0, 1), u.rangedUnit],]
@@ -228,7 +251,7 @@ team2 =  [  [(1,0), u.meleeUnit],
             [(1, 1), u.rangedUnit]]
 
 teamComp = [team1, team2]
-a = GameManager(ac.HumanAgent, ac.RandomAgent, teamComp, True)
+a = GameManager(ac.HumanAgent, ac.MCTSAgent, teamComp, True)
 a.start()
 # b = a.clone()
 # b.start()

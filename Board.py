@@ -16,6 +16,9 @@ import config
 import copy
 import eventClasses as e
 import noiseMaps as maps
+from immutables import Map
+import immutables  as im
+
 class UnitsMap:
     def __init__(self, maxY, maxX, board):
         self.board = board
@@ -385,10 +388,10 @@ class Board:
                 continue
 
             # If the position is valid, add it to the validDirections dictionary
-            validDirections[(direction, position)] = (takeFallDamage, addSurfaces)
-            flatValidDirections.append((unit, {"type" : "move", "directionDict" : {(direction, position) : (takeFallDamage, addSurfaces)}}))
-
-        return validDirections, flatValidDirections
+            validDirections[(direction, position)] = (takeFallDamage, None)
+            flatValidDirections.append((unit.ID, Map({"type" : "move", "directionDict" : Map({(direction, position) : (takeFallDamage, None)})})))
+            
+        return Map(validDirections), flatValidDirections
     
     def getValidAbilities(self, unit):
         unitAbilities = unit.unitAbilities
@@ -429,9 +432,10 @@ class Board:
                         for target in viableTargets:
                             abilityWithTarget = dict(ability)
                             abilityWithTarget["targetedUnit"] = target
-                            flatAbilities.append((unit, {"type" : "castAbility", "abilityDict" : abilityWithTarget}))
+                            abilityWithTarget = Map(abilityWithTarget)
+                            flatAbilities.append((unit.ID, Map({"type" : "castAbility", "abilityDict" : abilityWithTarget})))
                 else:
-                    flatAbilities.append((unit, {"type" : "castAbility", "abilityDict" : ability}))
+                    flatAbilities.append((unit.ID, Map({"type" : "castAbility", "abilityDict" : Map(ability)})))
 
         for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
             if ability not in validAbilities and ability.get("range") == 0:
@@ -558,7 +562,7 @@ class Board:
 
                 if self.bPygame:
                     entity.sprite.rect.topleft = entity.sprite.convertToRect((destination[1][0], destination[1][1]))
-                    entity.currentMovement -= 1
+                entity.currentMovement -= 1
 
                 if entity.currentMovement == 0:
                     entity.canMove = False
@@ -612,7 +616,7 @@ class Board:
                             rowToPrint += '{: ^3}'.format(".")    
                         else:
                             rowToPrint += '{: ^3}'.format(f"{map[y][x]}")
-                    print(rowToPrint)
+                    self.game.fprint(rowToPrint)
             else:
                 for y in range(len(map)):
                     rowToPrint = ''
@@ -621,7 +625,7 @@ class Board:
                             rowToPrint += '{: ^3}'.format(".")    
                         else:
                             rowToPrint += '{: ^3}'.format(f"{map[y][x].ID}")
-                    print(rowToPrint)
+                    self.game.fprint(rowToPrint)
             
             # im = plt.imshow(coloredZMap, cmap = cMap)
             # fig = plt.gcf()
