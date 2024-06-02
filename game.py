@@ -65,7 +65,7 @@ class GameManager:
             newUnit.game = self
             newUnit.board = cloned_game.board
             team1.append(newUnit)
-        cloned_game.p1 = ac.RandomAgent(self.p1.name, 0, team0, self, None)
+        cloned_game.p1 = ac.GreedyAgent(self.p1.name, 0, team0, self, None)
         cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, self, None)
         cloned_game.allAgents = [cloned_game.p1, cloned_game.p2]
         cloned_game.inclPygame = False
@@ -288,13 +288,16 @@ class GameManager:
         sorted_combined = sorted(combined, key=lambda x: x[0])
         sorted_combined = [tuple(item) for item in sorted_combined]
         return sorted_combined
-
+    def getOpponentTeam(self, agentIndex):
+        for agent in self.allAgents:
+            if agent.agentIndex is not agentIndex:
+                return agent.team
 
 
 team1 = [ [(0, 0), u.meleeUnit],
             [(0, 1), u.rangedUnit],]
-team2 =  [  [(1,0), u.meleeUnit],
-            [(1, 1), u.rangedUnit]]
+team2 =  [  [(6,6), u.meleeUnit],
+            [(7, 6), u.rangedUnit]]
 
 teamComp = [team1, team2]
 a = GameManager(ac.HumanAgent, ac.MCTSAgent, teamComp, True)

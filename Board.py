@@ -299,6 +299,27 @@ class Board:
         }
 
         return self.filterValidDirections(adjPositions)   
+    
+    def convDeltaToAdjDirections(self, delta):
+        dx, dy = delta
+        if dy == 1:
+            c1 = "N"
+        elif dy == 0:
+            c1 = ""
+        else:
+            c1 = "S"
+        
+        if dx == 1:
+            c2 = "E"
+        elif dx == 0:
+            c2 = ""
+        else:
+            c2 = "W"
+        
+        return c1 + c2
+        
+
+
 
     def getValidDirections(self, unit):
         validAdjPositions = self.getAdjDirections(unit)

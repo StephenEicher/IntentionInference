@@ -2,6 +2,7 @@ import abc
 import time
 import random
 import MCTS
+import numpy as np
 class Agent(metaclass=abc.ABCMeta):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):       
         self.name = name
@@ -25,14 +26,55 @@ class RandomAgent(Agent):
         unitID, actionDict = random.choice(flatActionSpace)  
         return (unitID, actionDict) 
 
+class GreedyAgent(Agent):
+    def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
+        attackActions = []
+        for unit, actionDict in flatActionSpace:
+            if actionDict["type"] == "castAbility":
+                if actionDict['abilityDict'].get("name") != "End Unit Turn":
+                    attackActions.append((unit, actionDict))
+                else:
+                    endTurnAction = (unit, actionDict)
+        if attackActions:
+            return random.choice(attackActions)
+        else:
+            centroid = np.zeros(2)
+            for unit in waitingUnits:
+                centroid = centroid + np.array(unit.position)
+            centroid = np.mean(centroid)
 
+            d = np.Inf
+            unitToMoveTo = None
+            for unit in game.getOpponentTeam(self.agentIndex):
+                qd = np.linalg.norm(np.array(unit.position) - centroid)
+                if qd < d:
+                    d = qd
+                    unitToMoveTo = unit
+                for unit in waitingUnits:
+                    if unit.ID in allActions.keys():    
+                        if allActions[unit.ID].get('moves', None) is not None:
+                            delta = np.array(unitToMoveTo.position) - np.array(unit.position)
+                            dirToMove = game.board.convDeltaToAdjDirections(delta)
+                            moves = list(allActions[unit.ID]['moves'].keys())
+                            key = None
+                            for dir in moves:
+                                if dir[0] == dirToMove:
+                                    key = dir
+                            if key is not None:
+                                actionDict = {'type': 'move', 'directionDict' : {key : allActions[unit.ID]['moves'][key]}}
+                                return (unit.ID, actionDict)
+                        
+        return random.choice(flatActionSpace)
+                        
+            
+           
 class MCTSAgent(Agent):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):
         super().__init__(name, agentIndex, team, game, pygame)
         self.featureInitValues()
 
     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
-        gamma = 0.9
+        gamma = 0.6
         problem = MCTS.MDP(gamma, None, game.getCurrentStateActionsMDP, None, self.getReward, self.getTransitionReward)
         d = 3 #Tree depth
         m = 100 #num simulations
@@ -47,10 +89,13 @@ class MCTSAgent(Agent):
         # return random.randint(0, 10)
         self.agentIndex
         selfTeam = self.team
+        nTeam = len(self.team)
+        nOpp = 0
         oppTeam = []
         for agent in state.allAgents:
             if agent.agentIndex is not self.agentIndex:
                 oppTeam = agent.team
+                nOpp = len(oppTeam)
                 break
         teamHP = 0
         for unit in self.team:
@@ -58,16 +103,36 @@ class MCTSAgent(Agent):
         oppHP = 0
         for unit in oppTeam:
             oppHP += unit.HP
-        
-        return -(oppHP/self.oppTeamInitHP) + (teamHP/self.teamInitHP)
+
+        features = []
+        features.append(-(oppHP/self.oppTeamInitHP))
+        features.append(teamHP/self.teamInitHP)
+        features.append(nTeam/self.nTeamInit)
+        features.append(-nOpp/self.nOppInit)
+        w = np.ones(len(features))
+        features = np.array(features)
+        return  np.sum(features*w)
         #Features - Team Total HP, Opponent team total HP, 
 
+# class GreedyAgent(MCTSAgent):
+#     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
+#         gamma = 0.6
+#         problem = MCTS.MDP(gamma, None, game.getCurrentStateActionsMDP, None, self.getReward, self.getTransitionReward)
+#         d = 3 #Tree depth
+#         m = 100 #num simulations
+#         c = 1 #exploration
+#         solver = MCTS.MonteCarloTreeSearch(problem, {}, {}, d, m, c, self.getValue)
+#         out = solver(game)
+#         return out
+    
 
     def featureInitValues(self):
         self.teamInitHP = 0
         for unit in self.team:
             self.teamInitHP += unit.HP
         self.oppTeamInitHP = self.teamInitHP
+        self.nTeamInit = len(self.team)
+        self.nOppInit = len(self.team)
 
 
     def getTransitionReward(self, state, action):
