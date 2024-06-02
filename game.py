@@ -29,7 +29,8 @@ class GameManager:
             maxX = 25
             maxY = 25
             self.gPygame = rp.Pygame(self, maxX, maxY)            
-            self.board = b.Board(maxX, maxY, self, self.gPygame)        
+            self.board = b.Board(maxX, maxY, self, self.gPygame)  
+            self.actionQueue = queue.Queue(maxsize = 1)          
         else:
             self.board = b.Board(25, 25, self, None)
         team0, team1 = self.board.initializeUnits(teamComp)
@@ -75,8 +76,54 @@ class GameManager:
             self.pygameThread.daemon = True
             self.pygameThread.start()
             time.sleep(0.1)
-        self.gameLoop()
-          
+        #self.gameLoop()
+        self.queryAgentForMove()
+    
+    def executeMove(self, action):
+        self.gameOverCheck()
+        if not self.gameOver:
+            changeTurnAgent = True
+            selectedUnit, actionDict = action
+            self.board.updateBoard(selectedUnit, actionDict)
+            print(f"\nCurrent unit: {selectedUnit.ID}")
+            print("===================================")
+            print(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
+            self.updateUnitStatus(self.allUnits)
+            totalAvail = 0
+            for unit in self.currentAgent.team:
+                if unit.Avail:
+                    changeTurnAgent = False
+                    break
+
+            if changeTurnAgent:
+                for unit in self.currentAgent.team: # Reset availability for next time that agent is up for turn
+                    if unit.Alive:
+                        unit.resetForEndTurn()
+                self.agentTurnIndex ^= 1    
+                self.currentAgent = self.allAgents[self.agentTurnIndex]       
+                self.gameOverCheck()
+            self.queryAgentForMove()
+
+    def queryAgentForMove(self):
+        self.gameOverCheck()
+        if not self.gameOver:
+            self.currentAgent = self.allAgents[self.agentTurnIndex] 
+            print(f"\n-------- {self.currentAgent.name}'s turn --------")
+            waitingUnits, allActions, flatActionSpace, noMovesOrAbilities = self.getCurrentStateActions()
+            self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace)
+
+    def gameOverCheck(self):
+        if len(self.p1.team) == 0 or len(self.p2.team) == 0:
+            self.gameOver = True
+        if self.gameOver:
+            if len(self.p1.team) == 0:
+                print(f"\n{self.p2.name} wins")
+            else:
+                print(f"\n{self.p1.name} wins")
+
+            if self.inclPygame:
+                pygame.quit()
+
     def gameLoop(self):
 
         if self.inclPygame:      
@@ -91,8 +138,8 @@ class GameManager:
             #print(f"Selected {selectedUnit.ID}")   
             currentTurnActive= True
             while currentTurnActive:
-                waitingUnits, allActions, flatActionSpace, noMovesOrAbilities = self.getAgentWaitingUnitsAndAbilities(self.currentAgent)
-                selectedUnit, actionDict = self.currentAgent.selectAction(waitingUnits, self.board, allActions, flatActionSpace)
+                waitingUnits, allActions, flatActionSpace, noMovesOrAbilities = self.getCurrentStateActions()
+                selectedUnit, actionDict = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace)
                 if actionDict is None:
                     break
                 self.board.updateBoard(selectedUnit, actionDict)
@@ -103,16 +150,11 @@ class GameManager:
 
                 self.updateUnitStatus(self.allUnits)
 
-                totalUnavail = 0
+                totalAvail = 0
                 for unit in self.currentAgent.team:
                     if unit.Avail:
-                        # if noMovesOrAbilities:
-                        #     unit.Avail = False
-                        # else:
-                        continue
-                    else:
-                        totalUnavail += 1
-                if len(self.currentAgent.team) == totalUnavail:
+                        totalAvail += 1
+                if totalAvail == 0:
                     currentTurnActive = False
             
             for unit in self.currentAgent.team: # Reset availability for next time that agent is up for turn
@@ -144,7 +186,8 @@ class GameManager:
                 curUnit.Alive = False
                 curUnit.dispose()
 
-    def getAgentWaitingUnitsAndAbilities(self, agent):
+    def getCurrentStateActions(self):
+        agent = self.allAgents[self.agentTurnIndex]
         waitingUnits = []
         allActions= {}
         noMovesOrAbilities = True
