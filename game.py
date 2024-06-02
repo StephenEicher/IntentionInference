@@ -84,7 +84,7 @@ class GameManager:
             self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
             self.pygameThread.daemon = True
             self.pygameThread.start()
-            time.sleep(0.1)
+            # time.sleep(0.5)
         self.gameLoop()
         #self.queryAgentForMove()
     
@@ -256,7 +256,39 @@ class GameManager:
                 if unitToDispose.sprite is not None:
                     self.board.bPygame.spriteGroup.remove(unit.sprite)
                 self.board.instUM.map[unit.position[0]][unit.position[1]] = None
-                print(f"{unit.ID} is disposed")
+                self.fprint(f"{unit.ID} is disposed")
+
+    def __hash__(self):
+        return hash(tuple(self.constructCompVars()))
+    
+    def __eq__(self, other):
+        if isinstance(other, GameManager):
+            return (self.constructCompVars() == other.constructCompVars())
+        return False       
+       
+    def constructCompVars(self):
+        IDList = []
+        posList = []
+        hpList = []
+        APList = []
+        movementList = []
+        aliveList = []
+        CMList = []
+        CAList = []
+        for unit in self.allUnits:
+            IDList.append(unit.ID)
+            posList.append(unit.position)
+            hpList.append(unit.HP)
+            APList.append(unit.currentActionPoints)
+            movementList.append(unit.currentMovement)
+            aliveList.append(unit.Alive)
+            CMList.append(unit.canMove)
+            CAList.append(unit.canAct)
+        combined = list(zip(IDList, posList, hpList, APList, APList, movementList, aliveList, CMList, CAList))
+        sorted_combined = sorted(combined, key=lambda x: x[0])
+        sorted_combined = [tuple(item) for item in sorted_combined]
+        return sorted_combined
+
 
 
 team1 = [ [(0, 0), u.meleeUnit],

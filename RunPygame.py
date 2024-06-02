@@ -170,23 +170,27 @@ class Pygame:
 
 
     def drawSelectUnit(self, unitRefs):
-        # self.buttonsToBlit = []  # Initialize the list to store buttons and text
-        self.unitButtonsToBlit = []
-        self.unitButtons = []
-        self.game.getInput = True
-        for i, unit in enumerate(unitRefs):
-            buttonSize = (self.screen.get_width() - self.boardBoundsPx[0], 75)
-            imageSize = (75, 75)
-            spacing = 10
-            buttonRect = pygame.Rect(0, 0, buttonSize[0], buttonSize[1])  # Adjust dimensions as needed
-            buttonRect.center = (self.rightPanelCenterX, (buttonSize[1] + spacing)* (len(unitRefs) - i))
-            imageRect = pygame.Rect(0, 0, imageSize[0], imageSize[1])
-            imageRect.center = (self.rightPanelCenterX, (buttonSize[1] + spacing)* (len(unitRefs) - i))
-            image = unit.sprite.image
-            image = pygame.transform.scale(image, imageSize)
-            self.unitButtonsToBlit.append((buttonRect, image, imageRect, (0, 0, 255)))
-            self.unitButtons.append((buttonRect, unit))
-
+        try:
+            # self.buttonsToBlit = []  # Initialize the list to store buttons and text
+            self.unitButtonsToBlit = []
+            self.unitButtons = []
+            self.game.getInput = True
+            for i, unit in enumerate(unitRefs):
+                buttonSize = (self.screen.get_width() - self.boardBoundsPx[0], 75)
+                imageSize = (75, 75)
+                spacing = 10
+                buttonRect = pygame.Rect(0, 0, buttonSize[0], buttonSize[1])  # Adjust dimensions as needed
+                buttonRect.center = (self.rightPanelCenterX, (buttonSize[1] + spacing)* (len(unitRefs) - i))
+                imageRect = pygame.Rect(0, 0, imageSize[0], imageSize[1])
+                imageRect.center = (self.rightPanelCenterX, (buttonSize[1] + spacing)* (len(unitRefs) - i))
+                image = unit.sprite.image
+                image = pygame.transform.scale(image, imageSize)
+                self.unitButtonsToBlit.append((buttonRect, image, imageRect, (0, 0, 255)))
+                self.unitButtons.append((buttonRect, unit))
+        except:
+            print('error in drawing select units...')
+            time.sleep(0.1)
+            self.drawSelectUnit(unitRefs)
 
     def drawButtons(self, validAbilities, unit):
         self.buttonsToBlit = []  # Initialize the list to store buttons and text

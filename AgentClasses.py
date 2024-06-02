@@ -27,6 +27,10 @@ class RandomAgent(Agent):
 
 
 class MCTSAgent(Agent):
+    def __init__(self, name, agentIndex, team, game = None, pygame = None):
+        super().__init__(name, agentIndex, team, game, pygame)
+        self.featureInitValues()
+
     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
         gamma = 0.9
         problem = MCTS.MDP(gamma, None, game.getCurrentStateActionsMDP, None, self.getReward, self.getTransitionReward)
@@ -38,16 +42,41 @@ class MCTSAgent(Agent):
         return out
     def getReward(self, state):
         return random.randint(0, 10)
-    def getValue(self, state):
-        return random.randint(0, 10)
-    
+    def getValue(self, state, debugStr=None):
+        #Get self team
+        # return random.randint(0, 10)
+        self.agentIndex
+        selfTeam = self.team
+        oppTeam = []
+        for agent in state.allAgents:
+            if agent.agentIndex is not self.agentIndex:
+                oppTeam = agent.team
+                break
+        teamHP = 0
+        for unit in self.team:
+            teamHP += unit.HP
+        oppHP = 0
+        for unit in oppTeam:
+            oppHP += unit.HP
+        
+        return -(oppHP/self.oppTeamInitHP) + (teamHP/self.teamInitHP)
+        #Features - Team Total HP, Opponent team total HP, 
+
+
+    def featureInitValues(self):
+        self.teamInitHP = 0
+        for unit in self.team:
+            self.teamInitHP += unit.HP
+        self.oppTeamInitHP = self.teamInitHP
+
+
     def getTransitionReward(self, state, action):
         #Transition reward function will only ever be for Manager 0:
-        Ucur = self.getValue(state)
+        Ucur = self.getValue(state, 'TR')
         sprime = state.clone()
         sprime.executeMove(action)
         sprime.progressToNextAgentTurn(self, False)
-        Uprime = self.getValue(sprime)
+        Uprime = self.getValue(sprime, 'TR')
         return (sprime, Uprime - Ucur)
     
 class HumanAgent(Agent):

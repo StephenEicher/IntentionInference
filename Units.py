@@ -73,7 +73,6 @@ class Unit:
 
         return cloned_unit
 
-
     def abilities(self):
         abilities = [
             Map({
