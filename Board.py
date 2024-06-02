@@ -431,7 +431,7 @@ class Board:
 
                         for target in viableTargets:
                             abilityWithTarget = dict(ability)
-                            abilityWithTarget["targetedUnit"] = target
+                            abilityWithTarget["targetedUnit"] = target.ID
                             abilityWithTarget = Map(abilityWithTarget)
                             flatAbilities.append((unit.ID, Map({"type" : "castAbility", "abilityDict" : abilityWithTarget})))
                 else:
@@ -578,8 +578,8 @@ class Board:
         targetType = ability["events"][0].get("target")
         if targetType == "targetunit":
             #castTarget = self.game.currentAgent.selectTarget(ability)
-            castTarget = ability["targetedUnit"]
-
+            castTargetID = ability["targetedUnit"]
+            castTarget = self.game.getUnitByID(castTargetID)
         for event in ability.get("events"):
             for k, v in event.items():
                 if v == "changeHP":

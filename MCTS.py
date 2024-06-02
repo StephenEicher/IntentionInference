@@ -128,6 +128,9 @@ class MonteCarloTreeSearch(OnlinePlanningMethod):
         if d <= 0:
             return self.U(s)
         A = self.P.A(s)
+        if not A:
+            print("End game state detected!")
+            return 0
         if (s, A[0]) not in self.N:
             for a in A:
                 self.N[(s, a)] = 0

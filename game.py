@@ -119,7 +119,7 @@ class GameManager:
             if queryAgentAfter:
                 self.queryAgentForMove()
         else:
-            while not self.sameAgent(self.currentAgent, agent):
+            while not self.sameAgent(self.currentAgent, agent) and not self.gameOver:
                 self.queryAgentForMove()
 
     def sameAgent(self, agent1, agent2):
@@ -131,7 +131,7 @@ class GameManager:
             self.currentAgent = self.allAgents[self.agentTurnIndex] 
             self.fprint(f"\n-------- {self.currentAgent.name}'s turn --------")
             flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.getCurrentStateActions(self)
-            action = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace)
+            action = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace, 'queryAgent')
             self.executeMove(action)
 
     def gameOverCheck(self):
@@ -160,7 +160,7 @@ class GameManager:
             currentTurnActive= True
             while currentTurnActive:
                 flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.getCurrentStateActions(self)
-                selectedUnitID, actionDict = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace)
+                selectedUnitID, actionDict = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace, 'gameLoop')
                 selectedUnit = self.getUnitByID(selectedUnitID)
                 if actionDict is None:
                     break
@@ -200,9 +200,9 @@ class GameManager:
                 curUnit.Avail = False
             if curUnit.currentHP <= 0:
                 curUnit.Alive = False
-                curUnit.dispose()
+                self.disposeUnit(curUnit)
     def getCurrentStateActionsMDP(self, state):
-        if self.gameOver:
+        if state.gameOver:
             return []
         else:
             flatActionSpace, _, _, _ = self.getCurrentStateActions(state)
@@ -242,7 +242,21 @@ class GameManager:
             
         return flatActionSpace, waitingUnits, allActions, noMovesOrAbilities
 
+    def disposeUnit(self, unitToDispose):
+        posessingAgent = self.allAgents[unitToDispose.agentIndex]
+        # for unit in self.game.allAgents
+        team = posessingAgent.team
+        for unit in self.allUnits:
+            if unit.ID == unitToDispose.ID:
+                self.allUnits.remove(unit)
 
+        for unit in team:
+            if unit.ID == unitToDispose.ID:
+                team.remove(unit)
+                if unitToDispose.sprite is not None:
+                    self.board.bPygame.spriteGroup.remove(unit.sprite)
+                self.board.instUM.map[unit.position[0]][unit.position[1]] = None
+                print(f"{unit.ID} is disposed")
 
 
 team1 = [ [(0, 0), u.meleeUnit],

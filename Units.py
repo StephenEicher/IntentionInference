@@ -24,7 +24,7 @@ class Unit:
         self.momentum = 0
         self.massConstant = 1
         self.jump = 0
-        self.actionPoints = 0
+        self.actionPoints = 2
         
         # Initialize current stats
         self.currentHP = self.HP
@@ -112,16 +112,21 @@ class Unit:
             self.canAct = True
             self.currentMovement = self.movement
             self.currentActionPoints = self.actionPoints
-    def dispose(self):
-        posessingAgent = self.game.allAgents[self.agentIndex]
-        team = posessingAgent.team
-        for unit in team:
-            if unit.ID == self.ID:
-                team.remove(unit)
-                if self.sprite is not None:
-                    self.board.bPygame.spriteGroup.remove(unit.sprite)
-                self.board.instUM.map[unit.position[0]][unit.position[1]] = None
-                print(f"{unit.ID} is disposed")
+    # def dispose(self):
+    #     posessingAgent = self.game.allAgents[self.agentIndex]
+    #     # for unit in self.game.allAgents
+    #     team = posessingAgent.team
+    #     for unit in self.game.allUnits:
+    #         if unit.ID == self.ID:
+    #             self.game.allUnits.remove(unit)
+
+    #     for unit in team:
+    #         if unit.ID == self.ID:
+    #             team.remove(unit)
+    #             if self.sprite is not None:
+    #                 self.board.bPygame.spriteGroup.remove(unit.sprite)
+    #             self.board.instUM.map[unit.position[0]][unit.position[1]] = None
+    #             print(f"{unit.ID} is disposed")
 
 class meleeUnit(Unit):
     def __init__(self, agentIndex, unitID, position, board, game):
@@ -133,7 +138,7 @@ class meleeUnit(Unit):
             image = sc.Sprites().spritesDictScaled['Haku']
         super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "M"
-        self.movement = 1
+        self.movement = 3
         self.currentMovement = self.movement
         self.HP = 2
         self.currentHP = self.HP
@@ -148,9 +153,9 @@ class rangedUnit(Unit):
             image = sc.Sprites().spritesDictScaled['Haku']
         super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "R"
-        self.movement = 1
+        self.movement = 2
         self.currentMovement = self.movement
-        self.HP = 100 
+        self.HP = 2 
         self.currentHP = self.HP
 
         rangedStrike = Map({

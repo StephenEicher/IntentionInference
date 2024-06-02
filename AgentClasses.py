@@ -16,8 +16,7 @@ class Agent(metaclass=abc.ABCMeta):
         pass
 
 class RandomAgent(Agent):
-    def selectAction(self, game, waitingUnits, allActions, flatActionSpace):
-        time.sleep(0.1)
+    def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
         if len(flatActionSpace) > 3:
             for unit, actionDict in flatActionSpace:
                 if actionDict["type"] == "castAbility":
@@ -28,10 +27,10 @@ class RandomAgent(Agent):
 
 
 class MCTSAgent(Agent):
-    def selectAction(self, game, waitingUnits, allActions, flatActionSpace):
+    def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
         gamma = 0.9
         problem = MCTS.MDP(gamma, None, game.getCurrentStateActionsMDP, None, self.getReward, self.getTransitionReward)
-        d = 4 #Tree depth
+        d = 3 #Tree depth
         m = 100 #num simulations
         c = 1 #exploration
         solver = MCTS.MonteCarloTreeSearch(problem, {}, {}, d, m, c, self.getValue)
@@ -63,7 +62,7 @@ class HumanAgent(Agent):
         self.selectedUnit = selectedUnit
         return selectedUnit
     
-    def selectAction(self, game, waitingUnits, allActions, flatActionSpace):
+    def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
         selectedUnit, actionDict = self.selectActionUI(game, waitingUnits, allActions, flatActionSpace)
         return (selectedUnit.ID, actionDict)
 

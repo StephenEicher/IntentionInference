@@ -87,7 +87,7 @@ class Pygame:
                                     pReturnDict = self.actionDictAwaitingTarget
                                     abilityDict = pReturnDict["abilityDict"]
                                     abilityDict = dict(abilityDict)
-                                    abilityDict["targetedUnit"] = targetedUnit
+                                    abilityDict["targetedUnit"] = targetedUnit.ID
                                     pReturnDict["abilityDict"] = abilityDict
                                     self.game.actionQueue.put(pReturnDict)
                                     self.hoveredSprite = None
