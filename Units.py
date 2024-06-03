@@ -83,6 +83,7 @@ class Unit:
                     Map({"type": "changeActionPoints", "target": "self", "value": -1}),
                 ),
                 "targetedUnit" : None,
+                "targetedUnitHP" : None,
             }),
             # Map({
             #     "name": "Shove",
@@ -133,7 +134,8 @@ class meleeUnit(Unit):
             image = sc.Sprites().spritesDictScaled['Moo_melee']
         else:
             # image = game.gPygame.spritesImageDict['Haku']
-            image = sc.Sprites().spritesDictScaled['Haku']
+            # image = sc.Sprites().spritesDictScaled['Haku']
+            image = sc.Sprites().spritesDictScaled['Moo_melee_grey']
         super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "M"
         self.movement = 3
@@ -148,7 +150,7 @@ class rangedUnit(Unit):
             image = sc.Sprites().spritesDictScaled['Moo_ranged']
         else:
             # image = game.gPygame.spritesImageDict['Haku']
-            image = sc.Sprites().spritesDictScaled['Haku']
+            image = sc.Sprites().spritesDictScaled['Moo_ranged_grey']
         super().__init__(agentIndex, unitID, position, board, game, image)
         self.unitSymbol = "R"
         self.movement = 2
@@ -165,6 +167,7 @@ class rangedUnit(Unit):
                     Map({"type": "changeActionPoints", "target": "self", "value": -1}),
                 ),
                 "targetedUnit" : None,
+                "targetedUnitHP" : None,
             })
         self.unitAbilities.append(rangedStrike)
 

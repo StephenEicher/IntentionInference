@@ -1,8 +1,10 @@
 import abc
 import time
 import random
-import MCTS
+import policies as p
 import numpy as np
+import MCTS as mcts
+# from mcts.searcher.mcts import MCTS
 class Agent(metaclass=abc.ABCMeta):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):       
         self.name = name
@@ -67,27 +69,45 @@ class RandomAgent(Agent):
 #         return random.choice(flatActionSpace)
                         
             
-           
-class MCTSAgent(Agent):
+class MCTSTestAgent(Agent):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):
         super().__init__(name, agentIndex, team, game, pygame)
         self.featureInitValues()
-        self.d = 3
+        self.d = 8
+        self.gamma = 0.7
 
     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
-        gamma = 0.6
-        if self.d > 0:
-            problem = MCTS.MDP(gamma, None, game.getCurrentStateActionsMDP, None, self.getReward, self.getTransitionReward)
-            d = self.d
-            m = 10 #num simulations
-            c = 1 #exploration
-            solver = MCTS.MonteCarloTreeSearch(problem, {}, {}, d, m, c, self.getValue)
-            out = solver(game.clone())
+        # searcher = MCTS(iteration_limit=20)
+        searcher = mcts.MCTS(iteration_limit=500, rollout_policy=lambda state: p.depth_limited_policy(state, max_depth=self.d))
+        if game.gameOver:
+            bestAction = random.choice(flatActionSpace)
         else:
-            out = random.choice(flatActionSpace)
-        return out
-    def getReward(self, state):
-        return random.randint(0, 10)
+            s = game.clone()
+            bestAction, reward = searcher.search(initial_state = s, need_details=True)
+            print(reward)
+            if bestAction is None:
+                return random.choice(flatActionSpace)
+        return bestAction
+# class MCTSAgent(Agent):
+#     def __init__(self, name, agentIndex, team, game = None, pygame = None):
+#         super().__init__(name, agentIndex, team, game, pygame)
+#         self.featureInitValues()
+#         self.d = 3
+
+#     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
+#         gamma = 0.6
+#         if self.d > 0:
+#             problem = MCTS.MDP(gamma, None, game.getCurrentStateActionsMDP, None, self.getReward, self.getTransitionReward)
+#             d = self.d
+#             m = 150 #num simulations
+#             c = 10 #exploration
+#             solver = MCTS.MonteCarloTreeSearch(problem, {}, {}, d, m, c, self.getValue)
+#             out = solver(game.clone())
+#         else:
+#             out = random.choice(flatActionSpace)
+#         return out
+#     def getReward(self, state):
+#         return random.randint(0, 10)
     def getValue(self, state, debugStr=None):
         #Get self team
         # return random.randint(0, 10)
@@ -113,7 +133,7 @@ class MCTSAgent(Agent):
         features.append(teamHP/self.teamInitHP)
         features.append(nTeam/self.nTeamInit)
         features.append(-nOpp/self.nOppInit)
-        w = np.ones(len(features))
+        w = np.array([1, 1, 5, 5])
         features = np.array(features)
         return  np.sum(features*w)
         #Features - Team Total HP, Opponent team total HP, 
@@ -128,26 +148,37 @@ class MCTSAgent(Agent):
         self.nOppInit = len(self.team)
 
 
-    def getTransitionReward(self, state, action):
-        #Transition reward function will only ever be for Manager 0:
-        Ucur = self.getValue(state, 'TR')
-        sprime = state.clone()
-        sprime.executeMove(action)
-        sprime.progressToNextAgentTurn(self, False)
-        Uprime = self.getValue(sprime, 'TR')
-        return (sprime, Uprime - Ucur)
+#     def getTransitionReward(self, state, action):
+#         #Transition reward function will only ever be for Manager 0:
+#         Ucur = self.getValue(state, 'TR')
+#         sprime = state.clone()
+#         sprime.executeMove(action)
+#         sprime.progressToNextAgentTurn(self, False)
+#         Uprime = self.getValue(sprime, 'TR')
+#         return (sprime, Uprime - Ucur)
 
-class GreedyAgent(MCTSAgent):
-    def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
-        gamma = 0.6
-        problem = MCTS.MDP(gamma, None, game.getCurrentStateActionsMDP, None, self.getReward, self.getTransitionReward)
-        d = 3 #Tree depth
-        m = 100 #num simulations
-        c = 1 #exploration
-        solver = MCTS.MonteCarloTreeSearch(problem, {}, {}, d, m, c, self.getValue)
-        out = solver(game)
-        return out
-        
+# class GreedyAgent(MCTSAgent):
+#     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
+#         s = game.clone()
+#         u = self.getValue(s, 'GreedyAgent')
+#         vals = u*np.ones(len(flatActionSpace))
+#         for idx, action in enumerate(flatActionSpace):
+#             sprime = game.clone()
+#             sprime.executeMove(action)
+#             vals[idx] = vals[idx] + self.getValue(sprime, 'GreedyAgent')
+#         maxIdx = np.argmax(vals)
+#         return flatActionSpace[maxIdx]
+# class GreedyAgent(MCTSAgent):
+#     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
+#         s = game.clone()
+#         u = self.getValue(s, 'GreedyAgent')
+#         vals = u*np.ones(len(flatActionSpace))
+#         for idx, action in enumerate(flatActionSpace):
+#             sprime = game.clone()
+#             sprime.executeMove(action)
+#             vals[idx] = vals[idx] + self.getValue(sprime, 'GreedyAgent')
+#         maxIdx = np.argmax(vals)
+#         return flatActionSpace[maxIdx]
 class HumanAgent(Agent):
     selectedUnit = None
     def selectUnit(self, waitingUnits):

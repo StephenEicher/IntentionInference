@@ -7,6 +7,8 @@ class Sprites:
             "Haku": pygame.image.load(r".\sprites\sprite_haku.PNG"),
             "Moo_ranged" : pygame.image.load(r".\sprites\ranged_unit.PNG"),
             "Moo_melee" : pygame.image.load(r".\sprites\melee_unit.PNG"),
+            "Moo_melee_grey" : pygame.image.load(r".\sprites\melee_unit_grey.PNG"),
+            "Moo_ranged_grey" : pygame.image.load(r".\sprites\ranged_unit_grey.PNG"),
             "Charlie" : pygame.image.load(r".\sprites\sprite_charlie.PNG"),
             "obstacle" : pygame.image.load(r".\sprites\sprite_obstacle.PNG")
         }
