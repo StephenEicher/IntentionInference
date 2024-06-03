@@ -2,9 +2,11 @@ import cvxpy as cp
 import numpy as np
 import random
 import warnings
-
+import time
 from abc import ABC, abstractmethod
 from typing import Any, Callable
+import multiprocessing
+import pickle
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -122,15 +124,21 @@ class MonteCarloTreeSearch(OnlinePlanningMethod):
             self.simulate(s, d=self.d)
             A = self.P.A(s)
         return A[np.argmax([self.Q[(s, a)] for a in A])]
-
+    # def __call__(self, s):
+        
+    #     n_workers = 10
+    #     with multiprocessing.Pool(processes=np.min((self.m, n_workers))) as pool:
+    #         pool.starmap(self.simulate, [(s, self.d) for _ in range(self.m)])
+    #         A = self.P.A(s)
+    #     return A[np.argmax([self.Q.get((s, a), 0) for a in A])]
+    
     def simulate(self, s: Any, d: int):
-        #print("Simulating!")
         if d <= 0:
             return self.U(s)
         A = self.P.A(s)
         if not A:
             print("End game state detected!")
-            return 0
+            return self.U(s)
         if (s, A[0]) not in self.N:
             for a in A:
                 self.N[(s, a)] = 0

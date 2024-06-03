@@ -56,17 +56,23 @@ class GameManager:
         team1 = []
         for unit in self.p1.team:
             newUnit = copy.deepcopy(unit)
-            newUnit.game = self
+            newUnit.game = cloned_game
             newUnit.board = cloned_game.board
             team0.append(newUnit)
         
         for unit in self.p2.team:
             newUnit = copy.deepcopy(unit)
-            newUnit.game = self
+            newUnit.game = cloned_game
             newUnit.board = cloned_game.board
             team1.append(newUnit)
-        cloned_game.p1 = ac.GreedyAgent(self.p1.name, 0, team0, self, None)
-        cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, self, None)
+        
+        # cloned_game.p1 = ac.RandomAgent(self.p1.name, 0, team0, self, None)
+        # cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, self, None)
+        cloned_game.p1 = ac.MCTSAgent(self.p1.name, 0, team0, cloned_game, None)
+        cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, cloned_game, None)
+        if isinstance(self.p2, ac.MCTSAgent):
+            cloned_game.p1.d =  self.p2.d - 1
+            cloned_game.p2.d =  self.p2.d - 1
         cloned_game.allAgents = [cloned_game.p1, cloned_game.p2]
         cloned_game.inclPygame = False
         cloned_game.gameOver = self.gameOver
@@ -293,14 +299,14 @@ class GameManager:
             if agent.agentIndex is not agentIndex:
                 return agent.team
 
+if __name__ == '__main__':
+    team1 = [ [(0, 0), u.meleeUnit],
+                [(0, 1), u.rangedUnit],]
+    team2 =  [  [(6,6), u.meleeUnit],
+                [(7, 6), u.rangedUnit]]
 
-team1 = [ [(0, 0), u.meleeUnit],
-            [(0, 1), u.rangedUnit],]
-team2 =  [  [(6,6), u.meleeUnit],
-            [(7, 6), u.rangedUnit]]
-
-teamComp = [team1, team2]
-a = GameManager(ac.HumanAgent, ac.MCTSAgent, teamComp, True)
-a.start()
-# b = a.clone()
-# b.start()
+    teamComp = [team1, team2]
+    a = GameManager(ac.HumanAgent, ac.MCTSAgent, teamComp, True)
+    a.start()
+    # b = a.clone()
+    # b.start()

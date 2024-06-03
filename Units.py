@@ -67,7 +67,6 @@ class Unit:
         cloned_unit.currentJump = copy.deepcopy(self.currentJump, memo)
         cloned_unit.currentActionPoints = copy.deepcopy(self.currentActionPoints, memo)
         cloned_unit.unitAbilities = copy.deepcopy(self.unitAbilities, memo)
-
         # Do not copy the sprite
         cloned_unit.sprite = None
 
