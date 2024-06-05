@@ -218,6 +218,7 @@ class Board:
     def initializeObjectDict(self):
         self.gameObjectDict= god.GameObjectDict(self)
         self.gameObjectDict.addListeners(self.dispatcher)
+        return
         dummyGOs = self.createDummyGameObjects()
         for go in dummyGOs:
             self.gameObjectDict.insert(go)

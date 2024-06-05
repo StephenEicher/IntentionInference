@@ -99,8 +99,6 @@ class GameManager(BaseState):
     def take_action(self, action:any):
             newState = self.clone()
             newState.executeMove(action)
-            if newState.gameOver:
-                print('End state found')
             return newState
     
     def is_terminal(self):
@@ -120,22 +118,26 @@ class GameManager(BaseState):
         else:
             return -1
     def get_action_reward(self, action):
+        weights = self.p2.weights
         unitID, actionDict = action
         if unitID > 2:
             if actionDict.get('type', None) == 'castAbility':
-                return 3
-        return -1
+                return 3 * weights['action']
+        return weights['no_action'] 
     def get_reward(self):
         # value = self.p2.getValue(self)
         # return value * 10 - self.nTurns
+        weights = self.p2.weights
         self.gameOverCheck()
+        gameOverReward = 100 * weights['end_game']
+        nTurnReward = self.nTurns * weights['n_turns']
         if self.gameOver:
             if self.winner == 0:
-                return -100 - self.nTurns
+                return -gameOverReward + nTurnReward
             else:
-                return 100 - self.nTurns
+                return gameOverReward + nTurnReward
         else:
-            return 0 - self.nTurns
+            return nTurnReward
 
     def executeMove(self, action):
         self.gameOverCheck()
@@ -351,11 +353,11 @@ class GameManager(BaseState):
 if __name__ == '__main__':
     team1 = [ [(0, 0), u.meleeUnit],
                 [(0, 1), u.rangedUnit],]
-    team2 =  [  [(2,3), u.meleeUnit],
-                [(3, 3), u.rangedUnit]]
+    team2 =  [  [(6,6), u.meleeUnit],
+                [(6, 7), u.rangedUnit]]
 
     teamComp = [team1, team2]
-    a = GameManager(ac.HumanAgent, ac.MCTSTestAgent, teamComp, True)
+    a = GameManager(ac.HumanAgent, ac.HumanAgent, teamComp, True)
     a.start()
     # b = a.clone()
     # b.start()

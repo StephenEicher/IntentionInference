@@ -5,6 +5,8 @@ import policies as p
 import numpy as np
 import MCTS as mcts
 # from mcts.searcher.mcts import MCTS
+import pickle
+from immutables import Map
 class Agent(metaclass=abc.ABCMeta):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):       
         self.name = name
@@ -73,21 +75,40 @@ class MCTSTestAgent(Agent):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):
         super().__init__(name, agentIndex, team, game, pygame)
         self.featureInitValues()
-        self.d = 8
+        self.d = 20
         self.gamma = 0.7
+        self.assignWeights([1, -1, 1, -1])
+        self.time_limit = 2000
+    
 
     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
         # searcher = MCTS(iteration_limit=20)
-        searcher = mcts.MCTS(iteration_limit=500, rollout_policy=lambda state: p.depth_limited_policy(state, max_depth=self.d))
+
+        searcher = mcts.MCTS(time_limit=self.time_limit, rollout_policy=lambda state: p.depth_limited_policy(state, max_depth=self.d))
         if game.gameOver:
             bestAction = random.choice(flatActionSpace)
         else:
             s = game.clone()
+            turn = s.nTurns
+            with open(f'./GameHistories/1/Pre/turn_{turn}.pkl', 'wb') as file:
+                pickle.dump(s, file)
             bestAction, reward = searcher.search(initial_state = s, need_details=True)
-            print(reward)
+            # print(reward)
             if bestAction is None:
                 return random.choice(flatActionSpace)
+            else:
+                s.executeMove(bestAction)
+                with open(f'./GameHistories/1/Post/turn_{turn}.pkl', 'wb') as file:
+                    pickle.dump(s, file)
         return bestAction
+    def assignWeights(self, x):
+        weights = {}
+        weights['action'] = x[0]
+        weights['no_action'] = x[1]
+        weights['end_game'] = x[2]
+        weights['n_turns'] = x[3]
+        self.weights = Map(weights)
+
 # class MCTSAgent(Agent):
 #     def __init__(self, name, agentIndex, team, game = None, pygame = None):
 #         super().__init__(name, agentIndex, team, game, pygame)
