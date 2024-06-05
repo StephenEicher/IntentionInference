@@ -13,8 +13,10 @@ import Board as b
 import GameObjects as go
 import SpriteClasses as sc
 from immutables import Map
+from mcts.base.base import BaseState, BaseAction
 
-class GameManager:
+
+class GameManager(BaseState):
     def __init__(self, p1Class, p2Class, teamComp, inclPygame = True):
         self.verbose = True
         self.agentTurnIndex = 0
@@ -28,13 +30,13 @@ class GameManager:
         if self.inclPygame:
             self.fprint('Including pygame...')
             import RunPygame as rp
-            maxX = 25
-            maxY = 25
+            maxX = 8
+            maxY = 8
             self.gPygame = rp.Pygame(self, maxX, maxY)            
             self.board = b.Board(maxX, maxY, self, self.gPygame)  
             self.actionQueue = queue.Queue(maxsize = 1)          
         else:
-            self.board = b.Board(25, 25, self, None)
+            self.board = b.Board(8, 8, self, None)
         team0, team1 = self.board.initializeUnits(teamComp)
         self.allUnits = []
         self.allUnits.extend(team1)
@@ -44,6 +46,8 @@ class GameManager:
         self.allAgents = []
         self.allAgents.extend([self.p1, self.p2])
         self.currentAgent = self.allAgents[self.agentTurnIndex]
+        self.nTurns = 0
+        self.winner = None
     def fprint(self, string):
         if self.verbose:
             print(string)
@@ -68,11 +72,8 @@ class GameManager:
         
         # cloned_game.p1 = ac.RandomAgent(self.p1.name, 0, team0, self, None)
         # cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, self, None)
-        cloned_game.p1 = ac.MCTSAgent(self.p1.name, 0, team0, cloned_game, None)
+        cloned_game.p1 = self.p1Class(self.p1.name, 0, team0, cloned_game, None)
         cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, cloned_game, None)
-        if isinstance(self.p2, ac.MCTSAgent):
-            cloned_game.p1.d =  self.p2.d - 1
-            cloned_game.p2.d =  self.p2.d - 1
         cloned_game.allAgents = [cloned_game.p1, cloned_game.p2]
         cloned_game.inclPygame = False
         cloned_game.gameOver = self.gameOver
@@ -81,7 +82,9 @@ class GameManager:
         cloned_game.allUnits.extend(team1)
         cloned_game.p1Class = self.p1Class
         cloned_game.p2Class = self.p2Class
+        cloned_game.winner = self.winner
         cloned_game.verbose = False
+        cloned_game.nTurns = self.nTurns
         
         return cloned_game
 
@@ -93,10 +96,53 @@ class GameManager:
             # time.sleep(0.5)
         self.gameLoop()
         #self.queryAgentForMove()
+    def take_action(self, action:any):
+            newState = self.clone()
+            newState.executeMove(action)
+            return newState
     
+    def is_terminal(self):
+        self.gameOverCheck()
+        return self.gameOver
+
+    def get_possible_actions(self):
+        actions = self.getCurrentStateActionsMDP(self)
+        random.shuffle(actions)
+        # if len(actions) > 4:
+        #     actions = actions[:4]
+        return actions
+    
+    def get_current_player(self):
+        if self.agentTurnIndex == 1:
+            return 1
+        else:
+            return -1
+    def get_action_reward(self, action):
+        weights = self.p2.weights
+        unitID, actionDict = action
+        if unitID > 2:
+            if actionDict.get('type', None) == 'castAbility':
+                return 3 * weights['action']
+        return weights['no_action'] 
+    def get_reward(self):
+        # value = self.p2.getValue(self)
+        # return value * 10 - self.nTurns
+        weights = self.p2.weights
+        self.gameOverCheck()
+        gameOverReward = 100 * weights['end_game']
+        nTurnReward = self.nTurns * weights['n_turns']
+        if self.gameOver:
+            if self.winner == 0:
+                return -gameOverReward + nTurnReward
+            else:
+                return gameOverReward + nTurnReward
+        else:
+            return nTurnReward
+
     def executeMove(self, action):
         self.gameOverCheck()
         if not self.gameOver:
+            self.nTurns = self.nTurns + 1
             changeTurnAgent = True
             selectedUnitID, actionDict = action
             selectedUnit = self.getUnitByID(selectedUnitID)
@@ -110,7 +156,7 @@ class GameManager:
                 if unit.Avail:
                     changeTurnAgent = False
                     break
-
+            self.gameOverCheck()
             if changeTurnAgent:
                 for unit in self.currentAgent.team: # Reset availability for next time that agent is up for turn
                     if unit.Alive:
@@ -146,9 +192,10 @@ class GameManager:
         if self.gameOver:
             if len(self.p1.team) == 0:
                 self.fprint(f"\n{self.p2.name} wins")
+                self.winner = 1
             else:
                 self.fprint(f"\n{self.p1.name} wins")
-
+                self.winner = 0
             if self.inclPygame:
                 pygame.quit()
     def getUnitByID(self, ID):
@@ -166,11 +213,15 @@ class GameManager:
             currentTurnActive= True
             while currentTurnActive:
                 flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.getCurrentStateActions(self)
+                tStart = time.time()
                 selectedUnitID, actionDict = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace, 'gameLoop')
+                print('Time to make move: ')
+                print(time.time() - tStart)
                 selectedUnit = self.getUnitByID(selectedUnitID)
                 if actionDict is None:
                     break
                 self.board.updateBoard(selectedUnit, actionDict)
+                self.nTurns = self.nTurns + 1
                 self.fprint(f"\nCurrent unit: {selectedUnit.ID}")
                 self.fprint("===================================")
                 self.fprint(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
@@ -303,10 +354,10 @@ if __name__ == '__main__':
     team1 = [ [(0, 0), u.meleeUnit],
                 [(0, 1), u.rangedUnit],]
     team2 =  [  [(6,6), u.meleeUnit],
-                [(7, 6), u.rangedUnit]]
+                [(6, 7), u.rangedUnit]]
 
     teamComp = [team1, team2]
-    a = GameManager(ac.HumanAgent, ac.MCTSAgent, teamComp, True)
+    a = GameManager(ac.HumanAgent, ac.HumanAgent, teamComp, True)
     a.start()
     # b = a.clone()
     # b.start()

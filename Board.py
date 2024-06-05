@@ -218,6 +218,7 @@ class Board:
     def initializeObjectDict(self):
         self.gameObjectDict= god.GameObjectDict(self)
         self.gameObjectDict.addListeners(self.dispatcher)
+        return
         dummyGOs = self.createDummyGameObjects()
         for go in dummyGOs:
             self.gameObjectDict.insert(go)
@@ -288,13 +289,13 @@ class Board:
     def getAdjDirections(self, unit):
         unitY, unitX = unit.position
         adjPositions = { 
-            "NW": (unitY - 1, unitX - 1),
+            # "NW": (unitY - 1, unitX - 1),
             "N": (unitY - 1, unitX),
-            "NE": (unitY - 1, unitX + 1),
+            # "NE": (unitY - 1, unitX + 1),
             "E": (unitY, unitX + 1),
-            "SE": (unitY + 1, unitX + 1),
+            # "SE": (unitY + 1, unitX + 1),
             "S": (unitY + 1, unitX),
-            "SW": (unitY + 1, unitX - 1),
+            # "SW": (unitY + 1, unitX - 1),
             "W": (unitY, unitX - 1)
         }
 
@@ -453,6 +454,7 @@ class Board:
                         for target in viableTargets:
                             abilityWithTarget = dict(ability)
                             abilityWithTarget["targetedUnit"] = target.ID
+                            abilityWithTarget["targetedUnitHP"] = target.HP
                             abilityWithTarget = Map(abilityWithTarget)
                             flatAbilities.append((unit.ID, Map({"type" : "castAbility", "abilityDict" : abilityWithTarget})))
                 else:

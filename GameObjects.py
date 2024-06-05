@@ -68,7 +68,7 @@ class InvokeAbilty(GameObject):
         }    
         if self.target is not None:
             for unit in self.target(unitInvoking, game):
-                ability["targetedUnit"] = unit
+                ability["targetedUnit"] = unit.ID
                 game.board.cast(unit, ability)     
         else:
             game.board.cast(unit, ability)

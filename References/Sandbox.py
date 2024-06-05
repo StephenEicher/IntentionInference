@@ -1,91 +1,84 @@
-# Tester to play with pygame
-import threading
-import pygame
-import time
-import queue
-from typing import Any
+from __future__ import division
+
+import operator
+from copy import deepcopy
+from functools import reduce
+
+from mcts.base.base import BaseState, BaseAction
+from mcts.searcher.mcts import MCTS
 
 
+class NaughtsAndCrossesState(BaseState):
+    def __init__(self):
+        self.board = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        self.currentPlayer = 1
 
-class pyGameClass:
-    getInput = False
-    def __init__(self, displaySize, gcRef):
-        self.displaySize = displaySize
-        self.gcRef = gcRef
+    def get_current_player(self):
+        return self.currentPlayer
 
-    def startLoop(self):
-        pygame.init()
-        screen = pygame.display.set_mode(self.displaySize)
-        run = True
-        while run:
-            
-            for event in pygame.event.get():
-                print(event)
-                if event.type == pygame.QUIT:
-                    run = False
-                
-                # if event.type == pygame.KEYDOWN:
-                #     if self.getInput:
-                #         #This is where we do all of the parsing to actually extract what the move is in terms that are meaningful to the game class
-                #         self.gcRef.moveQueue.put(event)
+    def get_possible_actions(self):
+        possibleActions = []
+        for i in range(len(self.board)):
+            for j in range(len(self.board[i])):
+                if self.board[i][j] == 0:
+                    possibleActions.append(Action(player=self.currentPlayer, x=i, y=j))
+        return possibleActions
 
+    def take_action(self, action):
+        newState = deepcopy(self)
+        newState.board[action.x][action.y] = action.player
+        newState.currentPlayer = self.currentPlayer * -1
+        return newState
 
-        pygame.quit()
-        # self.gcRef.quitLoop()
+    def is_terminal(self):
+        for row in self.board:
+            if abs(sum(row)) == 3:
+                return True
+        for column in list(map(list, zip(*self.board))):
+            if abs(sum(column)) == 3:
+                return True
+        for diagonal in [[self.board[i][i] for i in range(len(self.board))],
+                         [self.board[i][len(self.board) - i - 1] for i in range(len(self.board))]]:
+            if abs(sum(diagonal)) == 3:
+                return True
+        return reduce(operator.mul, sum(self.board, []), 1) != 0
 
-
-class GameClass: 
-    moveQueue = queue.Queue(maxsize=1)
-    quit = False
-    def __init__(self, displaySize):
-        self.pg = pyGameClass(displaySize, self)
-        self.player = humanPlayer(self.pg)
-
-    def startup(self):
-        print('Starting up Pygame class!')
-        #Create a separate thread on which the pygame loop will run
-        pyGameThread = threading.Thread(target=self.pg.startLoop)
-        pyGameThread.daemon = True
-        pyGameThread.start()
-        self.runGameLoop()
-
-    def runGameLoop(self):
-        run = True
-        while run:
-            print('.')
-
-
-            ## If we have a human player, need to communicate move back through queue
-            self.player.getMove()
-
-            if not self.moveQueue.empty():
-                self.displayMoveQueue()
-            
-
-            # If the player is not a human, just straight assign move as output of function
-            #selectedMove = getMove()
-
-            if self.quit:
-                run = False
-                print('Quitting!')
-            
-    def displayMoveQueue(self):
-        if not self.moveQueue.empty():
-            print(self.moveQueue.get())
-            self.moveQueue.empty()
-
-    def quitLoop(self):
-        self.quit = True
-
-class humanPlayer:
-    def __init__(self, pyGameRef):
-        print("Creating Player Agent")
-        self.pg = pyGameRef
-    def getMove(self):
-        self.pg.getInput = True
-    
+    def get_reward(self):
+        for row in self.board:
+            if abs(sum(row)) == 3:
+                return sum(row) / 3
+        for column in list(map(list, zip(*self.board))):
+            if abs(sum(column)) == 3:
+                return sum(column) / 3
+        for diagonal in [[self.board[i][i] for i in range(len(self.board))],
+                         [self.board[i][len(self.board) - i - 1] for i in range(len(self.board))]]:
+            if abs(sum(diagonal)) == 3:
+                return sum(diagonal) / 3
+        return 0
 
 
-gc = GameClass((200, 200))
-gc.startup()
+class Action(BaseAction):
+    def __init__(self, player, x, y):
+        self.player = player
+        self.x = x
+        self.y = y
 
+    def __str__(self):
+        return str((self.x, self.y))
+
+    def __repr__(self):
+        return str(self)
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.x == other.x and self.y == other.y and self.player == other.player
+
+    def __hash__(self):
+        return hash((self.x, self.y, self.player))
+
+
+if __name__ == "__main__":
+    initial_state = NaughtsAndCrossesState()
+    searcher = MCTS(time_limit=1000)
+    action = searcher.search(initial_state=initial_state)
+
+    print(action)
