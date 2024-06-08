@@ -289,13 +289,13 @@ class Board:
     def getAdjDirections(self, unit):
         unitY, unitX = unit.position
         adjPositions = { 
-            # "NW": (unitY - 1, unitX - 1),
+            "NW": (unitY - 1, unitX - 1),
             "N": (unitY - 1, unitX),
-            # "NE": (unitY - 1, unitX + 1),
+            "NE": (unitY - 1, unitX + 1),
             "E": (unitY, unitX + 1),
-            # "SE": (unitY + 1, unitX + 1),
+            "SE": (unitY + 1, unitX + 1),
             "S": (unitY + 1, unitX),
-            # "SW": (unitY + 1, unitX - 1),
+            "SW": (unitY + 1, unitX - 1),
             "W": (unitY, unitX - 1)
         }
 

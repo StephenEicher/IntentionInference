@@ -99,6 +99,8 @@ class GameManager(BaseState):
     def take_action(self, action:any):
             newState = self.clone()
             newState.executeMove(action)
+            if self.agentTurnIndex == 0:
+                print('Human Turn')
             return newState
     
     def is_terminal(self):
@@ -120,9 +122,8 @@ class GameManager(BaseState):
     def get_action_reward(self, action):
         weights = self.p2.weights
         unitID, actionDict = action
-        if unitID > 2:
-            if actionDict.get('type', None) == 'castAbility':
-                return 3 * weights['action']
+        if actionDict.get('type', None) == 'castAbility':
+            return 3 * weights['action']
         return weights['no_action'] 
     def get_reward(self):
         # value = self.p2.getValue(self)
@@ -357,7 +358,7 @@ if __name__ == '__main__':
                 [(6, 7), u.rangedUnit]]
 
     teamComp = [team1, team2]
-    a = GameManager(ac.HumanAgent, ac.HumanAgent, teamComp, True)
+    a = GameManager(ac.HumanAgent, ac.MCTSTestAgent, teamComp, True)
     a.start()
     # b = a.clone()
     # b.start()

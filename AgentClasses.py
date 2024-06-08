@@ -75,10 +75,9 @@ class MCTSTestAgent(Agent):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):
         super().__init__(name, agentIndex, team, game, pygame)
         self.featureInitValues()
-        self.d = 20
-        self.gamma = 0.7
+        self.d = 10
         self.assignWeights([1, -1, 1, -1])
-        self.time_limit = 2000
+        self.time_limit = 6000
     
 
     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
