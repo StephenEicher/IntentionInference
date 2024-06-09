@@ -20,6 +20,10 @@ class GameObjectTree:
         dispatcher.addListener(e.eMove, self.GOThandleEvent)
         dispatcher.addListener(e.eDisplace, self.GOThandleEvent, 2)
         
+    def fprint(self, string):
+        if self.board.game.verbose:
+            print(string)
+
     def insert(self, gameObject):
         gameObjectTreeY = self.board.maxY - 1 - gameObject.position[0]
         stackPosition = (gameObject.position[1], gameObjectTreeY)
@@ -32,7 +36,7 @@ class GameObjectTree:
         if self.children:
             for child in self.children:
                 if child.isWithinBounds(stackPosition) and child.insert(gameObject):
-                    print(f"Inserted into child at ({stackPosition[0]},{stackPosition[1]})")
+                    self.fprint(f"Inserted into child at ({stackPosition[0]},{stackPosition[1]})")
                     return True
             return False  # If insertion into all children fails, return False
 
@@ -44,7 +48,7 @@ class GameObjectTree:
         stack = self.stacks.get(stackPosition)
         if stack is not None and len(stack) < self.defaultStackHeight:
             stack.append(gameObject)
-            print(f'Inserting GameObject into stack at ({stackPosition[0]},{stackPosition[1]}) (X,Y) at depth {self.depth}')
+            self.fprint(f'Inserting GameObject into stack at ({stackPosition[0]},{stackPosition[1]}) (X,Y) at depth {self.depth}')
             return True
 
         # If the stack is full and the node is a leaf, raise an error
@@ -56,13 +60,13 @@ class GameObjectTree:
             self.subdivide()
             for child in self.children:
                 if child.insert(gameObject):
-                    print(f"Inserted into child at ({stackPosition[0]},{stackPosition[1]})")
+                    self.fprint(f"Inserted into child at ({stackPosition[0]},{stackPosition[1]})")
                     return True
 
         return False
 
     def subdivide(self):
-        print(f"now subdividing {self.depth}")
+        self.fprint(f"now subdividing {self.depth}")
         midX = (self.minPoint[0] + self.maxPoint[0]) / 2
         midY = (self.minPoint[1] + self.maxPoint[1]) / 2
 
@@ -80,7 +84,7 @@ class GameObjectTree:
                 inserted = False
                 for child in self.children:
                     if child.insert(existingGameObject):
-                        print(f"existingGameObject inserted successfully at ({stackPosition[0]},{stackPosition[1]}) at depth {child.depth}")
+                        self.fprint(f"existingGameObject inserted successfully at ({stackPosition[0]},{stackPosition[1]}) at depth {child.depth}")
                         inserted = True
                         break
                 if not inserted:
@@ -245,7 +249,7 @@ class GameObjectTree:
         if self.children:
             for child in self.children:
                 child.propagateEvent(event)
-                print("propagate!\n")
+                self.fprint("propagate!\n")
 
 
     def processEvent(self, event):           

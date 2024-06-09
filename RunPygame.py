@@ -63,7 +63,7 @@ class Pygame:
             mousePos = pygame.mouse.get_pos()
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    print("Quit event detected")
+                    self.game.fprint("Quit event detected")
                     run = False
                 if self.getInput:
                     if self.getTarget:
@@ -95,7 +95,7 @@ class Pygame:
                     else:
                         mouseTrackReturn = self.trackMouseAndDisplayMove(mousePos)
                         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                            print("click rcvd")
+                            self.game.fprint("click rcvd")
                             mouseClickDict = self.handleMouseInput(mousePos)
                             if mouseClickDict is None and mouseTrackReturn is not None:
                                 pReturnDict = mouseTrackReturn
@@ -120,7 +120,7 @@ class Pygame:
         pygame.display.quit()
         pygame.quit()
         self.game.gameOver = True
-        self.game.actionQueue.put({}) #This is just to get past the waiting for input portion in the game loop
+        self.game.actionQueue.put(None) #This is just to get past the waiting for input portion in the game loop
 
     def trackMouseAndDisplayMove(self, mousePos):
         self.prevRects = []
@@ -188,7 +188,7 @@ class Pygame:
                 self.unitButtonsToBlit.append((buttonRect, image, imageRect, (0, 0, 255)))
                 self.unitButtons.append((buttonRect, unit))
         except:
-            print('error in drawing select units...')
+            self.game.fprint('error in drawing select units...')
             time.sleep(0.1)
             self.drawSelectUnit(unitRefs)
 
@@ -290,7 +290,7 @@ class Pygame:
                     pygame.draw.rect(self.screen, "green", (barXpx, yPx, ratio*(increment - image.get_size()[0]), image.get_size()[1]))
 
         except:
-            print('Warning! Unknown error in sprite group draw')
+            self.game.fprint('Warning! Unknown error in sprite group draw')
         if self.hoveredSprite is not None:
             self.unitsLayer.blit(self.uiElementsScaled["select_hover"], self.hoveredSprite.rect)
 

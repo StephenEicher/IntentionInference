@@ -14,11 +14,12 @@ import GameObjects as go
 import SpriteClasses as sc
 from immutables import Map
 from mcts.base.base import BaseState, BaseAction
-
+import sys
 
 class GameManager(BaseState):
-    def __init__(self, p1Class, p2Class, teamComp, inclPygame = True):
-        self.verbose = True
+    def __init__(self, p1Class, p2Class, teamComp, inclPygame = True, seed=random.randint(0, 999999), verbose=True):
+        random.seed(seed)
+        self.verbose = verbose
         self.agentTurnIndex = 0
         self.gameOver = False
         self.inclPygame = inclPygame
@@ -197,8 +198,16 @@ class GameManager(BaseState):
             else:
                 self.fprint(f"\n{self.p1.name} wins")
                 self.winner = 0
-            if self.inclPygame:
-                pygame.quit()
+            self.quit()
+
+    def quit(self):
+        # if self.inclPygame:
+        #     pygame.display.quit()
+        #     pygame.quit()
+        self.gameOver = True
+        if self.winner is not None:
+            return self.winner
+
     def getUnitByID(self, ID):
         for unit in self.allUnits:
             if unit.ID == ID:

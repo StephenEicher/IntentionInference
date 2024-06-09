@@ -219,13 +219,13 @@ class Board:
         self.gameObjectDict= god.GameObjectDict(self)
         self.gameObjectDict.addListeners(self.dispatcher)
         return
-        dummyGOs = self.createDummyGameObjects()
-        for go in dummyGOs:
-            self.gameObjectDict.insert(go)
-        if self.bPygame:
-            for go in self.gameObjectDict.getAllGOs():
-                pass
-                self.bPygame.spriteGroup.add(go.sprite)
+        # dummyGOs = self.createDummyGameObjects()
+        # for go in dummyGOs:
+        #     self.gameObjectDict.insert(go)
+        # if self.bPygame:
+        #     for go in self.gameObjectDict.getAllGOs():
+        #         pass
+        #         self.bPygame.spriteGroup.add(go.sprite)
 
     def initializeUMap(self):
         self.instUM = UnitsMap(self.maxY, self.maxX, self)

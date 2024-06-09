@@ -29,46 +29,6 @@ class RandomAgent(Agent):
                        flatActionSpace.remove((unit, actionDict)) 
         unitID, actionDict = random.choice(flatActionSpace)  
         return (unitID, actionDict) 
-
-# class GreedyAgent(Agent):
-#     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
-#         attackActions = []
-#         for unit, actionDict in flatActionSpace:
-#             if actionDict["type"] == "castAbility":
-#                 if actionDict['abilityDict'].get("name") != "End Unit Turn":
-#                     attackActions.append((unit, actionDict))
-#                 else:
-#                     endTurnAction = (unit, actionDict)
-#         if attackActions:
-#             return random.choice(attackActions)
-#         else:
-#             centroid = np.zeros(2)
-#             for unit in waitingUnits:
-#                 centroid = centroid + np.array(unit.position)
-#             centroid = np.mean(centroid)
-
-#             d = np.Inf
-#             unitToMoveTo = None
-#             for unit in game.getOpponentTeam(self.agentIndex):
-#                 qd = np.linalg.norm(np.array(unit.position) - centroid)
-#                 if qd < d:
-#                     d = qd
-#                     unitToMoveTo = unit
-#                 for unit in waitingUnits:
-#                     if unit.ID in allActions.keys():    
-#                         if allActions[unit.ID].get('moves', None) is not None:
-#                             delta = np.array(unitToMoveTo.position) - np.array(unit.position)
-#                             dirToMove = game.board.convDeltaToAdjDirections(delta)
-#                             moves = list(allActions[unit.ID]['moves'].keys())
-#                             key = None
-#                             for dir in moves:
-#                                 if dir[0] == dirToMove:
-#                                     key = dir
-#                             if key is not None:
-#                                 actionDict = {'type': 'move', 'directionDict' : {key : allActions[unit.ID]['moves'][key]}}
-#                                 return (unit.ID, actionDict)
-                        
-#         return random.choice(flatActionSpace)
                         
             
 class MCTSTestAgent(Agent):
@@ -78,6 +38,7 @@ class MCTSTestAgent(Agent):
         self.d = 10
         self.assignWeights([1, -1, 1, -1])
         self.time_limit = 6000
+        self.record = False
     
 
     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
@@ -89,16 +50,18 @@ class MCTSTestAgent(Agent):
         else:
             s = game.clone()
             turn = s.nTurns
-            with open(f'./GameHistories/1/Pre/turn_{turn}.pkl', 'wb') as file:
-                pickle.dump(s, file)
+            if self.record:
+                with open(f'./GameHistories/1/Pre/turn_{turn}.pkl', 'wb') as file:
+                    pickle.dump(s, file)
             bestAction, reward = searcher.search(initial_state = s, need_details=True)
             # print(reward)
             if bestAction is None:
                 return random.choice(flatActionSpace)
             else:
                 s.executeMove(bestAction)
-                with open(f'./GameHistories/1/Post/turn_{turn}.pkl', 'wb') as file:
-                    pickle.dump(s, file)
+                if self.record:
+                    with open(f'./GameHistories/1/Post/turn_{turn}.pkl', 'wb') as file:
+                        pickle.dump(s, file)
         return bestAction
     def assignWeights(self, x):
         weights = {}
@@ -108,26 +71,6 @@ class MCTSTestAgent(Agent):
         weights['n_turns'] = x[3]
         self.weights = Map(weights)
 
-# class MCTSAgent(Agent):
-#     def __init__(self, name, agentIndex, team, game = None, pygame = None):
-#         super().__init__(name, agentIndex, team, game, pygame)
-#         self.featureInitValues()
-#         self.d = 3
-
-#     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
-#         gamma = 0.6
-#         if self.d > 0:
-#             problem = MCTS.MDP(gamma, None, game.getCurrentStateActionsMDP, None, self.getReward, self.getTransitionReward)
-#             d = self.d
-#             m = 150 #num simulations
-#             c = 10 #exploration
-#             solver = MCTS.MonteCarloTreeSearch(problem, {}, {}, d, m, c, self.getValue)
-#             out = solver(game.clone())
-#         else:
-#             out = random.choice(flatActionSpace)
-#         return out
-#     def getReward(self, state):
-#         return random.randint(0, 10)
     def getValue(self, state, debugStr=None):
         #Get self team
         # return random.randint(0, 10)
@@ -168,37 +111,6 @@ class MCTSTestAgent(Agent):
         self.nOppInit = len(self.team)
 
 
-#     def getTransitionReward(self, state, action):
-#         #Transition reward function will only ever be for Manager 0:
-#         Ucur = self.getValue(state, 'TR')
-#         sprime = state.clone()
-#         sprime.executeMove(action)
-#         sprime.progressToNextAgentTurn(self, False)
-#         Uprime = self.getValue(sprime, 'TR')
-#         return (sprime, Uprime - Ucur)
-
-# class GreedyAgent(MCTSAgent):
-#     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
-#         s = game.clone()
-#         u = self.getValue(s, 'GreedyAgent')
-#         vals = u*np.ones(len(flatActionSpace))
-#         for idx, action in enumerate(flatActionSpace):
-#             sprime = game.clone()
-#             sprime.executeMove(action)
-#             vals[idx] = vals[idx] + self.getValue(sprime, 'GreedyAgent')
-#         maxIdx = np.argmax(vals)
-#         return flatActionSpace[maxIdx]
-# class GreedyAgent(MCTSAgent):
-#     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
-#         s = game.clone()
-#         u = self.getValue(s, 'GreedyAgent')
-#         vals = u*np.ones(len(flatActionSpace))
-#         for idx, action in enumerate(flatActionSpace):
-#             sprime = game.clone()
-#             sprime.executeMove(action)
-#             vals[idx] = vals[idx] + self.getValue(sprime, 'GreedyAgent')
-#         maxIdx = np.argmax(vals)
-#         return flatActionSpace[maxIdx]
 class HumanAgent(Agent):
     selectedUnit = None
     def selectUnit(self, waitingUnits):
@@ -207,9 +119,12 @@ class HumanAgent(Agent):
         self.aPygame.getInput = True
         time.sleep(0.1)
         unitDict = self.game.actionQueue.get()
-        selectedUnit = unitDict["unit"]
-        self.selectedUnit = selectedUnit
-        return selectedUnit
+        if unitDict is not None:
+            selectedUnit = unitDict["unit"]
+            self.selectedUnit = selectedUnit
+            return selectedUnit
+        else:
+            return self.selectUnit(waitingUnits)
     
     def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
         selectedUnit, actionDict = self.selectActionUI(game, waitingUnits, allActions, flatActionSpace)
