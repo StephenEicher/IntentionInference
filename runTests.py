@@ -10,6 +10,9 @@ class testManager:
         self.passedTests = []
         self.myTests = []
     def runTests(self):
+        failedTests = []
+        nTests = len(failedTests)
+        nFailed = 0
         for test in self.myTests:
             print(f'Running Test: {test.name}')
             try:
@@ -17,8 +20,19 @@ class testManager:
                     print('... passed!')
                 else:
                     print('... failed!')
+                    nFailed += 1
+                    failedTests.append(test.name)
             except:
                 print('... failed!')
+                nFailed +=1
+                failedTests.append(test.name)
+        print('-'*60)
+        if nFailed > 0:
+            print(f'{nFailed} Tests Failed')
+            print(failedTests)
+        else:
+            print('All tests Succeeded!')
+
     def addTest(self, test):
         self.myTests.append(test)
 
@@ -67,13 +81,16 @@ class test:
         for key in u1Info.keys():
             if u1Info[key] is not u2Info[key]:
                 if type(u1Info[key]) is float or type(u1Info[key]) is int:
-                    delta = u1Info[key] - u2Info[key]
-                    if delta > 0:
-                        dInfo[key] = delta
+                    delta = u2Info[key] -  u1Info[key]
+                    dInfo[key] = delta
                 else:
                     dInfo[key] = (u1Info[key], u2Info[key])
         return dInfo
-    
+    def getEventInfo(self, action):
+        events = {}
+        for event in action['abilityDict']['events']:
+            events[event['type']] = event['value']
+        return events
 class startUp(test):
     def __init__(self):
         super().__init__()
@@ -87,10 +104,10 @@ class startUp(test):
         except:
             return False
         
-class execMove(test):
+class execMoveMovement(test):
     def __init__(self):
         super().__init__()
-        self.name = 'game.executeMove() Test'
+        self.name = 'game.executeMove() - Movement Test'
     def execute(self):
         try:
             self.constructGame()
@@ -104,14 +121,88 @@ class execMove(test):
             postMove = self.storeUnitInfo(unit)
             delta = self.compareUnitInfo(preMove, postMove)
             assert len(delta.keys()) == 2
-            assert delta['currentMovement'] == 1
+            assert delta['currentMovement'] == -1
+            self.game.quit()
+            return True
+        except:
+            return False
+class execMoveMeleeAttack(test):
+    def __init__(self):
+        super().__init__()
+        self.teamComp = [[ [(0, 0), u.meleeUnit]], 
+                        [[(0,1), u.meleeUnit]]]
+        self.name = 'game.executeMove() - Melee Attack Test'
+    def execute(self):
+        try:
+            self.constructGame()
+            unit = self.game.p1.team[0]
+            attacker_pre = self.storeUnitInfo(unit)
+            flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.game.getCurrentStateActions(self.game)
+            for unitID, action in flatActionSpace:
+                if action['type'] == 'castAbility':
+                    events = self.getEventInfo(action)
+                    targetedUnitID = action['abilityDict']['targetedUnit']
+                    target = self.game.getUnitByID(targetedUnitID)
+                    target_pre = self.storeUnitInfo(target)
+                    self.game.executeMove((unitID, action))
+                    target_post = self.storeUnitInfo(target)
+                    break
+            attacker_post = self.storeUnitInfo(unit)
+            attacker_delta = self.compareUnitInfo(attacker_pre, attacker_post)
+            target_delta = self.compareUnitInfo(target_pre, target_post)
+            assert len(attacker_delta.keys()) == 1
+            assert attacker_delta['currentActionPoints'] == events['changeActionPoints']
+            assert len(target_delta.keys()) == 1
+            assert target_delta['currentHP'] == events['changeHP']
+            self.game.quit()
+            return True
+        except:
+            return False
+class execMoveRangedAttack(execMoveMeleeAttack):
+    def __init__(self):
+        super().__init__()
+        self.teamComp = [[ [(0, 0), u.rangedUnit]], 
+                        [[(0,1), u.rangedUnit]]]
+        self.name = 'game.executeMove() - Ranged Attack Test'      
+class cloneTest(test):
+    def __init__(self):
+        super().__init__()
+        self.teamComp = [[ [(0, 0), u.rangedUnit]], 
+                        [[(0,1), u.rangedUnit]]]
+        self.name = 'game.clone() - Object Instance Checks'   
+        self.constructGame()   
+    def execute(self):
+        try:
+            clone = self.game.clone()
+            assert self.game is not clone
+            assert clone.board is not self.game.board
+            assert clone.board.instOM is not self.game.board.instOM
+            # assert clone.board.instOM == self.game.instOM
+            assert clone.board.instUM is not self.game.board.instUM
+            # assert clone.board.instUM == self.game.board.instUM
+            assert clone.board.instZM is not self.game.board.instZM
+            # assert clone.board.instZM == self.game.instZM
+            assert clone.board.gameObjectDict is not self.game.board.gameObjectDict
+            # assert clone.board.gameObjectDict == self.game.board.gameObjectDict
+            assert clone.board.GOT is not self.game.board.GOT
+            # assert clone.board.GOT == self.game.board.GOT
+            for unit in self.game.allUnits:
+                compUnit = clone.getUnitByID(unit.ID)
+                assert unit is not compUnit
+                assert unit.ID == compUnit.ID
+                u1 = self.storeUnitInfo(unit)
+                u2 = self.storeUnitInfo(compUnit)
+                delta = self.compareUnitInfo(u1, u2)
+                assert len(delta.keys()) == 0
             return True
         except:
             return False
 
 tm = testManager()
 tm.addTest(startUp())
-tm.addTest(execMove())
-
+tm.addTest(execMoveMovement())
+tm.addTest(execMoveMeleeAttack())
+tm.addTest(execMoveRangedAttack())
+tm.addTest(cloneTest())
 tm.runTests()
 
