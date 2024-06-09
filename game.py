@@ -201,9 +201,12 @@ class GameManager(BaseState):
             self.quit()
 
     def quit(self):
-        # if self.inclPygame:
-        #     pygame.display.quit()
-        #     pygame.quit()
+        if self.inclPygame:
+            time.sleep(0.5)
+            try:
+                self.pygameThread.join()
+            except:
+                pass
         self.gameOver = True
         if self.winner is not None:
             return self.winner
@@ -225,8 +228,8 @@ class GameManager(BaseState):
                 flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.getCurrentStateActions(self)
                 tStart = time.time()
                 selectedUnitID, actionDict = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace, 'gameLoop')
-                print('Time to make move: ')
-                print(time.time() - tStart)
+                self.fprint('Time to make move: ')
+                self.fprint(time.time() - tStart)
                 selectedUnit = self.getUnitByID(selectedUnitID)
                 if actionDict is None:
                     break

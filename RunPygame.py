@@ -121,7 +121,7 @@ class Pygame:
         pygame.quit()
         self.game.gameOver = True
         self.game.actionQueue.put(None) #This is just to get past the waiting for input portion in the game loop
-
+        
     def trackMouseAndDisplayMove(self, mousePos):
         self.prevRects = []
         if self.unitToMove is not None and self.unitToMove.canMove is not False:

@@ -26,6 +26,7 @@ class testManager:
                 print('... failed!')
                 nFailed +=1
                 failedTests.append(test.name)
+            
         print('-'*60)
         if nFailed > 0:
             print(f'{nFailed} Tests Failed')
@@ -95,15 +96,18 @@ class startUp(test):
     def __init__(self):
         super().__init__()
         self.name = 'Start Up Test'
+        self.p1Class = ac.RandomAgent
+        self.p2Class = ac.RandomAgent
     def execute(self):
         try:
             self.startGameLoopThread()
             time.sleep(1)
             self.game.quit()
+            self.testThread.join()
             return True
         except:
             return False
-        
+  
 class execMoveMovement(test):
     def __init__(self):
         super().__init__()
@@ -197,6 +201,48 @@ class cloneTest(test):
             return True
         except:
             return False
+class getValidDirections(test):
+    def __init__(self):
+        super().__init__()
+        self.teamComp = [[ [(2, 4), u.rangedUnit]], 
+                        [[(0,1), u.rangedUnit]]]
+        self.name = 'board.getValidDirections()- Checking get valid directions'   
+        self.constructGame()
+    
+    def execute(self):
+        try:
+            # self.startGameLoopThread()
+            for unit in self.game.allUnits:
+                if unit.position == (2, 4):
+                    curUnit = unit
+                    break
+            out, outFlat = self.game.board.getValidDirections(curUnit)
+            invalidDirs =  ['N', 'E']
+            validDirs = ['S', 'SE', 'SW', 'NW', 'W', 'NE']
+            passed = True
+            for entry in out.keys():
+                dir = entry[0]
+                if dir in invalidDirs:
+                    passed = False
+                if dir not in validDirs:
+                    passed = False
+            for entry in outFlat:
+                curDict = entry[1]['directionDict']
+                key = list(curDict.keys())
+                dir = key[0][0]
+                if dir in invalidDirs:
+                    passed = False
+                if dir not in validDirs:
+                    passed = False
+            self.game.quit()
+
+            return passed
+            
+
+        except:
+            return False
+
+
 
 tm = testManager()
 tm.addTest(startUp())
@@ -204,5 +250,6 @@ tm.addTest(execMoveMovement())
 tm.addTest(execMoveMeleeAttack())
 tm.addTest(execMoveRangedAttack())
 tm.addTest(cloneTest())
+tm.addTest(getValidDirections())
 tm.runTests()
 
