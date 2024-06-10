@@ -167,26 +167,26 @@ class GameManager(BaseState):
                 self.currentAgent = self.allAgents[self.agentTurnIndex]       
                 self.gameOverCheck()
                 
-    def progressToNextAgentTurn(self, agent, queryAgentAfter=True):
-        self.currentAgent = self.allAgents[self.agentTurnIndex] 
-        if self.sameAgent(self.currentAgent, agent):
-            if queryAgentAfter:
-                self.queryAgentForMove()
-        else:
-            while not self.sameAgent(self.currentAgent, agent) and not self.gameOver:
-                self.queryAgentForMove()
+    # def progressToNextAgentTurn(self, agent, queryAgentAfter=True):
+    #     self.currentAgent = self.allAgents[self.agentTurnIndex] 
+    #     if self.sameAgent(self.currentAgent, agent):
+    #         if queryAgentAfter:
+    #             self.queryAgentForMove()
+    #     else:
+    #         while not self.sameAgent(self.currentAgent, agent) and not self.gameOver:
+    #             self.queryAgentForMove()
 
-    def sameAgent(self, agent1, agent2):
-        return agent1.agentIndex == agent2.agentIndex
+    # def sameAgent(self, agent1, agent2):
+    #     return agent1.agentIndex == agent2.agentIndex
     
-    def queryAgentForMove(self):
-        self.gameOverCheck()
-        if not self.gameOver:
-            self.currentAgent = self.allAgents[self.agentTurnIndex] 
-            self.fprint(f"\n-------- {self.currentAgent.name}'s turn --------")
-            flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.getCurrentStateActions(self)
-            action = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace, 'queryAgent')
-            self.executeMove(action)
+    # def queryAgentForMove(self):
+    #     self.gameOverCheck()
+    #     if not self.gameOver:
+    #         self.currentAgent = self.allAgents[self.agentTurnIndex] 
+    #         self.fprint(f"\n-------- {self.currentAgent.name}'s turn --------")
+    #         flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.getCurrentStateActions(self)
+    #         action = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace, 'queryAgent')
+    #         self.executeMove(action)
 
     def gameOverCheck(self):
         if len(self.p1.team) == 0 or len(self.p2.team) == 0:

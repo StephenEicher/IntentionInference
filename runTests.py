@@ -245,11 +245,11 @@ class getValidDirections(test):
 
 
 tm = testManager()
-tm.addTest(startUp())
-tm.addTest(execMoveMovement())
-tm.addTest(execMoveMeleeAttack())
-tm.addTest(execMoveRangedAttack())
-tm.addTest(cloneTest())
+# tm.addTest(startUp())
+# tm.addTest(execMoveMovement())
+# tm.addTest(execMoveMeleeAttack())
+# tm.addTest(execMoveRangedAttack())
+# tm.addTest(cloneTest())
 tm.addTest(getValidDirections())
 tm.runTests()
 

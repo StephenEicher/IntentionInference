@@ -355,6 +355,51 @@ class GameObjectTree:
 
                 return viableTargets # a list of units
 
+    def filterCoordinates(self, center, range):
+            queriedStacks = []
+            minPoint = center
+            stacks = self.querySpace(event.minPoint, event.maxPoint)
+            for stack in stacks:
+                for direction, position in self.board.getAdjDirections(event.unit).items():
+                    if position == stack[0].position:
+                        stackDict = {}
+                        stackDict["direction"] = direction                        
+                        stackDict["position"] = position
+                        stackDict["stack"] = stack
+                        
+                        stackZ = 0
+                        surfaces = []
+                        for gameObject in stack:
+                            if isinstance(gameObject, go.Surface):
+                                surfaces.append(gameObject)
+                            else:
+                                stackZ += gameObject.z
+
+                        stackDict["stackZ"] = stackZ
+                        stackDict["surfaces"] = surfaces
+
+                        queriedStacks.append(stackDict)
+
+                if event.unit.position == stack[0].position:
+                    stackDict = {}
+                    stackDict["direction"] = "UNIT"                        
+                    stackDict["position"] = event.unit.position
+                    stackDict["stack"] = stack
+                    
+                    stackZ = 0
+                    surfaces = []
+                    for gameObject in stack:
+                        if isinstance(gameObject, go.Surface):
+                            surfaces.append(gameObject)
+                        else:
+                            stackZ += gameObject.z
+
+                    stackDict["stackZ"] = stackZ
+                    stackDict["surfaces"] = surfaces
+
+                    queriedStacks.append(stackDict)
+
+            return queriedStacks
 # def genElems(self, elemTypes):
     #     print('\n--- Starting genElems ---')
     #     elemDebugName = ''

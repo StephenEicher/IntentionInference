@@ -23,122 +23,8 @@ class UnitsMap:
     def __init__(self, maxY, maxX, board):
         self.board = board
         self.map = [[None for _ in range(maxX)] for _ in range(maxY)]
+        self.mapNP = np.zeros(maxX, maxY, dtype=int)
 
-    def UMhandleEvent(self, event):
-        if isinstance(event, e.eMove):
-            adjUnits = {}
-            adjUnits[(event.unit.position[0], event.unit.position[1])] = event.unit
-            for direction, (adjY, adjX) in self.board.getAdjDirections(event.unit).items():
-                # Check if the adjacent position is within bounds of the map
-                if 0 <= adjY < len(self.map) and 0 <= adjX < len(self.map):
-                    adjUnit = self.map[adjY][adjX]
-
-                    if isinstance(adjUnit, u.Unit):
-                        adjUnits[(direction, (adjY, adjX))] = adjUnit
-                        
-            return adjUnits
-
-
-        elif isinstance(event, e.eTargetsInRange):
-            targets = []
-            rowBounds = np.array([event.unit.position[0] - event.range, event.unit.position[0] + event.range])
-            colBounds = np.array([event.unit.position[1] - event.range, event.unit.position[1] + event.range])
-            rowBounds = np.clip(rowBounds, 0, len(self.map)-1)
-            colBounds = np.clip(colBounds, 0, len(self.map)-1)
-            #xMax = self.unit.position[0] + self.range
-            tilesToCheck = []
-            for row in np.arange(rowBounds[0], rowBounds[1]+1): # checks rectangular area defined with sides defined by length of bounds
-                for col in np.arange(colBounds[0], colBounds[1]+1):
-                    tilesToCheck.append(self.map[row][col]) # already appends all objects found at coordinates and excludes empty tiles                
-
-
-            for unit in tilesToCheck:
-                if isinstance(unit, u.Unit):
-                    if unit.ID is not event.unit.ID and unit.agentIndex is not event.unit.agentIndex:
-
-                        if not event.OnlyCardinalDirs:
-                            targets.append(unit)
-                        else:
-                            #If on the same row or on the same column
-                            if unit.position[0] == event.unit.position[0] or unit.position[1] == event.unit.position[1]:
-                                selfPos = np.array(unit.position)
-                                unitPos = np.array(event.unit.position)
-                                if abs(np.linalg.norm(selfPos-unitPos)) <= event.range:
-                                    targets.append(unit)
-                            # if abs(event.unit.position[0] - unit.position[0]) == abs(event.unit.position[1] - unit.position[1]):
-                            #     if abs(unit.position[0] - event.unit.position[0]) <= event.range or abs(unit.position[1] - event.unit.position[1]) <= event.range:
-                            #         targets.append(unit)
-           
-            validTargets = self.board.GOT.checkforObstructions(event, targets)
-            return validTargets # refer to GOT's response for final list of viable targets
-
-        elif isinstance(event, e.eDisplace):
-            if abs(event.unit.position[0] - event.castTarget.position[0]) == abs(event.unit.position[1] - event.castTarget.position[1]):
-                if event.unit.position[0] - event.castTarget.position[0] >= 0:
-                    if event.unit.position[1] - event.castTarget.position[1] >= 0:
-                        delta = np.array([-1, -1])
-                    else:
-                        delta = np.array([-1, 1])
-                else:
-                    if event.unit.position[1] - event.castTarget.position[1] >= 0:
-                        delta = np.array([1, -1])
-                    else:
-                        delta = np.array([1, 1])
-            if event.unit.position[0] == event.castTarget.position[0]:
-                delta = np.array([0, 1])
-            if event.unit.position[1] == event.castTarget.position[1]:
-                delta = np.array([1, 0])
-
-            collateralUnits = []
-            self.spatialLinearizedList = [None for _ in event.displaceDistance]
-            start = np.array(list(event.castTarget.position))
-            for i in range(event.displaceDistance):
-                start += delta
-                if self.map[start[0]][start[1]]:
-                    unit = self.map[start[0]][start[1]]
-                    if unit.ID is not event.unit.ID:
-                        collateralUnits.append(unit)
-                        self.spatialLinearizedList[i] = unit
-
-            unitsAndDisplacement = (collateralUnits, start, delta)
-
-            self.board.GOT.incomingUM.put(unitsAndDisplacement)
-            
-
-            return None
-
-        else:
-            return None
-
-    def determineUnitCollision(self, unit, collateralTargets, maxDisplaceDistance, delta):
-        """
-        for each collision, decrease the maxDisplaceDistance which prior to unit collision checking
-        is the product of the ability displace distance * displacing unit's massConstant
-
-        for now, idea is that maxDisplaceDistance is the amount of tiles that a displacing unit or group of units
-        due to collision will be displaced at the end of the sequence
-
-        """
-        for i, tile in enumerate(self.spatialLinearizedList):
-            if isinstance(tile, u.Unit):
-                for unit in collateralTargets:
-                    if tile == unit:
-                        continue
-                    else:
-                        # This potential collateral unit is separated from the displacing unit by an impassable object
-                        lastUnitIndex = i - 1
-                        break
-        
-        groupToDisplace = []
-        for _ in range(lastUnitIndex):
-            for unit in self.spatialLinearizedList:
-                maxDisplaceDistance -= unit.massConstant
-
-    def assignListeners(self, dispatcher):
-        dispatcher.addListener(e.eMove, self.UMhandleEvent)
-        dispatcher.addListener(e.eTargetsInRange, self.UMhandleEvent, 1, True)
-        dispatcher.addListener(e.eDisplace, self.UMhandleEvent, 1, True)
-        
     def clone(self):
         cloned_UM = UnitsMap.__new__(UnitsMap)
         cloned_UM.map = copy.deepcopy(self.map)
@@ -163,33 +49,37 @@ class Board:
         # self.allElemPositions = set()
         # self.allSeedPositions = set()
         self.dispatcher = e.EventDispatcher(self)
-        self.initializeUMap()
-        self.initializeGameObjectTree()
-        self.initializeObjectDict()
-        self.initializeZMap()
-        self.initializeOMap()
+        self.units_map = np.zeros([maxX, maxY])
+        row_indices, col_indices = np.meshgrid(np.arange(self.maxX), np.arange(self.maxY), indexing='ij')
+        self.coord_map = np.stack((row_indices, col_indices), axis=-1)
+
+        # self.initializeUMap()
+        # self.initializeGameObjectTree()
+        # self.initializeObjectDict()
+        # self.initializeZMap()
+        # self.initializeOMap()
 
     def clone(self, game):
         cloned_board = Board.__new__(Board)
         cloned_board.maxX = self.maxY
         cloned_board.maxY = self.maxX
         cloned_board.game = game
-        cloned_board.dispatcher = e.EventDispatcher(cloned_board)
-        cloned_board.dispatcher.board = cloned_board
+        # cloned_board.dispatcher = e.EventDispatcher(cloned_board)
+        # cloned_board.dispatcher.board = cloned_board
         cloned_board.instUM = self.instUM.clone()
         cloned_board.instUM.board = cloned_board
-        cloned_board.instUM.assignListeners(cloned_board.dispatcher)
+        # cloned_board.instUM.assignListeners(cloned_board.dispatcher)
         cloned_board.bPygame = False
         cloned_board.GOT = copy.deepcopy(self.GOT)
         cloned_board.GOT.board = cloned_board
-        cloned_board.GOT.addListeners(cloned_board.dispatcher)
+        # cloned_board.GOT.addListeners(cloned_board.dispatcher)
         cloned_board.gameObjectDict = copy.deepcopy(self.gameObjectDict)
-        cloned_board.gameObjectDict.addListeners(cloned_board.dispatcher)
+        # cloned_board.gameObjectDict.addListeners(cloned_board.dispatcher)
 
 
         cloned_board.instZM = copy.deepcopy(self.instZM)
         cloned_board.instZM.board = cloned_board
-        cloned_board.instZM.assignListeners(cloned_board.dispatcher)
+        # cloned_board.instZM.assignListeners(cloned_board.dispatcher)
 
         cloned_board.instOM = self.instOM.clone()
         cloned_board.instOM.board = cloned_board
@@ -213,11 +103,11 @@ class Board:
 
     def initializeGameObjectTree(self):
         self.GOT = got.GameObjectTree(self.defaultMinPoint, self.maxPoint, self)
-        self.GOT.addListeners(self.dispatcher)       
+        # self.GOT.addListeners(self.dispatcher)       
 
     def initializeObjectDict(self):
         self.gameObjectDict= god.GameObjectDict(self)
-        self.gameObjectDict.addListeners(self.dispatcher)
+        # self.gameObjectDict.addListeners(self.dispatcher)
         return
         # dummyGOs = self.createDummyGameObjects()
         # for go in dummyGOs:
@@ -229,7 +119,7 @@ class Board:
 
     def initializeUMap(self):
         self.instUM = UnitsMap(self.maxY, self.maxX, self)
-        self.instUM.assignListeners(self.dispatcher)
+        # self.instUM.assignListeners(self.dispatcher)
         
     def initializeUnits(self, teamComp):
         agentIndex = 0
@@ -244,10 +134,10 @@ class Board:
                 if self.bPygame:
                     self.bPygame.spriteGroup.add(newUnit.sprite)
                 unitIndex+=1
-                self.instUM.map[spawnLocation[0]][spawnLocation[1]] = newUnit
+                self.units_map[spawnLocation[0], spawnLocation[1]] = newUnit.ID
             agentIndex+=1
             teams.append(curTeam)
-        self.drawMap(self.instUM.map)
+        # self.drawMap(self.instUM.map)
         return (teams[0], teams[1])
 
 
@@ -278,7 +168,7 @@ class Board:
 
     def initializeZMap(self):
         self.instZM = maps.ZMap(self.maxY, self.maxX, self)
-        self.instZM.assignListeners(self.dispatcher)
+        # self.instZM.assignListeners(self.dispatcher)
         self.zMap = self.instZM.map
         # self.drawMap(self.zMap)
 
@@ -300,31 +190,26 @@ class Board:
         }
 
         return self.filterValidDirections(adjPositions)   
+        
+    def getValidMoveDirections(self, center):
+        x, y = center
+
+        # Check if there are any units in adjacent tiles
+        xBounds = (np.max([0, x-1]), np.min([x + 2, self.maxX]))
+        yBounds = (np.max([0, y-1]), np.min([y + 2, self.maxY]))
+        coord_map_adj = self.coord_map[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
+        unit_map_adj = self.units_map[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
+        dirs = coord_map_adj[unit_map_adj == 0]
+
+        #Check if there are any obstacles in adjacent tiles
+
+        #Additional Checks
+        
+        return dirs
     
-    def convDeltaToAdjDirections(self, delta):
-        dx, dy = delta
-        if dy == 1:
-            c1 = "N"
-        elif dy == 0:
-            c1 = ""
-        else:
-            c1 = "S"
-        
-        if dx == 1:
-            c2 = "E"
-        elif dx == 0:
-            c2 = ""
-        else:
-            c2 = "W"
-        
-        return c1 + c2
-        
-
-
-
     def getValidDirections(self, unit):
         validAdjPositions = self.getAdjDirections(unit)
-
+    
         GOY = len(self.instUM.map) - 1 - unit.position[0]
         UX = unit.position[1]
 
@@ -414,6 +299,8 @@ class Board:
             flatValidDirections.append((unit.ID, Map({"type" : "move", "directionDict" : Map({(direction, position) : (takeFallDamage, None)})})))
             
         return Map(validDirections), flatValidDirections
+
+    
     
     def getValidAbilities(self, unit):
         unitAbilities = unit.unitAbilities

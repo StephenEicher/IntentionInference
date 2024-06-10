@@ -10,8 +10,8 @@ class Unit:
         self.ID = unitID
         self.unitSymbol = "U"
         self.position = position
-        self.board = board
-        self.game = game
+        # self.board = board
+        # self.game = game
 
         self.Alive = True
         self.Avail = True  # Available to select from team of units to move/act with
@@ -111,21 +111,7 @@ class Unit:
             self.canAct = True
             self.currentMovement = self.movement
             self.currentActionPoints = self.actionPoints
-    # def dispose(self):
-    #     posessingAgent = self.game.allAgents[self.agentIndex]
-    #     # for unit in self.game.allAgents
-    #     team = posessingAgent.team
-    #     for unit in self.game.allUnits:
-    #         if unit.ID == self.ID:
-    #             self.game.allUnits.remove(unit)
 
-    #     for unit in team:
-    #         if unit.ID == self.ID:
-    #             team.remove(unit)
-    #             if self.sprite is not None:
-    #                 self.board.bPygame.spriteGroup.remove(unit.sprite)
-    #             self.board.instUM.map[unit.position[0]][unit.position[1]] = None
-    #             print(f"{unit.ID} is disposed")
 
 class meleeUnit(Unit):
     def __init__(self, agentIndex, unitID, position, board, game):
