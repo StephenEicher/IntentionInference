@@ -118,7 +118,7 @@ class HumanAgent(Agent):
         
         self.aPygame.getInput = True
         time.sleep(0.1)
-        unitDict = self.game.actionQueue.get()
+        unitDict = self.game.pgQueue.get()
         if unitDict is not None:
             selectedUnit = unitDict["unit"]
             self.selectedUnit = selectedUnit
@@ -126,21 +126,37 @@ class HumanAgent(Agent):
         else:
             return self.selectUnit(waitingUnits)
     
-    def selectAction(self, game, waitingUnits, allActions, flatActionSpace, debugStr=None):
-        selectedUnit, actionDict = self.selectActionUI(game, waitingUnits, allActions, flatActionSpace)
+    def selectAction(self, game, actionSpace, debugStr=None):
+        selectedUnit, actionDict = self.selectActionRecursive(game, actionSpace)
         return (selectedUnit.ID, actionDict)
 
-    def selectActionUI(self, game, waitingUnits, allActions, flatActionSpace):
+    def selectActionRecursive(self, game, actionSpace):
+        waitingUnits = set()
+        sortedAbilities = {}
+        sortedMoves = {}
+        for entry in actionSpace:
+            ID, actionType, info = entry
+            waitingUnits.add(game.allUnits[ID])
+            if sortedAbilities.get(ID, None) is None:
+                sortedAbilities[ID] = set()
+            if sortedMoves.get(ID, None) is None:
+                sortedMoves[ID] = []
+
+            if actionType == 'ability':
+                sortedAbilities[ID].add(info[0])
+            else:
+                sortedMoves[ID].append(info)
+        waitingUnits = list(waitingUnits)
         self.aPygame.drawSelectUnit(waitingUnits)
+
         if self.selectedUnit is None:
             unit = self.selectUnit(waitingUnits)
         else:
-            if self.selectedUnit.ID not in allActions.keys():
+            if self.selectedUnit.ID not in sortedAbilities.keys() and self.selectedUnit.ID not in sortedMoves.keys():
                 unit = self.selectUnit(waitingUnits)
             unit = self.selectedUnit
-        unitAbilitiesDict = allActions[unit.ID]
-        validAbilities = unitAbilitiesDict.get('abilities', None)
-        validMoveDirections = unitAbilitiesDict.get('moves', None)
+        validAbilities = sortedAbilities[unit.ID]
+        validMoveDirections = np.array(sortedMoves[unit.ID])
         if unit.canMove is False and unit.canAct is False:
             print(f"Warning! This should never happen, unit {unit.ID} that cannot act and cannot move in waitingUnits List")
             unit.Avail = False
@@ -152,18 +168,18 @@ class HumanAgent(Agent):
         self.aPygame.validDirections = validMoveDirections
         
         self.aPygame.drawButtons(validAbilities, unit)
+        action = self.game.pgQueue.get()
 
-        actionDict = self.game.actionQueue.get()
-        if actionDict is not None:
-            if actionDict["type"] == "unit":
-                self.selectedUnit = actionDict["unit"]
+        if action is not None:
+            if action["type"] == "unit":
+                self.selectedUnit = action["unit"]
                 self.aPygame.getTarget = False
-                (unit, actionDict) = self.selectActionUI(game, waitingUnits, allActions, None)
+                (unit, action) = self.selectActionRecursive(self, game, actionSpace)
 
 
             self.aPygame.getInput = False
             self.aPygame.getTarget = False
-            return (unit, actionDict)
+            return (unit, action)
         else:
             return (None, None)
         

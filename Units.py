@@ -3,13 +3,14 @@ import Board as b
 import SpriteClasses as sc
 import copy
 from immutables import Map
-
+import Abilities as a
+import numpy as np
 class Unit:
     def __init__(self, agentIndex, unitID, position, board, game, image=None):
         self.agentIndex = agentIndex
         self.ID = unitID
         self.unitSymbol = "U"
-        self.position = position
+        self.position = np.array(position)
         # self.board = board
         # self.game = game
 
@@ -96,6 +97,7 @@ class Unit:
             #     "targetedUnit" : None,
             # }),
         ]
+        abilities = [a.unarmedStrike]
         return abilities
     # def unitValidForTurn(self):
     #     if self.currentHP > 0 and (self.canMove or self.canAct):
@@ -155,7 +157,7 @@ class rangedUnit(Unit):
                 "targetedUnit" : None,
                 "targetedUnitHP" : None,
             })
-        self.unitAbilities.append(rangedStrike)
+        self.unitAbilities.append(a.rangedStrike)
 
 
 

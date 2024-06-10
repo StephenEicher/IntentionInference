@@ -74,11 +74,11 @@ class Pygame:
                             if buttonClickDict is not None:
                                 if buttonClickDict["type"] == "castAbility":
                                     if buttonClickDict["abilityDict"].get("name") == "End Unit Turn":
-                                        self.game.actionQueue.put(buttonClickDict)
+                                        self.game.pgQueue.put(buttonClickDict)
                                     else:
                                         self.actionDictAwaitingTarget = buttonClickDict
                                 elif  buttonClickDict["type"] == "unit":
-                                    self.game.actionQueue.put(buttonClickDict)
+                                    self.game.pgQueue.put(buttonClickDict)
                             else:
                                 targetedUnit = self.handleTargeting(mousePos)
                                 if targetedUnit is None:
@@ -89,7 +89,7 @@ class Pygame:
                                     abilityDict = dict(abilityDict)
                                     abilityDict["targetedUnit"] = targetedUnit.ID
                                     pReturnDict["abilityDict"] = abilityDict
-                                    self.game.actionQueue.put(pReturnDict)
+                                    self.game.pgQueue.put(pReturnDict)
                                     self.hoveredSprite = None
                                     self.getTarget = False
                     else:
@@ -105,13 +105,13 @@ class Pygame:
                                 continue                                         
                             if pReturnDict["type"] == "castAbility":
                                 if pReturnDict["abilityDict"].get("name") == "End Unit Turn":
-                                    self.game.actionQueue.put(pReturnDict)
+                                    self.game.pgQueue.put(pReturnDict)
                                 else:
                                     self.getTarget = True
                                     self.actionDictAwaitingTarget = pReturnDict
                                     #self.game.moveQueue.put(pReturnDict)
                             else: 
-                                self.game.actionQueue.put(pReturnDict)
+                                self.game.pgQueue.put(pReturnDict)
 
             self.updateScreen()
             clock.tick(30)
@@ -120,51 +120,64 @@ class Pygame:
         pygame.display.quit()
         pygame.quit()
         self.game.gameOver = True
-        self.game.actionQueue.put(None) #This is just to get past the waiting for input portion in the game loop
+        self.game.pgQueue.put(None) #This is just to get past the waiting for input portion in the game loop
         
     def trackMouseAndDisplayMove(self, mousePos):
         self.prevRects = []
         if self.unitToMove is not None and self.unitToMove.canMove is not False:
-            spritePos = self.unitToMove.sprite.rect.topleft
+            spritePos = self.unitToMove.sprite.rect.center
             # Relative vector from sprite to mouse
             mouseRelPos = np.array(mousePos) - np.array(spritePos)
             distance = np.linalg.norm(mouseRelPos)
             
             # Calculate angle
             theta = np.rad2deg(np.arctan2(mouseRelPos[1], mouseRelPos[0]))
-            if theta < 0:
-                theta += 360
+            # if theta < 0:
+            #     theta += 360
+            theta = (theta + 180) % 360 - 180
+            theta = round(theta/45) * 45
 
-            # # Increase precision based on distance
-            # if distance < 50:
-            #     segment_size = 22.5  # More precise
-            # else:
-            #     segment_size = 45  # Less precise
-            segment_size = 45
-
-            dirs = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE']
-            index = int((theta + (segment_size / 2)) // segment_size) % 8
-            queryDirId = dirs[index]
-
-            key = None
-            for dirId, matCoord in self.validDirections.keys():
-                if dirId == queryDirId:
-                    key = (dirId, matCoord)
-                    v = self.validDirections[key]
-                    break
             
-            if key is None:
-                return None
-            else:
+            target_loc = np.array([np.sin(np.deg2rad(theta)), np.cos(np.deg2rad(theta))])
+            target_loc = np.round(target_loc, decimals=0)
+            target_loc = np.array(target_loc, dtype=int)
+            target_loc = target_loc + self.unitToMove.position
+            if np.any(np.all(self.validDirections == target_loc, axis=1)):
                 image = self.unitToMove.sprite.image.copy()
                 image = image.convert_alpha()
                 newRect = self.unitToMove.sprite.image.get_rect()
-                newRect.topleft = self.unitToMove.sprite.convertToRect((key[1][0], key[1][1]))
+                # newRect.center = spritePos + target_loc_scaled
+                newRect.topleft = self.unitToMove.sprite.convertToRect(target_loc)
                 alpha = 128
                 image.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
-                self.prevRects.append((newRect, image))
+                self.prevRects.append((newRect, image))   
+                return (self.unitToMove.ID, 'move', target_loc)             
+            else:
+                return None
+        
+            # dirs = ['E', 'SE', 'S', 'SW', 'W', 'NW', 'N', 'NE']
+            # index = int((theta + (segment_size / 2)) // segment_size) % 8
+            # # queryDirId = dirs[index]
 
-            return {"type": "move", "directionDict": {key: v}}
+            # key = None
+            # for dirId, matCoord in self.validDirections.keys():
+            #     if dirId == queryDirId:
+            #         key = (dirId, matCoord)
+            #         v = self.validDirections[key]
+            #         break
+            
+            # if key is None:
+            #     return None
+            # else:
+            #     image = self.unitToMove.sprite.image.copy()
+            #     image = image.convert_alpha()
+            #     newRect = self.unitToMove.sprite.image.get_rect()
+            #     newRect.topleft = self.unitToMove.sprite.convertToRect((key[1][0], key[1][1]))
+            #     alpha = 128
+            #     image.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
+            #     self.prevRects.append((newRect, image))
+
+            # return {"type": "move", "directionDict": {key: v}}
         else:
             return None
 
@@ -198,18 +211,22 @@ class Pygame:
         self.unitToMove = unit
 
         # Draw buttons for valid abilities  
-        for i, ability in enumerate(validAbilities):
+        for i, abilityClass in enumerate(validAbilities):
             #buttonRect = pygame.Rect(10, self.screen.get_height() - (50 * (len(validAbilities) - i)), 200, 40)  # Adjust dimensions as needed
             box_width = 200
             box_height = 50
             box_spacing = 10
             buttonRect = pygame.Rect((box_width + box_spacing)*i + box_spacing ,self.botPanelCenterY, box_width, box_height)  # Adjust dimensions as needed
             buttonRect.centery = self.botPanelCenterY
-            self.abilityButtons.append((buttonRect, ability))
-
+            self.abilityButtons.append((buttonRect, abilityClass))
+            if abilityClass == -1:
+                abilityName = "End Unit Turn"
+            else:
+                ability = abilityClass(unit)
+                abilityName = ability.name  
             # Render text on button (ability name)
             font = pygame.font.Font(None, 24)
-            abilityName = ability["name"]
+            
             aText = font.render(abilityName, True, (0, 0, 0))
             aTextRect = aText.get_rect(center=buttonRect.center)
             color = (255, 0, 0)

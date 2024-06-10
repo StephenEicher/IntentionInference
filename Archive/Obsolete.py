@@ -1,3 +1,150 @@
+    def getValidAbilities(self, unit):
+        self.getValidAbilitiesTemp(unit)
+        unitAbilities = unit.unitAbilities()
+        
+        # Access dictionary of class actions and their action points cost
+        # Return all, but denote which are actually allowed by current action points
+        # Highest level keys are 'name,''cost,' and 'events' which consists of type of events (dictionaries) involved in constructing the ability
+
+        affordableAbilities = []
+        validAbilities = []
+
+        flatAbilities = []
+
+        if unit.canAct is False:
+            invalidAbilities=unitAbilities
+            return (validAbilities, invalidAbilities, flatAbilities)
+
+        for ability in unitAbilities:
+            if ability.get("cost") <= unit.currentActionPoints:
+                affordableAbilities.append(ability)
+            if ability.get("cost") > unit.currentActionPoints:
+                invalidAbilities[ability["name"]] = ability.get("cost")
+
+        for ability in affordableAbilities:
+            for event in ability.get("events"):
+                
+                if "target" in event:
+                    if event.get("target") == "targetunit":
+                        range = ability.get("range")
+                        event = e.eTargetsInRange(unit, range)
+                        responseList = self.dispatcher.dispatch(event)
+                        viableTargets = responseList[0][1] # for first index: 0 for UMHandleEvent's response, 1 for ZMHandleEvent's response, 2 for GOTHandleEvent's response
+
+                        if viableTargets:
+                            validAbilities.append(ability)
+                        if viableTargets is None:
+                            invalidAbilities[ability["name"]] = ability.get("cost")
+
+                        for target in viableTargets:
+                            abilityWithTarget = dict(ability)
+                            abilityWithTarget["targetedUnit"] = target.ID
+                            abilityWithTarget["targetedUnitHP"] = target.HP
+                            abilityWithTarget = Map(abilityWithTarget)
+                            flatAbilities.append((unit.ID, Map({"type" : "castAbility", "abilityDict" : abilityWithTarget})))
+                else:
+                    flatAbilities.append((unit.ID, Map({"type" : "castAbility", "abilityDict" : Map(ability)})))
+
+        for ability in affordableAbilities: # If affordable but no targeting required add to valid abilities
+            if ability not in validAbilities and ability.get("range") == 0:
+                validAbilities.append(ability)
+
+        return (validAbilities, invalidAbilities, flatAbilities)
+
+    def getValidDirections(self, unit):
+        validAdjPositions = self.getAdjDirections(unit)
+    
+        GOY = len(self.instUM.map) - 1 - unit.position[0]
+        UX = unit.position[1]
+
+        # Initialize minPoint to the desired values
+        minPointX = max(UX - 1, 0)  # Ensure minPointX is at least 0
+        minPointY = max(GOY - 1, 0)  # Ensure minPointY is at least 0
+
+        # Set minPoint based on computed values
+        minPoint = (minPointX, minPointY)
+
+        # Set maxPoint
+        maxPointX = minPointX + 2
+        maxPointY = minPointY + 2  # maxPoint is calculated based on a 3x3 region
+
+        if maxPointX > (len(self.instUM.map) - 1):
+            maxPointX = self.maxX
+        
+        if maxPointY > (len(self.instUM.map) - 1):
+            maxPointY = self.maxY
+
+        maxPoint = (maxPointX, maxPointY)
+
+        event = e.eMove(unit, minPoint, maxPoint)
+        
+        listenerResponses = self.dispatcher.dispatch(event)
+        # A list of tuples (listener name, its response)
+        # Each response always occurs in the same order in the list:
+            # Within UnitsMap response: dictionary
+                # first key is unit's position as a tuple and its value is the unit object
+                # remaining keys are tuples containing the direction string, position tuple and their values are the adjacent unit object if any
+            # Within ZMap response: dictionary 
+                # first key is unit's position as a tuple and its value is the z value the unit is standing on 
+                # remaining keys are tuples containing the direction string, position tuple and their value are the z value of that adjacent spot
+            # Within GameObjectTree response: list of dictionaries
+                # each dictionary contains keys "direction," "position," "stack," "stackZ," and "surfaces"
+                # first 2 self-explanatory
+                # key "stack"'s value is the stack of GameObjects for a given position
+                # key "stackZ"'s value is the int total height (z) of the stack
+                # key "surfaces"'s value is the list of surface GameObjects for a given position
+  
+        # Unpack listenerResponses
+        #gameObjectTreeR = listenerResponses[0][1]
+        unitsMapR = listenerResponses[0][1]
+        gameObjectTreeR = listenerResponses[1][1]
+ 
+        zMapR = listenerResponses[3][1]
+
+        
+
+        takeFallDamage = False
+        addSurfaces = []
+        validDirections = {}
+        flatValidDirections = []
+        
+        for direction, position in validAdjPositions.items():
+    
+            # Check if adjacent Unit exists
+            if (direction, position) in unitsMapR:
+                if unitsMapR[(direction, position)] is not None:
+                    continue
+
+            # Calculate elevation difference and check if it's too great, parse out gameObjectTreeR
+            if gameObjectTreeR:
+                for dict in gameObjectTreeR:
+                    if position == dict.get("position"):
+                        stackZ = dict.get("stackZ")
+                        surfaces = dict.get("surfaces")
+                        totalZ = zMapR[(direction, position)] + stackZ
+                        if surfaces:
+                            addSurfaces.append(surfaces)
+
+                        unitZ = zMapR[unit.position]
+                        break  # Break the loop once we have found and assigned totalZ and unitZ
+                else:
+                    # If we do not break the loop, it means no matching position was found
+                    totalZ = zMapR[direction, position]
+                    unitZ = zMapR[unit.position]
+            else:
+                totalZ = zMapR[direction, position]
+                unitZ = zMapR[unit.position]
+
+            if (totalZ - unitZ) > unit.jump:
+                continue
+
+            # If the position is valid, add it to the validDirections dictionary
+            validDirections[(direction, position)] = (takeFallDamage, None)
+            flatValidDirections.append((unit.ID, Map({"type" : "move", "directionDict" : Map({(direction, position) : (takeFallDamage, None)})})))
+            
+        return Map(validDirections), flatValidDirections
+
+
 def getValidDirections(self, unit):
         validAdjPositions = self.getAdjDirections(unit)
 

@@ -35,13 +35,16 @@ class GameManager(BaseState):
             maxY = 8
             self.gPygame = rp.Pygame(self, maxX, maxY)            
             self.board = b.Board(maxX, maxY, self, self.gPygame)  
-            self.actionQueue = queue.Queue(maxsize = 1)          
+            self.pgQueue = queue.Queue(maxsize = 1)          
         else:
             self.board = b.Board(8, 8, self, None)
         team0, team1 = self.board.initializeUnits(teamComp)
-        self.allUnits = []
-        self.allUnits.extend(team1)
-        self.allUnits.extend(team0)
+        self.allUnits = {}
+        for unit in team0:
+            self.allUnits[unit.ID] = unit
+        for unit in team1:
+            self.allUnits[unit.ID] = unit
+        self.allUnits = Map(self.allUnits)
         self.p1 = self.p1Class('P1', 0, team0, self, self.gPygame)
         self.p2 = self.p2Class('P2', 1, team1, self, self.gPygame)
         self.allAgents = []
@@ -59,18 +62,22 @@ class GameManager(BaseState):
         self.gPygame = None
         team0 = []
         team1 = []
+        cloned_game.allUnits = {}
+        
         for unit in self.p1.team:
             newUnit = copy.deepcopy(unit)
             newUnit.game = cloned_game
             newUnit.board = cloned_game.board
             team0.append(newUnit)
+            self.allUnits[newUnit.ID] = newUnit
         
         for unit in self.p2.team:
             newUnit = copy.deepcopy(unit)
             newUnit.game = cloned_game
             newUnit.board = cloned_game.board
             team1.append(newUnit)
-        
+            self.allUnits[newUnit.ID] = newUnit
+        self.allUnits = Map(self.allUnits)
         # cloned_game.p1 = ac.RandomAgent(self.p1.name, 0, team0, self, None)
         # cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, self, None)
         cloned_game.p1 = self.p1Class(self.p1.name, 0, team0, cloned_game, None)
@@ -79,8 +86,7 @@ class GameManager(BaseState):
         cloned_game.inclPygame = False
         cloned_game.gameOver = self.gameOver
         cloned_game.currentAgent = cloned_game.allAgents[cloned_game.agentTurnIndex]
-        cloned_game.allUnits = list(team0)
-        cloned_game.allUnits.extend(team1)
+
         cloned_game.p1Class = self.p1Class
         cloned_game.p2Class = self.p2Class
         cloned_game.winner = self.winner
@@ -147,12 +153,13 @@ class GameManager(BaseState):
             self.nTurns = self.nTurns + 1
             changeTurnAgent = True
             selectedUnitID, actionDict = action
-            selectedUnit = self.getUnitByID(selectedUnitID)
+            # selectedUnit = self.getUnitByID(selectedUnitID)
+            selectedUnit = self.allUnits[selectedUnitID]
             self.board.updateBoard(selectedUnit, actionDict)
             self.fprint(f"\nCurrent unit: {selectedUnit.ID}")
             self.fprint("===================================")
             self.fprint(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
-            self.updateUnitStatus(self.allUnits)
+            self.updateUnitStatus(list(self.allUnits.values()))
             totalAvail = 0
             for unit in self.currentAgent.team:
                 if unit.Avail:
@@ -225,12 +232,13 @@ class GameManager(BaseState):
             #print(f"Selected {selectedUnit.ID}")   
             currentTurnActive= True
             while currentTurnActive:
-                flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.getCurrentStateActions(self)
+                actionSpace = self.getCurrentStateActions(self)
                 tStart = time.time()
-                selectedUnitID, actionDict = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace, 'gameLoop')
+                selectedUnitID, actionDict = self.currentAgent.selectAction(self, actionSpace, 'gameLoop')
                 self.fprint('Time to make move: ')
                 self.fprint(time.time() - tStart)
-                selectedUnit = self.getUnitByID(selectedUnitID)
+                # selectedUnit = self.getUnitByID(selectedUnitID)
+                selectedUnit = self.allUnits[selectedUnitID]
                 if actionDict is None:
                     break
                 self.board.updateBoard(selectedUnit, actionDict)
@@ -278,39 +286,26 @@ class GameManager(BaseState):
             flatActionSpace, _, _, _ = self.getCurrentStateActions(state)
             return flatActionSpace
     def getCurrentStateActions(self, state):
+        """ For the current state, returns action space. Action Format: (unitID, actionMap) """
+
         agent = state.allAgents[state.agentTurnIndex]
         waitingUnits = []
-        allActions= {}
-        noMovesOrAbilities = True
-        endTurn = Map({'name' : 'End Unit Turn'})
-        flatActionSpace = []
+        actionSpace = []
         for curUnit in agent.team:
             if curUnit.Alive and curUnit.Avail:
                 waitingUnits.append(curUnit)
-                allActions[curUnit.ID] = {}
 
         for curUnit in waitingUnits:
-            curDict = {}
             if curUnit.canMove:
-                curDict['moves'], flatValidDirections = state.board.getValidDirections(curUnit)
-                flatActionSpace.extend(flatValidDirections)
+                moveTargs = state.board.getValidMoveTargets(curUnit.position)
+                for target in moveTargs:
+                    actionSpace.append((curUnit.ID, 'move', target))
             if curUnit.canAct:
-                validAbilities, _, flatAbilities = state.board.getValidAbilities(curUnit)
-                flatActionSpace.extend(flatAbilities)
-                curDict['abilities'] = validAbilities
-            flatEndTurn = (curUnit.ID, Map({'type' : 'castAbility', 'abilityDict' : endTurn}))
-            flatActionSpace.extend([flatEndTurn])
+                validAbilities = state.board.getValidAbilities(curUnit)
+                for ability in validAbilities:
+                    actionSpace.append((curUnit.ID, 'ability', ability))
 
-            
-            if bool(curDict.get('moves', None)) or bool(curDict.get('abilities', None)):
-                noMovesOrAbilities = False
-            if 'abilities' in curDict.keys():
-                curDict['abilities'].append(endTurn)
-            else:
-                curDict['abilities'] = [endTurn]
-            allActions[curUnit.ID] = curDict
-            
-        return flatActionSpace, waitingUnits, allActions, noMovesOrAbilities
+        return actionSpace
 
     def disposeUnit(self, unitToDispose):
         posessingAgent = self.allAgents[unitToDispose.agentIndex]
@@ -364,7 +359,7 @@ class GameManager(BaseState):
                 return agent.team
 
 if __name__ == '__main__':
-    team1 = [ [(0, 0), u.meleeUnit],
+    team1 = [ [(3, 3), u.meleeUnit],
                 [(0, 1), u.rangedUnit],]
     team2 =  [  [(6,6), u.meleeUnit],
                 [(6, 7), u.rangedUnit]]
