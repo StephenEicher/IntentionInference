@@ -10,7 +10,7 @@ class baseAbility:
     def changeHealth(self, unit, delta):
         unit.currentHP = unit.currentHP + delta
     def changeAP(self, unit, delta):
-        unit.actionPoints = unit.actionPoints + delta
+        unit.currentActionPoints = unit.currentActionPoints + delta
     def activate(self):
         pass
     def isValidToCast(self, board):

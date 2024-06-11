@@ -238,11 +238,9 @@ class GameManager(BaseState):
                 if action is None:
                     break
                 selectedUnitID, actionType, info = action
-                self.fprint('Time to make move: ')
-                self.fprint(time.time() - tStart)
-                # selectedUnit = self.getUnitByID(selectedUnitID)
+                # self.fprint('Time to make move: ')
+                # self.fprint(time.time() - tStart)
                 selectedUnit = self.allUnits[selectedUnitID]
-
                 self.board.updateBoard(action)
                 self.nTurns = self.nTurns + 1
                 self.fprint(f"\nCurrent unit: {selectedUnit.ID}")
@@ -283,12 +281,8 @@ class GameManager(BaseState):
             if curUnit.currentHP <= 0:
                 curUnit.Alive = False
                 self.disposeUnit(curUnit)
-    def getCurrentStateActionsMDP(self, state):
-        if state.gameOver:
-            return []
-        else:
-            flatActionSpace, _, _, _ = self.getCurrentStateActions(state)
-            return flatActionSpace
+
+
     def getCurrentStateActions(self, state):
         """ For the current state, returns action space. Action Format: (unitID, actionMap) """
 
@@ -315,16 +309,19 @@ class GameManager(BaseState):
         posessingAgent = self.allAgents[unitToDispose.agentIndex]
         # for unit in self.game.allAgents
         team = posessingAgent.team
-        for unit in self.allUnits:
-            if unit.ID == unitToDispose.ID:
-                self.allUnits.remove(unit)
+        # for unit in self.allUnits:
+        #     if unit.ID == unitToDispose.ID:
+        #         self.allUnits.remove(unit)
+        allUnits = dict(self.allUnits)
+        del allUnits[unitToDispose.ID] 
+        self.allUnits = allUnits
 
         for unit in team:
             if unit.ID == unitToDispose.ID:
                 team.remove(unit)
                 if unitToDispose.sprite is not None:
                     self.board.bPygame.spriteGroup.remove(unit.sprite)
-                self.board.instUM.map[unit.position[0]][unit.position[1]] = None
+                self.board.units_map[unit.position[0], unit.position[1]] = 0
                 self.fprint(f"{unit.ID} is disposed")
 
     def __hash__(self):

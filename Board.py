@@ -139,29 +139,6 @@ class Board:
         # self.drawMap(self.instUM.map)
         return (teams[0], teams[1])
 
-
-        # if self.bPygame:
-        #     p1a = u.meleeUnit(0, 1, (0,0), self, self.game)
-        #     self.bPygame.spriteGroup.add(p1a.sprite)
-        #     p1b = u.rangedUnit(0, 2, (0,1), self, self.game)
-        #     self.bPygame.spriteGroup.add(p1b.sprite)
-        #     p2a = u.meleeUnit(1, 3, (1,0), self, self.game)
-        #     self.bPygame.spriteGroup.add(p2a.sprite)
-        #     p2b = u.rangedUnit(1, 4, (1,1), self, self.game)
-        #     self.bPygame.spriteGroup.add(p2b.sprite)
-        #     print(f"p2a rect: {p2a.sprite.rect.topleft}")
-        #     print(f"p2b rect: {p2b.sprite.rect.topleft}")
-        # else:
-
-        # self.instUM.map[0][0] = p1a
-        # self.instUM.map[0][1] = p1b
-        # self.instUM.map[1][0] = p2a
-        # self.instUM.map[1][1] = p2b
-
-        
-
-        # return [p1a, p1b, p2a, p2b]
-
     def initializeNoise(self):
         self.noise = maps.Noise(self.maxY, self.maxX)
 
@@ -175,20 +152,7 @@ class Board:
         self.instOM = maps.OMap(self.maxY, self.maxX, self, self.GOT)
         # self.drawMap(self.instOM.map)
 
-    def getAdjDirections(self, unit):
-        unitY, unitX = unit.position
-        adjPositions = { 
-            "NW": (unitY - 1, unitX - 1),
-            "N": (unitY - 1, unitX),
-            "NE": (unitY - 1, unitX + 1),
-            "E": (unitY, unitX + 1),
-            "SE": (unitY + 1, unitX + 1),
-            "S": (unitY + 1, unitX),
-            "SW": (unitY + 1, unitX - 1),
-            "W": (unitY, unitX - 1)
-        }
 
-        return self.filterValidDirections(adjPositions)   
         
     def getValidMoveTargets(self, center):
         x, y = center
@@ -235,105 +199,6 @@ class Board:
         return validAbilities
 
     
-
-    def rayCast(self, origin, target, castingUnit, targetUnit, gameObjectTree, unitsMap, zMap):
-        
-        line = self.bresenhamLine(origin, target)
-
-        # Define query box size which captures line (quadtree order of axes is X, Y not Y, X)
-        queryBoxMin = ()
-        queryBoxMax = ()
-        queryBoxStartX, initStartY = line[0]
-        queryBoxEndX, initEndY = line[-1]
-
-        # Convert numpy Y value to quadtree Y value
-        queryBoxStartY = unitsMap.shape[0] - 1 - initStartY
-        queryBoxEndY = unitsMap.shape[0] - 1 - initEndY
-
-        len = queryBoxEndX - queryBoxStartX
-        wid = queryBoxEndY - queryBoxStartY
-
-        if len < 0 and wid < 0:
-            queryBoxMin = (line[-1])
-            queryBoxMax = (line[0])
-
-        if len < 0:
-            queryBoxMin = (queryBoxEndX, queryBoxStartY)
-            queryBoxMax = (queryBoxStartX, queryBoxEndY)
-
-        if wid < 0:
-            queryBoxMin = (queryBoxStartX, queryBoxEndY)
-            queryBoxMax = (queryBoxEndX, queryBoxStartY)
-
-        # Return ALL gameObjectStacks found in that box 
-        allGameObjectStacks = gameObjectTree.querySpace(queryBoxMin, queryBoxMax)
-
-        # Include gameObjectStacks which fall on a point in the line
-        lineStacks = {}
-        for stack in allGameObjectStacks:
-            if stack[0].position in line:
-                lineStacks[stack[0].position] = stack
-
-        # Get overall height of GameObjects on each point
-        newLineStacks = {}
-        totalGameObjectsZ = 0
-        for position, stack in lineStacks.items():
-            for gameObject in stack:
-                totalGameObjectsZ += gameObject.height
-            newLineStacks[position] = totalGameObjectsZ
-
-        for point in line:
-            y, x =  point
-
-            # Check if other Units in line
-            if unitsMap[y, x] is not None:
-                return False
-            
-            # Combine totalGameObjectsZ with zMap values
-            z = zMap[y, x]
-            effectiveZ = z + newLineStacks[y, x]
-            if targetUnit.height > castingUnit.height:
-                targetUnit.height - castingUnit.height < effectiveZ
-                return False
-            if targetUnit.height < castingUnit.height:    
-                castingUnit.height - targetUnit.height < effectiveZ
-                return False
-        
-        # If no units found, or view obstructed by terrain or obstacles with clearance of target in mind, return True for clear LOS
-        return True
-
-    def bresenhamLine(start, end):
-        # Bresenham's line algorithm to return a list of points from start to end
-        points = []
-        x1, y1 = start
-        x2, y2 = end
-        dx = abs(x2 - x1)
-        dy = abs(y2 - y1)
-        x, y = x1, y1
-        sx = -1 if x1 > x2 else 1
-        sy = -1 if y1 > y2 else 1
-        if dx > dy:
-            err = dx / 2.0
-            while x != x2:
-                points.append((y, x))
-                err -= dy
-                if err < 0:
-                    y += sy
-                    err += dx
-                x += sx
-        else:
-            err = dy / 2.0
-            while y != y2:
-                points.append((y, x))
-                err -= dx
-                if err < 0:
-                    x += sx
-                    err += dy
-                y += sy
-        points.append((y2, x2))
-
-        return points
-
     def updateBoard(self, actionTuple):
         unitID, actionType, info = actionTuple
         if actionType == "move":
@@ -375,36 +240,7 @@ class Board:
                 ability.setTarget(target)
             ability.activate()
         
-    def cast(self, entity, ability):
-        targetType = ability["events"][0].get("target")
-        if targetType == "targetunit":
-            #castTarget = self.game.currentAgent.selectTarget(ability)
-            castTargetID = ability["targetedUnit"]
-            castTarget = self.game.getUnitByID(castTargetID)
-        for event in ability.get("events"):
-            for k, v in event.items():
-                if v == "changeHP":
-                    castTarget.currentHP += event["value"]
-                    castTarget.currentHP = np.min([castTarget.currentHP, castTarget.HP])
 
-
-                if v == "displace":
-                    displaceDistance = event.get("distance")
-                    castTarget.currentMomentum = displaceDistance * castTarget.massConstant
-                    event = eDisplace(entity, castTarget, displaceDistance)
-                    self.dispatcher.dispatch(event)
-
-                    castTarget.position = event["value"]
-
-
-                if v == "changeActionPoints":
-                    entity.currentActionPoints += event["value"]
-                if v == "changeMaxActionPoints":
-                    delta = event["value"]
-                    entity.actionPoints += delta
-                if v == "changeMovement":
-                    delta = event["value"]
-                    entity.actionPoints += delta
         
     def drawMap(self, map):
             # cMap = plt.cm.terrain
@@ -432,14 +268,5 @@ class Board:
             # fig = plt.gcf()
             # fig.colorbar(im)
             # plt.show()
-
-    def filterValidDirections(self, directions):
-        """Filter and return only valid directions within the grid bounds."""
-        validDirections = {}
-        for direction, (y, x) in directions.items():
-            # Check if the coordinates are within the grid bounds
-            if 0 <= y < self.maxY and 0 <= x < self.maxX:
-                validDirections[direction] = (y, x)
-        return validDirections
 
 
