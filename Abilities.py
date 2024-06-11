@@ -8,7 +8,7 @@ class baseAbility:
         self.name = 'Ability Name'
         self.targeted = False
     def changeHealth(self, unit, delta):
-        unit.HP = unit.HP + delta
+        unit.currentHP = unit.currentHP + delta
     def changeAP(self, unit, delta):
         unit.actionPoints = unit.actionPoints + delta
     def activate(self):

@@ -334,38 +334,47 @@ class Board:
 
         return points
 
-    def updateBoard(self, selectedUnit, actionDict):
-        if actionDict.get("type") == "move":
-            self.move(selectedUnit, actionDict["directionDict"])
-        if actionDict.get("type") == "castAbility":
-            if actionDict['abilityDict'].get("name") == "End Unit Turn":
-                selectedUnit.Avail = False
-                return
-            else:
-                self.cast(selectedUnit, actionDict["abilityDict"])
+    def updateBoard(self, actionTuple):
+        unitID, actionType, info = actionTuple
+        if actionType == "move":
+            self.processMove(actionTuple)
+        if actionType == "ability":
+            self.processAbility(actionTuple)
 
-    def move(self, entity, dict):
-            if isinstance(entity, u.Unit):
-                destination = list(dict.keys())
-                destination = destination[0]
-                self.instUM.map[destination[1][0]][destination[1][1]] = self.instUM.map[entity.position[0]][entity.position[1]] # (Y, X) format
-                self.instUM.map[entity.position[0]][entity.position[1]] = None
-                entity.position = (destination[1][0], destination[1][1])
+    def processMove(self, actionTuple):
+        unitID, _, info = actionTuple
+        unit = self.game.allUnits[unitID]
+        initialPosition = unit.position
+        finalPosition = info
+        self.units_map[initialPosition[0], initialPosition[1]] = 0 # (Y, X) format
+        self.units_map[finalPosition[0], finalPosition[1]] = unitID
+        unit.position = finalPosition
 
-                if self.bPygame:
-                    entity.sprite.rect.topleft = entity.sprite.convertToRect((destination[1][0], destination[1][1]))
-                entity.currentMovement -= 1
+        if self.bPygame:
+            unit.sprite.rect.topleft = unit.sprite.convertToRect(finalPosition)
+        unit.currentMovement -= 1
 
-                if entity.currentMovement == 0:
-                    entity.canMove = False
+        if unit.currentMovement == 0:
+            unit.canMove = False
 
-                GOs = self.gameObjectDict.query(destination[1])
-                for go in GOs:
-                    go.invoke(entity, self.game)
-                
+        # GOs = self.gameObjectDict.query(destination[1])
+        # for go in GOs:
+        #     go.invoke(entity, self.game)
+        # self.drawMap(self.instUM.map)
 
-            self.drawMap(self.instUM.map)
-
+    def processAbility(self, actionTuple):
+        unitID, actionType, info = actionTuple
+        abilityClass, target = info
+        unit = self.game.allUnits[unitID]
+        if abilityClass == -1:
+            #-1 is code for end turn
+            unit.Avail = False
+        else:
+            ability = abilityClass(unit)
+            if target is not None:
+                ability.setTarget(target)
+            ability.activate()
+        
     def cast(self, entity, ability):
         targetType = ability["events"][0].get("target")
         if targetType == "targetunit":

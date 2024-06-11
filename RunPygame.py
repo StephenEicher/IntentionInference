@@ -70,48 +70,59 @@ class Pygame:
                         self.prevRects = []
                         self.trackMouseHover(mousePos)
                         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                            buttonClickDict = self.handleMouseInput(mousePos)
-                            if buttonClickDict is not None:
-                                if buttonClickDict["type"] == "castAbility":
-                                    if buttonClickDict["abilityDict"].get("name") == "End Unit Turn":
-                                        self.game.pgQueue.put(buttonClickDict)
+                            mouseClickTuple = self.handleMouseInput(mousePos)
+                            if mouseClickTuple is not None:
+                                action = mouseClickTuple
+                                _, actionType, info = action
+                                if actionType == "ability":
+                                    actionClass = info[0]
+                                    if actionClass ==  -1:
+                                        self.game.pgQueue.put(action)
                                     else:
-                                        self.actionDictAwaitingTarget = buttonClickDict
-                                elif  buttonClickDict["type"] == "unit":
-                                    self.game.pgQueue.put(buttonClickDict)
+                                        self.actionDictAwaitingTarget = action
+                                # elif  actionType == "unit":
+                                else:
+                                    self.game.pgQueue.put(action)
                             else:
                                 targetedUnit = self.handleTargeting(mousePos)
                                 if targetedUnit is None:
                                     continue
                                 else:
-                                    pReturnDict = self.actionDictAwaitingTarget
-                                    abilityDict = pReturnDict["abilityDict"]
-                                    abilityDict = dict(abilityDict)
-                                    abilityDict["targetedUnit"] = targetedUnit.ID
-                                    pReturnDict["abilityDict"] = abilityDict
-                                    self.game.pgQueue.put(pReturnDict)
+                                    action = self.actionDictAwaitingTarget
+                                    unitID, actionType, info = action
+                                    actionClass = info[0]
+                                    action = (unitID, actionType, (actionClass, targetedUnit))
+                                    self.game.pgQueue.put(action)
                                     self.hoveredSprite = None
                                     self.getTarget = False
                     else:
                         mouseTrackReturn = self.trackMouseAndDisplayMove(mousePos)
                         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                             self.game.fprint("click rcvd")
-                            mouseClickDict = self.handleMouseInput(mousePos)
-                            if mouseClickDict is None and mouseTrackReturn is not None:
-                                pReturnDict = mouseTrackReturn
-                            elif mouseClickDict is not None:
-                                pReturnDict = mouseClickDict
+                            mouseClickTuple = self.handleMouseInput(mousePos)
+                            if mouseClickTuple is None and mouseTrackReturn is not None:
+                                action = mouseTrackReturn
+                                
+                            elif mouseClickTuple is not None:
+                                 action = mouseClickTuple
                             else:
-                                continue                                         
-                            if pReturnDict["type"] == "castAbility":
-                                if pReturnDict["abilityDict"].get("name") == "End Unit Turn":
-                                    self.game.pgQueue.put(pReturnDict)
+                                continue 
+
+                            _, actionType, info = action                                        
+                            if actionType == "ability":
+                                actionClass = info[0]
+                                if actionClass == -1:
+                                    self.game.pgQueue.put(action)
                                 else:
-                                    self.getTarget = True
-                                    self.actionDictAwaitingTarget = pReturnDict
+                                    actionInst = actionClass(self.unitToMove)
+                                    if actionInst.targeted:
+                                        self.getTarget = True
+                                        self.actionDictAwaitingTarget = action
+                                    else:
+                                        self.pgQueue.put(action)
                                     #self.game.moveQueue.put(pReturnDict)
                             else: 
-                                self.game.pgQueue.put(pReturnDict)
+                                self.game.pgQueue.put(action)
 
             self.updateScreen()
             clock.tick(30)
@@ -236,10 +247,11 @@ class Pygame:
     def handleMouseInput(self, mousePos):
         for buttonRect, unit in self.unitButtons:
             if buttonRect.collidepoint(mousePos):
-                return {"type": "unit", "unit": unit}
-        for buttonRect, abilityDict in self.abilityButtons:
+                return (unit.ID, 'unit', unit)
+                # return {"type": "unit", "unit": unit}
+        for buttonRect, abilityClass in self.abilityButtons:
             if buttonRect.collidepoint(mousePos):
-                return {"type": "castAbility", "abilityDict": abilityDict}
+                return (self.unitToMove.ID, "ability", (abilityClass, None))
         return None
 
     def trackMouseHover(self, mousePos):

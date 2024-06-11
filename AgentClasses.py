@@ -118,17 +118,17 @@ class HumanAgent(Agent):
         
         self.aPygame.getInput = True
         time.sleep(0.1)
-        unitDict = self.game.pgQueue.get()
-        if unitDict is not None:
-            selectedUnit = unitDict["unit"]
+        unitTuple = self.game.pgQueue.get()
+        if unitTuple is not None:
+            unitID, _, selectedUnit = unitTuple
             self.selectedUnit = selectedUnit
             return selectedUnit
         else:
             return self.selectUnit(waitingUnits)
     
     def selectAction(self, game, actionSpace, debugStr=None):
-        selectedUnit, actionDict = self.selectActionRecursive(game, actionSpace)
-        return (selectedUnit.ID, actionDict)
+        action = self.selectActionRecursive(game, actionSpace)
+        return action
 
     def selectActionRecursive(self, game, actionSpace):
         waitingUnits = set()
@@ -160,7 +160,7 @@ class HumanAgent(Agent):
         if unit.canMove is False and unit.canAct is False:
             print(f"Warning! This should never happen, unit {unit.ID} that cannot act and cannot move in waitingUnits List")
             unit.Avail = False
-            return (None, None)
+            return None
         if unit.canMove or unit.canAct:
             self.aPygame.getInput = True
         
@@ -169,18 +169,19 @@ class HumanAgent(Agent):
         
         self.aPygame.drawButtons(validAbilities, unit)
         action = self.game.pgQueue.get()
-
+        
         if action is not None:
-            if action["type"] == "unit":
-                self.selectedUnit = action["unit"]
+            unitID, actionType, info = action
+            if actionType == "unit":
+                self.selectedUnit = info
                 self.aPygame.getTarget = False
-                (unit, action) = self.selectActionRecursive(self, game, actionSpace)
+                action = self.selectActionRecursive(game, actionSpace)
 
 
             self.aPygame.getInput = False
             self.aPygame.getTarget = False
-            return (unit, action)
+            return action
         else:
-            return (None, None)
+            return None
         
 

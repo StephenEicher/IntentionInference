@@ -152,14 +152,14 @@ class GameManager(BaseState):
         if not self.gameOver:
             self.nTurns = self.nTurns + 1
             changeTurnAgent = True
-            selectedUnitID, actionDict = action
+            selectedUnitID, actionType, info = action
             # selectedUnit = self.getUnitByID(selectedUnitID)
             selectedUnit = self.allUnits[selectedUnitID]
-            self.board.updateBoard(selectedUnit, actionDict)
-            self.fprint(f"\nCurrent unit: {selectedUnit.ID}")
+            self.board.updateBoard(action)
+            self.fprint(f"\nCurrent unit: {selectedUnitID}")
             self.fprint("===================================")
             self.fprint(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
-            self.updateUnitStatus(list(self.allUnits.values()))
+            self.updateUnitStatus()
             totalAvail = 0
             for unit in self.currentAgent.team:
                 if unit.Avail:
@@ -234,21 +234,23 @@ class GameManager(BaseState):
             while currentTurnActive:
                 actionSpace = self.getCurrentStateActions(self)
                 tStart = time.time()
-                selectedUnitID, actionDict = self.currentAgent.selectAction(self, actionSpace, 'gameLoop')
+                action = self.currentAgent.selectAction(self, actionSpace, 'gameLoop')
+                if action is None:
+                    break
+                selectedUnitID, actionType, info = action
                 self.fprint('Time to make move: ')
                 self.fprint(time.time() - tStart)
                 # selectedUnit = self.getUnitByID(selectedUnitID)
                 selectedUnit = self.allUnits[selectedUnitID]
-                if actionDict is None:
-                    break
-                self.board.updateBoard(selectedUnit, actionDict)
+
+                self.board.updateBoard(action)
                 self.nTurns = self.nTurns + 1
                 self.fprint(f"\nCurrent unit: {selectedUnit.ID}")
                 self.fprint("===================================")
                 self.fprint(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
             
 
-                self.updateUnitStatus(self.allUnits)
+                self.updateUnitStatus()
 
                 totalAvail = 0
                 for unit in self.currentAgent.team:
@@ -268,7 +270,9 @@ class GameManager(BaseState):
 
 
 
-    def updateUnitStatus(self, waitingUnits):
+    def updateUnitStatus(self, waitingUnits=None):
+           if waitingUnits is None:
+               waitingUnits = list(self.allUnits.values())
            for curUnit in waitingUnits:
             if curUnit.currentMovement <= 0:
                 curUnit.canMove = False
@@ -365,7 +369,7 @@ if __name__ == '__main__':
                 [(6, 7), u.rangedUnit]]
 
     teamComp = [team1, team2]
-    a = GameManager(ac.HumanAgent, ac.MCTSTestAgent, teamComp, True)
+    a = GameManager(ac.HumanAgent, ac.HumanAgent, teamComp, True)
     a.start()
     # b = a.clone()
     # b.start()
