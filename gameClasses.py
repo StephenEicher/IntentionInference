@@ -16,7 +16,7 @@ from immutables import Map
 from mcts.base.base import BaseState, BaseAction
 import sys
 
-class GameManager(BaseState):
+class GameManager():
 
     def __init__(self, p1Class, p2Class, teamComp, inclPygame = True, seed=random.randint(0, 999999), verbose=True):
         random.seed(seed)
@@ -92,6 +92,7 @@ class GameManager(BaseState):
         return cloned_game
 
     def start(self):
+        """Launch game user interface through pygame by starting pygame loop on a different thread"""
         if self.inclPygame:
             self.pygameThread = threading.Thread(target=self.pygameUI.pygameLoop)
             self.pygameThread.daemon = True
@@ -99,49 +100,6 @@ class GameManager(BaseState):
             # time.sleep(0.5)
         self.gameLoop()
         #self.queryAgentForMove()
-    def take_action(self, action:any):
-            newState = self.clone()
-            newState.executeMove(action)
-            if self.agentTurnIndex == 0:
-                print('Human Turn')
-            return newState
-    
-    def is_terminal(self):
-        self.gameOverCheck()
-        return self.gameOver
-
-    def get_possible_actions(self):
-        actions = self.getCurrentStateActionsMDP(self)
-        random.shuffle(actions)
-        # if len(actions) > 4:
-        #     actions = actions[:4]
-        return actions
-    
-    def get_current_player(self):
-        if self.agentTurnIndex == 1:
-            return 1
-        else:
-            return -1
-    def get_action_reward(self, action):
-        weights = self.p2.weights
-        unitID, actionDict = action
-        if actionDict.get('type', None) == 'castAbility':
-            return 3 * weights['action']
-        return weights['no_action'] 
-    def get_reward(self):
-        # value = self.p2.getValue(self)
-        # return value * 10 - self.nTurns
-        weights = self.p2.weights
-        self.gameOverCheck()
-        gameOverReward = 100 * weights['end_game']
-        nTurnReward = self.nTurns * weights['n_turns']
-        if self.gameOver:
-            if self.winner == 0:
-                return -gameOverReward + nTurnReward
-            else:
-                return gameOverReward + nTurnReward
-        else:
-            return nTurnReward
 
     def executeMove(self, action):
         self.gameOverCheck()
@@ -156,12 +114,12 @@ class GameManager(BaseState):
             self.fprint("===================================")
             self.fprint(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
             self.updateUnitStatus()
-            totalAvail = 0
             for unit in self.currentAgent.team:
                 if unit.Avail:
                     changeTurnAgent = False
                     break
             self.gameOverCheck()
+            executedTurnStillActive = ~changeTurnAgent
             if changeTurnAgent:
                 for unit in self.currentAgent.team: # Reset availability for next time that agent is up for turn
                     if unit.Alive:
@@ -169,8 +127,10 @@ class GameManager(BaseState):
                 self.agentTurnIndex ^= 1    
                 self.currentAgent = self.allAgents[self.agentTurnIndex]       
                 self.gameOverCheck()
+            return executedTurnStillActive
 
     def gameOverCheck(self):
+        """Check if the game is over- if so, assign winner and call quit()"""
         if len(self.p1.team) == 0 or len(self.p2.team) == 0:
             self.gameOver = True
         if self.gameOver:
@@ -183,60 +143,33 @@ class GameManager(BaseState):
             self.quit()
 
     def quit(self):
+        """Quit and return winner. If pygame, then join thread."""
         if self.inclPygame:
+            self.gameOver = True
             time.sleep(0.5)
             try:
                 self.pygameThread.join()
             except:
-                pass
-        self.gameOver = True
+                    pass
         if self.winner is not None:
             return self.winner
-
-    def getUnitByID(self, ID):
-        for unit in self.allUnits:
-            if unit.ID == ID:
-                return unit
+        
     def gameLoop(self):
+        """Alternate querying agents for turn"""
         while self.gameOver is False:
             self.currentAgent = self.allAgents[self.agentTurnIndex]
-
-            
             self.fprint(f"\n-------- {self.currentAgent.name}'s turn --------")
             currentTurnActive= True
             while currentTurnActive:
+                if self.gameOver:
+                    break
                 actionSpace = self.getCurrentStateActions(self)
                 action = self.currentAgent.selectAction(self, actionSpace, 'gameLoop')
                 if action is None:
                     break
-                selectedUnitID, actionType, info = action
-                # self.fprint('Time to make move: ')
-                # self.fprint(time.time() - tStart)
-                selectedUnit = self.allUnits[selectedUnitID]
-                self.board.updateBoard(action)
-                self.nTurns = self.nTurns + 1
-                self.fprint(f"\nCurrent unit: {selectedUnit.ID}")
-                self.fprint("===================================")
-                self.fprint(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
-            
-
-                self.updateUnitStatus()
-
-                totalAvail = 0
-                for unit in self.currentAgent.team:
-                    if unit.Avail:
-                        totalAvail += 1
-                        break
-                if totalAvail == 0:
-                    currentTurnActive = False
-            
-            for unit in self.currentAgent.team: # Reset availability for next time that agent is up for turn
-                if unit.Alive:
-                    unit.resetForEndTurn()
-
+                currentTurnActive = self.executeMove(action)
             currentTurnActive = True
-            self.agentTurnIndex ^= 1
-            self.gameOverCheck()
+
 
 
 
@@ -279,11 +212,7 @@ class GameManager(BaseState):
 
     def disposeUnit(self, unitToDispose):
         posessingAgent = self.allAgents[unitToDispose.agentIndex]
-        # for unit in self.game.allAgents
         team = posessingAgent.team
-        # for unit in self.allUnits:
-        #     if unit.ID == unitToDispose.ID:
-        #         self.allUnits.remove(unit)
         allUnits = dict(self.allUnits)
         del allUnits[unitToDispose.ID] 
         self.allUnits = allUnits
@@ -353,10 +282,13 @@ class GameManager(BaseState):
 
 
 if __name__ == '__main__':
-    team1 = [(3, 3, u.meleeUnit),
-            (0, 1, u.rangedUnit)]
-    team2 =  [(6,6, u.meleeUnit),
-            (6, 7, u.rangedUnit)]
+    # team1 = [(3, 3, u.meleeUnit),
+    #         (0, 1, u.rangedUnit)]
+    # team2 =  [(6,6, u.meleeUnit),
+    #         (6, 7, u.rangedUnit)]
+    
+    team1 = [(5, 5, u.meleeUnit),]
+    team2 =  [(6,6, u.meleeUnit),]
 
     teamComp = [team1, team2]
     a = GameManager(ac.HumanAgent, ac.HumanAgent, teamComp, True)

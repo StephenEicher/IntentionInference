@@ -11,7 +11,7 @@ class Agent(metaclass=abc.ABCMeta):
         self.team = team
 
         self.game = game
-        self.aPygame = pygame
+        self.pygameUI = pygame
         self.inputReady = False
     @abc.abstractmethod
     def selectAction(self):
@@ -20,9 +20,9 @@ class Agent(metaclass=abc.ABCMeta):
 class HumanAgent(Agent):
     selectedUnit = None
     def selectUnit(self, waitingUnits):
-        self.aPygame.drawButtons({}, None)
+        self.pygameUI.drawButtons({}, None)
         
-        self.aPygame.getInput = True
+        self.pygameUI.getInput = True
         time.sleep(0.1)
         unitTuple = self.game.pgQueue.get()
         if unitTuple is not None:
@@ -53,7 +53,7 @@ class HumanAgent(Agent):
             else:
                 sortedMoves[ID].append(info)
         waitingUnits = list(waitingUnits)
-        self.aPygame.drawSelectUnit(waitingUnits)
+        self.pygameUI.drawSelectUnit(waitingUnits)
 
         if self.selectedUnit is None:
             unit = self.selectUnit(waitingUnits)
@@ -68,24 +68,24 @@ class HumanAgent(Agent):
             unit.Avail = False
             return None
         if unit.canMove or unit.canAct:
-            self.aPygame.getInput = True
+            self.pygameUI.getInput = True
         
         
-        self.aPygame.validDirections = validMoveDirections
+        self.pygameUI.validDirections = validMoveDirections
         
-        self.aPygame.drawButtons(validAbilities, unit)
+        self.pygameUI.drawButtons(validAbilities, unit)
         action = self.game.pgQueue.get()
         
         if action is not None:
             _, actionType, info = action
             if actionType == "unit":
                 self.selectedUnit = info
-                self.aPygame.getTarget = False
+                self.pygameUI.getTarget = False
                 action = self.selectActionRecursive(game, actionSpace)
 
 
-            self.aPygame.getInput = False
-            self.aPygame.getTarget = False
+            self.pygameUI.getInput = False
+            self.pygameUI.getTarget = False
             return action
         else:
             return None

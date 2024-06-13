@@ -80,7 +80,6 @@ class Pygame:
                                         self.game.pgQueue.put(action)
                                     else:
                                         self.actionDictAwaitingTarget = action
-                                # elif  actionType == "unit":
                                 else:
                                     self.game.pgQueue.put(action)
                             else:
@@ -98,7 +97,6 @@ class Pygame:
                     else:
                         mouseTrackReturn = self.trackMouseAndDisplayMove(mousePos)
                         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                            self.game.fprint("click rcvd")
                             mouseClickTuple = self.handleMouseInput(mousePos)
                             if mouseClickTuple is None and mouseTrackReturn is not None:
                                 action = mouseTrackReturn
@@ -213,8 +211,9 @@ class Pygame:
                 self.unitButtons.append((buttonRect, unit))
         except:
             self.game.fprint('error in drawing select units...')
-            time.sleep(0.1)
-            self.drawSelectUnit(unitRefs)
+            time.sleep(1/30)
+            if not self.game.gameOver:
+                self.drawSelectUnit(unitRefs)
 
     def drawButtons(self, validAbilities, unit):
         self.buttonsToBlit = []  # Initialize the list to store buttons and text
