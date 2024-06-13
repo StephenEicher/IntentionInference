@@ -3,9 +3,12 @@ from  opensimplex import OpenSimplex
 import random
 import eventClasses as e
 from scipy.ndimage import gaussian_filter, zoom
+from scipy.spatial import KDTree
 import SpriteClasses as sc
 import GameObjects as go
 import copy
+from immutables import map
+
 class Noise:
     def __init__(self, maxY, maxX):
         self.maxY = maxY
@@ -178,16 +181,16 @@ class ZMap(Noise):
         dispatcher.addListener(e.eMove, self.ZMhandleEvent)
 
 class OMap(Noise):
-    def __init__(self, maxY, maxX, board, GOT):
+    def __init__(self, maxY, maxX, board):
         super().__init__(maxY, maxX)
         self.board = board
-        self.GOT = GOT
         
         comboMap = self.genNoise(0.5, 0.1, 0, 2)
         self.map = comboMap[0]
         self.map[self.map < 2] = 0
         self.map[self.map == 2] = 1 # Convert to bool
         self.createObstacles(self.map)
+        
 
     def createObstacles(self, map): # Should this function exist on the class or should the board pass the instance to the GameObjectTree?
         coordArrays = np.where(map)
@@ -198,8 +201,11 @@ class OMap(Noise):
             row, col = obstacleCoords[i]
             newObstacle = go.Obstacles(None, (row, col), 1, temp.spritesDictScaled["obstacle"])
             self.board.bPygame.obstacleGroup.add(newObstacle.sprite)
-            self.GOT.insert(newObstacle)
-    
+            # self.obstacleMap[i] = newObstacle
+            # self.GOT.insert(newObstacle)
+        # self.tree = KDTree(obstalceCoordsNP)    
+        
+
     def clone(self):
         cloned_OM = OMap.__new__(OMap)
         cloned_OM.map = copy.deepcopy(self.map)

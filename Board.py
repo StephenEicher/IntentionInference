@@ -52,11 +52,10 @@ class Board:
         row_indices, col_indices = np.meshgrid(np.arange(self.maxX), np.arange(self.maxY), indexing='ij')
         self.coord_map = np.stack((row_indices, col_indices), axis=-1)
 
-        # self.initializeUMap()
         # self.initializeGameObjectTree()
         # self.initializeObjectDict()
         # self.initializeZMap()
-        # self.initializeOMap()
+        self.initializeOMap()
 
     def clone(self, game):
         cloned_board = Board.__new__(Board)
@@ -69,8 +68,8 @@ class Board:
         cloned_board.instUM.board = cloned_board
         # cloned_board.instUM.assignListeners(cloned_board.dispatcher)
         cloned_board.bPygame = False
-        cloned_board.GOT = copy.deepcopy(self.GOT)
-        cloned_board.GOT.board = cloned_board
+        # cloned_board.GOT = copy.deepcopy(self.GOT)
+        # cloned_board.GOT.board = cloned_board
         # cloned_board.GOT.addListeners(cloned_board.dispatcher)
         cloned_board.gameObjectDict = copy.deepcopy(self.gameObjectDict)
         # cloned_board.gameObjectDict.addListeners(cloned_board.dispatcher)
@@ -80,9 +79,9 @@ class Board:
         cloned_board.instZM.board = cloned_board
         # cloned_board.instZM.assignListeners(cloned_board.dispatcher)
 
-        cloned_board.instOM = self.instOM.clone()
-        cloned_board.instOM.board = cloned_board
-        cloned_board.instOM.GOT = cloned_board.GOT
+        # cloned_board.instOM = self.instOM.clone()
+        # cloned_board.instOM.board = cloned_board
+        # cloned_board.instOM.GOT = cloned_board.GOT
         return cloned_board
 
     def __deepcopy__(self, memo):
@@ -149,7 +148,8 @@ class Board:
         # self.drawMap(self.zMap)
 
     def initializeOMap(self):
-        self.instOM = maps.OMap(self.maxY, self.maxX, self, self.GOT)
+        generatedObsMap = maps.OMap(self.maxY, self.maxX, self)
+        self.obs_map = generatedObsMap.map
         # self.drawMap(self.instOM.map)
 
 
@@ -162,8 +162,8 @@ class Board:
         yBounds = (np.max([0, y-1]), np.min([y + 2, self.maxY]))
         coord_map_adj = self.coord_map[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
         unit_map_adj = self.units_map[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
-        dirs = coord_map_adj[unit_map_adj == 0]
-        
+        obs_map_adj = self.obs_map[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
+        dirs = coord_map_adj[unit_map_adj + obs_map_adj == 0]
         return dirs
     
 
