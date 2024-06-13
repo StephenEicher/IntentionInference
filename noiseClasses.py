@@ -100,4 +100,4 @@ class OMap(Noise):
         for i in range(len(obstacleCoords)):
             row, col = obstacleCoords[i]
             newObstacle = go.Obstacles(None, (row, col), 1, temp.spritesDictScaled["obstacle"])
-            self.board.bPygame.obstacleGroup.add(newObstacle.sprite)
+            self.board.game.pygameUI.obstacleGroup.add(newObstacle.sprite)

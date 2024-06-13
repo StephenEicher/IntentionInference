@@ -1,20 +1,6 @@
-import pygame
-import random
 import numpy as np
-
-import matplotlib.pyplot as plt
-
-# from skimage.morphology import disk
-import queue
-import spriteClasses as sc
-import unitClasses as u
-import gameObjectClasses as go
-import pygameUI as rp
-import config
-import copy
 import noiseClasses as nc
-from immutables import Map
-import immutables  as im
+
 
 
 
@@ -25,7 +11,6 @@ class Board:
         self.maxX = maxX
         self.maxPoint = (maxX, maxY)
         self.game = game
-        self.bPygame = pygame
         self.units_map = np.zeros([maxX, maxY])
         row_indices, col_indices = np.meshgrid(np.arange(self.maxX), np.arange(self.maxY), indexing='ij')
         self.coord_map = np.stack((row_indices, col_indices), axis=-1)
@@ -36,28 +21,10 @@ class Board:
         cloned_board.maxX = self.maxY
         cloned_board.maxY = self.maxX
         cloned_board.game = game
-        cloned_board.bPygame = False
         return cloned_board
 
 
 
-    def initializeUnits(self, teamComp):
-        agentIndex = 0
-        unitIndex = 1
-        teams = []
-        for team in teamComp:
-            curTeam = []
-            for entry in team:
-                spawnLocation, unitClass = entry
-                newUnit = unitClass(agentIndex, unitIndex, spawnLocation, self, self.game)
-                curTeam.append(newUnit)
-                if self.bPygame:
-                    self.bPygame.spriteGroup.add(newUnit.sprite)
-                unitIndex+=1
-                self.units_map[spawnLocation[0], spawnLocation[1]] = newUnit.ID
-            agentIndex+=1
-            teams.append(curTeam)
-        return (teams[0], teams[1])
 
 
 
@@ -110,7 +77,7 @@ class Board:
                 else:
                     if ability.isValidToCast(self): 
                         validAbilities.append(abilityClass, None)
-        validAbilities.append((-1, None))
+        
         return validAbilities
 
     
@@ -130,7 +97,7 @@ class Board:
         self.units_map[finalPosition[0], finalPosition[1]] = unitID
         unit.position = finalPosition
 
-        if self.bPygame:
+        if self.game.pygameUI:
             unit.sprite.rect.topleft = unit.sprite.convertToRect(finalPosition)
         unit.currentMovement -= 1
 

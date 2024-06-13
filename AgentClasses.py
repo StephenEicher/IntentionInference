@@ -77,7 +77,7 @@ class HumanAgent(Agent):
         action = self.game.pgQueue.get()
         
         if action is not None:
-            unitID, actionType, info = action
+            _, actionType, info = action
             if actionType == "unit":
                 self.selectedUnit = info
                 self.aPygame.getTarget = False

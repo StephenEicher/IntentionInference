@@ -17,6 +17,7 @@ from mcts.base.base import BaseState, BaseAction
 import sys
 
 class GameManager(BaseState):
+
     def __init__(self, p1Class, p2Class, teamComp, inclPygame = True, seed=random.randint(0, 999999), verbose=True):
         random.seed(seed)
         self.verbose = verbose
@@ -30,36 +31,31 @@ class GameManager(BaseState):
         self.p2Class = p2Class
         if self.inclPygame:
             self.fprint('Including pygame...')
-            import RunPygame as rp
+            import pygameUI as rp
             maxX = 8
             maxY = 8
-            self.gPygame = rp.Pygame(self, maxX, maxY)            
-            self.board = b.Board(maxX, maxY, self, self.gPygame)  
+            self.pygameUI = rp.Pygame(self, maxX, maxY)            
+            self.board = b.Board(maxX, maxY, self, self.pygameUI)  
             self.pgQueue = queue.Queue(maxsize = 1)          
         else:
             self.board = b.Board(8, 8, self, None)
-        team0, team1 = self.board.initializeUnits(teamComp)
         self.allUnits = {}
-        for unit in team0:
-            self.allUnits[unit.ID] = unit
-        for unit in team1:
-            self.allUnits[unit.ID] = unit
-        self.allUnits = Map(self.allUnits)
-        self.p1 = self.p1Class('P1', 0, team0, self, self.gPygame)
-        self.p2 = self.p2Class('P2', 1, team1, self, self.gPygame)
+        self.initializeTeams(teamComp)
         self.allAgents = []
         self.allAgents.extend([self.p1, self.p2])
         self.currentAgent = self.allAgents[self.agentTurnIndex]
         self.nTurns = 0
         self.winner = None
+
     def fprint(self, string):
         if self.verbose:
             print(string)
+
     def clone(self):
         cloned_game = GameManager.__new__(GameManager)
         cloned_game.agentTurnIndex = self.agentTurnIndex
         cloned_game.board = self.board.clone(cloned_game)
-        self.gPygame = None
+        self.pygameUI = None
         team0 = []
         team1 = []
         cloned_game.allUnits = {}
@@ -97,7 +93,7 @@ class GameManager(BaseState):
 
     def start(self):
         if self.inclPygame:
-            self.pygameThread = threading.Thread(target=self.gPygame.pygameLoop)
+            self.pygameThread = threading.Thread(target=self.pygameUI.pygameLoop)
             self.pygameThread.daemon = True
             self.pygameThread.start()
             # time.sleep(0.5)
@@ -173,27 +169,6 @@ class GameManager(BaseState):
                 self.agentTurnIndex ^= 1    
                 self.currentAgent = self.allAgents[self.agentTurnIndex]       
                 self.gameOverCheck()
-                
-    # def progressToNextAgentTurn(self, agent, queryAgentAfter=True):
-    #     self.currentAgent = self.allAgents[self.agentTurnIndex] 
-    #     if self.sameAgent(self.currentAgent, agent):
-    #         if queryAgentAfter:
-    #             self.queryAgentForMove()
-    #     else:
-    #         while not self.sameAgent(self.currentAgent, agent) and not self.gameOver:
-    #             self.queryAgentForMove()
-
-    # def sameAgent(self, agent1, agent2):
-    #     return agent1.agentIndex == agent2.agentIndex
-    
-    # def queryAgentForMove(self):
-    #     self.gameOverCheck()
-    #     if not self.gameOver:
-    #         self.currentAgent = self.allAgents[self.agentTurnIndex] 
-    #         self.fprint(f"\n-------- {self.currentAgent.name}'s turn --------")
-    #         flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.getCurrentStateActions(self)
-    #         action = self.currentAgent.selectAction(self, waitingUnits, allActions, flatActionSpace, 'queryAgent')
-    #         self.executeMove(action)
 
     def gameOverCheck(self):
         if len(self.p1.team) == 0 or len(self.p2.team) == 0:
@@ -228,12 +203,9 @@ class GameManager(BaseState):
 
             
             self.fprint(f"\n-------- {self.currentAgent.name}'s turn --------")
-            #selectedUnit = self.currentAgent.selectUnit()
-            #print(f"Selected {selectedUnit.ID}")   
             currentTurnActive= True
             while currentTurnActive:
                 actionSpace = self.getCurrentStateActions(self)
-                tStart = time.time()
                 action = self.currentAgent.selectAction(self, actionSpace, 'gameLoop')
                 if action is None:
                     break
@@ -284,7 +256,7 @@ class GameManager(BaseState):
 
 
     def getCurrentStateActions(self, state):
-        """ For the current state, returns action space. Action Format: (unitID, actionMap) """
+        """ For the current state, returns action space. Action Format: (unitID, type, info) """
 
         agent = state.allAgents[state.agentTurnIndex]
         waitingUnits = []
@@ -302,7 +274,7 @@ class GameManager(BaseState):
                 validAbilities = state.board.getValidAbilities(curUnit)
                 for ability in validAbilities:
                     actionSpace.append((curUnit.ID, 'ability', ability))
-
+            actionSpace.append((curUnit.ID, 'ability', (-1, None)))
         return actionSpace
 
     def disposeUnit(self, unitToDispose):
@@ -320,7 +292,7 @@ class GameManager(BaseState):
             if unit.ID == unitToDispose.ID:
                 team.remove(unit)
                 if unitToDispose.sprite is not None:
-                    self.board.bPygame.spriteGroup.remove(unit.sprite)
+                    self.pygameUI.spriteGroup.remove(unit.sprite)
                 self.board.units_map[unit.position[0], unit.position[1]] = 0
                 self.fprint(f"{unit.ID} is disposed")
 
@@ -358,12 +330,33 @@ class GameManager(BaseState):
         for agent in self.allAgents:
             if agent.agentIndex is not agentIndex:
                 return agent.team
+    def initializeTeams(self, teamComp):
+        agentIndex = 0
+        unitIndex = 1
+        teams = []
+        for team in teamComp:
+            curTeam = []
+            for entry in team:
+                x, y, unitClass = entry
+                newUnit = unitClass(agentIndex, unitIndex, (x, y))
+                curTeam.append(newUnit)
+                if self.pygameUI:
+                    self.pygameUI.spriteGroup.add(newUnit.sprite)
+                unitIndex+=1
+                self.board.units_map[x, y] = newUnit.ID
+                self.allUnits[newUnit.ID] = newUnit
+            agentIndex+=1
+            teams.append(curTeam)
+        self.allUnits = Map(self.allUnits)
+        self.p1 = self.p1Class('P1', 0, teams[0], self, self.pygameUI)
+        self.p2 = self.p2Class('P2', 1, teams[1], self, self.pygameUI)
+
 
 if __name__ == '__main__':
-    team1 = [ [(3, 3), u.meleeUnit],
-                [(0, 1), u.rangedUnit],]
-    team2 =  [  [(6,6), u.meleeUnit],
-                [(6, 7), u.rangedUnit]]
+    team1 = [(3, 3, u.meleeUnit),
+            (0, 1, u.rangedUnit)]
+    team2 =  [(6,6, u.meleeUnit),
+            (6, 7, u.rangedUnit)]
 
     teamComp = [team1, team2]
     a = GameManager(ac.HumanAgent, ac.HumanAgent, teamComp, True)
