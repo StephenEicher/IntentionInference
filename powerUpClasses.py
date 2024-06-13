@@ -1,4 +1,3 @@
-import eventClasses as e
 class GameObjectDict:
     def __init__(self, board):
         self.GOmap = {}

@@ -538,3 +538,108 @@ def getAdjDirections(self, unit):
                 validDirections[direction] = (y, x)
         return validDirections
 
+# class Water(Elements):
+#     debugName = 'Water'
+#     symbol = 'W'
+    
+#     def __init__(self, position):
+#         super().__init__(position)
+
+# class Earth(Elements):
+#     debugName = 'Earth'
+#     symbol = 'E'
+    
+#     def __init__(self, position):
+#         super().__init__(position)
+
+# class Fire(Elements):
+#     debugName = 'Fire'
+#     symbol = 'F'
+   
+#     def __init__(self, position):
+#         super().__init__(position)
+
+# class Air(Elements):
+#     debugName = 'Air'
+#     symbol = 'A'
+    
+#     def __init__(self, position):
+#         super().__init__(position)
+
+# class Seed(Obstacles):
+#     debugName = 'Seed'
+#     symbol = '[ ]'
+#     pGrow = 0.2
+    
+#     def __init__(self, position, boardClassInstance):
+#         super().__init__(position)
+#         self.position = position
+#         self.boardClassInstance = boardClassInstance
+
+#     def proliferate(self):
+#         seedPosition = self.position
+#         directions = [
+#             (-1, 0),  # Top
+#             (1, 0),   # Bottom
+#             (0, -1),  # Left
+#             (0, 1),   # Right
+#         ]
+
+#         for dRow, dCol in directions:
+#             newRow = seedPosition[0] + dRow
+#             newCol = seedPosition[1] + dCol
+            
+#             if 0 <= newRow < self.boardClassInstance.rows and 0 <= newCol < self.boardClassInstance.cols:
+#                 newSeedPosition = (newRow, newCol)
+#                 adjacentObject = self.boardClassInstance.grid[newRow][newCol]
+                
+#                 if (adjacentObject is None or not adjacentObject.occupied) and boolWithProb(self.pGrow):
+#                     newSeed = Seed(newSeedPosition, self.boardClassInstance)
+#                     newSeed.symbol = '~'
+#                     self.boardClassInstance.grid[newRow][newCol] = newSeed
+#                     newSeed.proliferate()
+
+class Surface(Terrain):
+    debugName = 'Surface'
+    pass
+
+
+
+class UnitsMap:
+    def __init__(self, maxY, maxX, board):
+        self.board = board
+        self.map = [[None for _ in range(maxX)] for _ in range(maxY)]
+
+    def clone(self):
+        cloned_UM = UnitsMap.__new__(UnitsMap)
+        cloned_UM.map = copy.deepcopy(self.map)
+        return cloned_UM
+        
+
+    def drawMap(self, map):
+            # cMap = plt.cm.terrain
+            # coloredZMap = cMap(map)
+            if isinstance(map, np.ndarray):
+                for y in range(len(map)):
+                    rowToPrint = ''
+                    for x in range(len(map[y])):
+                        if map[y][x] == None:
+                            rowToPrint += '{: ^3}'.format(".")    
+                        else:
+                            rowToPrint += '{: ^3}'.format(f"{map[y][x]}")
+                    self.game.fprint(rowToPrint)
+            else:
+                for y in range(len(map)):
+                    rowToPrint = ''
+                    for x in range(len(map[y])):
+                        if map[y][x] == None:
+                            rowToPrint += '{: ^3}'.format(".")    
+                        else:
+                            rowToPrint += '{: ^3}'.format(f"{map[y][x].ID}")
+                    self.game.fprint(rowToPrint)
+            
+            # im = plt.imshow(coloredZMap, cmap = cMap)
+            # fig = plt.gcf()
+            # fig.colorbar(im)
+            # plt.show()
+

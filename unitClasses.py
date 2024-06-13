@@ -1,26 +1,22 @@
-import pygame
-import Board as b
-import SpriteClasses as sc
+import boardClasses as b
+import spriteClasses as sc
 import copy
 from immutables import Map
-import Abilities as a
+import abilityClasses as a
 import numpy as np
 class Unit:
-    def __init__(self, agentIndex, unitID, position, board, game, image=None):
+    def __init__(self, agentIndex, unitID, position, image=None):
         self.agentIndex = agentIndex
         self.ID = unitID
         self.unitSymbol = "U"
         self.position = np.array(position)
-        # self.board = board
-        # self.game = game
-
         self.Alive = True
         self.Avail = True  # Available to select from team of units to move/act with
         self.canMove = True
         self.canAct = True
 
         # Initialize the default stats for the unit
-        self.HP = 100
+        self.HP = 2
         self.movement = 4
         self.momentum = 0
         self.massConstant = 1
@@ -74,38 +70,8 @@ class Unit:
         return cloned_unit
 
     def abilities(self):
-        abilities = [
-            Map({
-                "name": "Unarmed Strike",
-                "cost": 1,
-                "range": 1,
-                "events": (
-                    Map({"type": "changeHP", "target": "targetunit", "value": -1}),
-                    Map({"type": "changeActionPoints", "target": "self", "value": -1}),
-                ),
-                "targetedUnit" : None,
-                "targetedUnitHP" : None,
-            }),
-            # Map({
-            #     "name": "Shove",
-            #     "cost": 1,
-            #     "range": 1,
-            #     "events": (
-            #         Map({"type": "displace", "target": "targetunit", "distance": 1}),
-            #         Map({"type": "changeActionPoints", "target": "self", "value": -1}),
-            #     ),
-            #     "targetedUnit" : None,
-            # }),
-        ]
         abilities = [a.unarmedStrike]
         return abilities
-    # def unitValidForTurn(self):
-    #     if self.currentHP > 0 and (self.canMove or self.canAct):
-    #         return True
-    #     else:
-    #         print("toggling to False!")
-    #         self.Avail = False
-    #         return False
     def resetForEndTurn(self):
         if self.Alive:
             self.Avail = True
@@ -116,15 +82,12 @@ class Unit:
 
 
 class meleeUnit(Unit):
-    def __init__(self, agentIndex, unitID, position, board, game):
+    def __init__(self, agentIndex, unitID, position):
         if agentIndex == 0:
-            # image = game.gPygame.spritesImageDict['Moo_melee']
             image = sc.Sprites().spritesDictScaled['Moo_melee']
         else:
-            # image = game.gPygame.spritesImageDict['Haku']
-            # image = sc.Sprites().spritesDictScaled['Haku']
             image = sc.Sprites().spritesDictScaled['Moo_melee_grey']
-        super().__init__(agentIndex, unitID, position, board, game, image)
+        super().__init__(agentIndex, unitID, position, image)
         self.unitSymbol = "M"
         self.movement = 3
         self.currentMovement = self.movement
@@ -132,31 +95,17 @@ class meleeUnit(Unit):
         self.currentHP = self.HP
         
 class rangedUnit(Unit):
-    def __init__(self, agentIndex, unitID, position, board, game):
+    def __init__(self, agentIndex, unitID, position):
         if agentIndex == 0:
-            # image = game.gPygame.spritesImageDict['Moo_ranged']
             image = sc.Sprites().spritesDictScaled['Moo_ranged']
         else:
-            # image = game.gPygame.spritesImageDict['Haku']
             image = sc.Sprites().spritesDictScaled['Moo_ranged_grey']
-        super().__init__(agentIndex, unitID, position, board, game, image)
+        super().__init__(agentIndex, unitID, position, image)
         self.unitSymbol = "R"
         self.movement = 2
         self.currentMovement = self.movement
         self.HP = 2 
         self.currentHP = self.HP
-
-        rangedStrike = Map({
-                "name": "Ranged Strike",
-                "cost": 1,
-                "range": 3,
-                "events": (
-                    Map({"type": "changeHP", "target": "targetunit", "value": -1}),
-                    Map({"type": "changeActionPoints", "target": "self", "value": -1}),
-                ),
-                "targetedUnit" : None,
-                "targetedUnitHP" : None,
-            })
         self.unitAbilities.append(a.rangedStrike)
 
 

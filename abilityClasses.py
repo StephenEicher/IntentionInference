@@ -21,6 +21,10 @@ class baseAbility:
         return (x == xt or y == yt)
     def setTarget(self, target):
         self.target = target
+    def obstacleInPath(self, board):
+        x, y = self.source.position
+        xt, yt = self.target.position
+        return np.sum(board.obs_map[x:xt+1, y:yt+1]) > 0
 
 class unarmedStrike(baseAbility):
     def __init__(self, source):
@@ -34,7 +38,10 @@ class unarmedStrike(baseAbility):
         self.changeHealth(self.target, dmg)
         self.changeAP(self.source, ap)
     def isValidToCast(self, board):
-        return self.alignedRowOrCol()
+        if self.alignedRowOrCol():
+            if not self.obstacleInPath(board):
+                return True
+        return False
     
 
 class rangedStrike(baseAbility):
@@ -50,4 +57,7 @@ class rangedStrike(baseAbility):
         self.changeAP(self.source, ap)
         return self.alignedRowOrCol()
     def isValidToCast(self, board):
-        return self.alignedRowOrCol()
+        if self.alignedRowOrCol():
+            if not self.obstacleInPath(board):
+                return True
+        return False

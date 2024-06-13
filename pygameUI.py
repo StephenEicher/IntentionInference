@@ -1,13 +1,13 @@
 import pygame
 import time
-import Units as u
+import unitClasses as u
 import config as c
 import threading
 import sys
 import numpy as np
 import copy
 import queue
-import SpriteClasses as sc
+import spriteClasses as sc
 
 class Pygame:
     def __init__(self, game, maxX, maxY):

@@ -1,6 +1,6 @@
-import game as g
-import AgentClasses as ac
-import Units as u
+import gameClasses as g
+import agentClasses as ac
+import unitClasses as u
 import threading
 import time
 
