@@ -6,7 +6,7 @@ import noiseClasses as nc
 
 
 class Board:
-    def __init__(self, maxY, maxX, game, pygame = None):
+    def __init__(self, maxY, maxX, game):
         self.maxY = maxY
         self.maxX = maxX
         self.maxPoint = (maxX, maxY)
@@ -106,14 +106,15 @@ class Board:
 
     def processAbility(self, actionTuple):
         unitID, actionType, info = actionTuple
-        abilityClass, target = info
+        abilityClass, targetID = info
         unit = self.game.allUnits[unitID]
         if abilityClass == -1:
             #-1 is code for end turn
             unit.Avail = False
         else:
             ability = abilityClass(unit)
-            if target is not None:
+            if targetID is not None:
+                target = self.game.allUnits[targetID]
                 ability.setTarget(target)
             ability.activate()
         

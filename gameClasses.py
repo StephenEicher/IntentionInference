@@ -15,6 +15,7 @@ import spriteClasses as sc
 from immutables import Map
 from mcts.base.base import BaseState, BaseAction
 import sys
+import pygameUI as rp
 
 class GameManager():
 
@@ -31,11 +32,10 @@ class GameManager():
         self.p2Class = p2Class
         if self.inclPygame:
             self.fprint('Including pygame...')
-            import pygameUI as rp
             maxX = 8
             maxY = 8
             self.pygameUI = rp.Pygame(self, maxX, maxY)            
-            self.board = b.Board(maxX, maxY, self, self.pygameUI)  
+            self.board = b.Board(maxX, maxY, self)  
             self.pgQueue = queue.Queue(maxsize = 1)          
         else:
             self.board = b.Board(8, 8, self, None)
@@ -97,7 +97,7 @@ class GameManager():
             self.pygameThread = threading.Thread(target=self.pygameUI.pygameLoop)
             self.pygameThread.daemon = True
             self.pygameThread.start()
-            # time.sleep(0.5)
+            time.sleep(0.1)
         self.gameLoop()
         #self.queryAgentForMove()
 
@@ -140,13 +140,14 @@ class GameManager():
             else:
                 self.fprint(f"\n{self.p1.name} wins")
                 self.winner = 0
-            self.quit()
 
     def quit(self):
         """Quit and return winner. If pygame, then join thread."""
         if self.inclPygame:
+            self.pygameUI.run = False
             self.gameOver = True
-            time.sleep(0.5)
+            self.pygameUI.quit()
+            
             try:
                 self.pygameThread.join()
             except:
@@ -169,6 +170,7 @@ class GameManager():
                     break
                 currentTurnActive = self.executeMove(action)
             currentTurnActive = True
+        self.quit()
 
 
 
@@ -287,11 +289,11 @@ if __name__ == '__main__':
     # team2 =  [(6,6, u.meleeUnit),
     #         (6, 7, u.rangedUnit)]
     
-    team1 = [(5, 5, u.meleeUnit),]
+    team1 = [(5, 5, u.meleeUnit), (5, 6, u.meleeUnit)]
     team2 =  [(6,6, u.meleeUnit),]
 
     teamComp = [team1, team2]
-    a = GameManager(ac.HumanAgent, ac.HumanAgent, teamComp, True)
+    a = GameManager(ac.HumanAgent, ac.RandomAgent, teamComp, True)
     a.start()
     # b = a.clone()
     # b.start()

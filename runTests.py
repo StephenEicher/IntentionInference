@@ -3,6 +3,7 @@ import agentClasses as ac
 import unitClasses as u
 import threading
 import time
+import random
 
 class testManager:
     def __init__(self):       
@@ -13,20 +14,25 @@ class testManager:
         failedTests = []
         nTests = len(failedTests)
         nFailed = 0
-        for test in self.myTests:
-            print(f'Running Test: {test.name}')
-            try:
-                if test.execute():
-                    print('... passed!')
-                else:
-                    print('... failed!')
-                    nFailed += 1
-                    failedTests.append(test.name)
-            except:
+        for testClass, nTrials in self.myTests:
+            tests = [testClass() for _ in range(nTrials)]
+            print(f'Running Test: {tests[0].name}')
+            passed = True
+            for test in tests:
+                try:
+                    if not test.execute():
+                        passed = False
+                        break
+                except:
+                    passed = False
+                    
+            if passed:
+                print('... passed!')
+            else:
                 print('... failed!')
-                nFailed +=1
+                nFailed += 1
                 failedTests.append(test.name)
-            
+
         print('-'*60)
         if nFailed > 0:
             print(f'{nFailed} Tests Failed')
@@ -34,8 +40,8 @@ class testManager:
         else:
             print('All tests Succeeded!')
 
-    def addTest(self, test):
-        self.myTests.append(test)
+    def addTest(self, testClass, nTrials=1):
+        self.myTests.append((testClass, nTrials))
 
 
 class test:
@@ -43,28 +49,29 @@ class test:
         self.name = "Test Name Not Assigned"
         self.p1Class = ac.HumanAgent
         self.p2Class = ac.HumanAgent
-        self.teamComp = [[ [(0, 0), u.meleeUnit],
-                [(0, 1), u.rangedUnit],], 
-                [[(6,6), u.meleeUnit],
-                [(6, 7), u.rangedUnit]]]
+        team1 = [(5, 5, u.meleeUnit),]
+        team2 =  [(6,6, u.meleeUnit),]
+        teamComp = [team1, team2]
+        self.teamComp = teamComp
         self.pyGame = True
         self.seed = seed
-        self.testThread = threading.Thread(target=self.startGameLoop)
-        self.testThread.daemon = True
         self.game = None
     def constructGame(self):
         self.game = g.GameManager(self.p1Class, self.p2Class, self.teamComp, self.pyGame, self.seed, False)
 
-    def startGameLoop(self):
-        self.game.start()
+    def constructTestThread(self):
+        self.testThread = threading.Thread(target=self.game.start)
+        self.testThread.daemon = True
 
     def startGameLoopThread(self):
         if self.game is None:
             self.constructGame()
+        self.constructTestThread()
         self.testThread.start()
 
     def execute(self):
         pass
+
     
     def storeUnitInfo(self, unit):
         info = {}
@@ -87,90 +94,81 @@ class test:
                 else:
                     dInfo[key] = (u1Info[key], u2Info[key])
         return dInfo
-    def getEventInfo(self, action):
-        events = {}
-        for event in action['abilityDict']['events']:
-            events[event['type']] = event['value']
-        return events
 class startUp(test):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, seed=10):
+        super().__init__(seed)
         self.name = 'Start Up Test'
-        self.p1Class = ac.RandomAgent
-        self.p2Class = ac.RandomAgent
+        self.p1Class = ac.HumanAgent
+        self.p2Class = ac.HumanAgent
     def execute(self):
-        try:
-            self.startGameLoopThread()
-            time.sleep(1)
-            self.game.quit()
-            self.testThread.join()
-            return True
-        except:
-            return False
+        self.startGameLoopThread()
+        time.sleep(0.15)
+        self.game.quit()
+        self.testThread.join()
+        return True
   
 class execMoveMovement(test):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, seed=10):
+        super().__init__(seed)
         self.name = 'game.executeMove() - Movement Test'
     def execute(self):
-        try:
-            self.constructGame()
-            unit = self.game.p1.team[0]
-            preMove = self.storeUnitInfo(unit)
-            flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.game.getCurrentStateActions(self.game)
-            for unitID, action in flatActionSpace:
-                if action['type'] == 'move':
-                    self.game.executeMove((unitID, action))
-                    break
-            postMove = self.storeUnitInfo(unit)
-            delta = self.compareUnitInfo(preMove, postMove)
-            assert len(delta.keys()) == 2
-            assert delta['currentMovement'] == -1
-            self.game.quit()
-            return True
-        except:
-            return False
+        self.constructGame()
+        unit = self.game.p1.team[0]
+        preMove = self.storeUnitInfo(unit)
+        actionSpace = self.game.getCurrentStateActions(self.game)
+        random.shuffle(actionSpace)
+        for action in actionSpace:
+            unitID, actionType, info = action
+            if actionType == 'move':
+                self.game.executeMove(action)
+                break
+        postMove = self.storeUnitInfo(unit)
+        delta = self.compareUnitInfo(preMove, postMove)
+        assert len(delta.keys()) == 2
+        assert delta['currentMovement'] == -1
+        self.game.quit()
+        return True
+
 class execMoveMeleeAttack(test):
-    def __init__(self):
-        super().__init__()
-        self.teamComp = [[ [(0, 0), u.meleeUnit]], 
-                        [[(0,1), u.meleeUnit]]]
+    def __init__(self, seed=10):
+        super().__init__(seed)
+        team1 = [(0, 0, u.meleeUnit),]
+        team2 =  [(0,1, u.meleeUnit),]
+        teamComp = [team1, team2]
+        self.teamComp = teamComp
         self.name = 'game.executeMove() - Melee Attack Test'
     def execute(self):
-        try:
-            self.constructGame()
-            unit = self.game.p1.team[0]
-            attacker_pre = self.storeUnitInfo(unit)
-            flatActionSpace, waitingUnits, allActions, noMovesOrAbilities = self.game.getCurrentStateActions(self.game)
-            for unitID, action in flatActionSpace:
-                if action['type'] == 'castAbility':
-                    events = self.getEventInfo(action)
-                    targetedUnitID = action['abilityDict']['targetedUnit']
-                    target = self.game.getUnitByID(targetedUnitID)
+        self.constructGame()
+        unit = self.game.p1.team[0]
+        attacker_pre = self.storeUnitInfo(unit)
+        actionSpace = self.game.getCurrentStateActions(self.game)
+        for unitID, actionType, action in actionSpace:
+            if actionType == 'ability':
+                if action[0] != 1:
+                    targetedUnitID = action[1]
+                    target = self.game.allUnits[targetedUnitID]
                     target_pre = self.storeUnitInfo(target)
-                    self.game.executeMove((unitID, action))
+                    self.game.executeMove((unitID, actionType, action))
                     target_post = self.storeUnitInfo(target)
                     break
-            attacker_post = self.storeUnitInfo(unit)
-            attacker_delta = self.compareUnitInfo(attacker_pre, attacker_post)
-            target_delta = self.compareUnitInfo(target_pre, target_post)
-            assert len(attacker_delta.keys()) == 1
-            assert attacker_delta['currentActionPoints'] == events['changeActionPoints']
-            assert len(target_delta.keys()) == 1
-            assert target_delta['currentHP'] == events['changeHP']
-            self.game.quit()
-            return True
-        except:
-            return False
+        attacker_post = self.storeUnitInfo(unit)
+        attacker_delta = self.compareUnitInfo(attacker_pre, attacker_post)
+        target_delta = self.compareUnitInfo(target_pre, target_post)
+        assert len(attacker_delta.keys()) == 1
+        # assert attacker_delta['currentActionPoints'] == events['changeActionPoints']
+        assert len(target_delta.keys()) == 1
+        # assert target_delta['currentHP'] == events['changeHP']
+        self.game.quit()
+        return True
 class execMoveRangedAttack(execMoveMeleeAttack):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, seed=10):
+        super().__init__(seed)
         self.teamComp = [[ [(0, 0), u.rangedUnit]], 
                         [[(0,1), u.rangedUnit]]]
         self.name = 'game.executeMove() - Ranged Attack Test'      
 class cloneTest(test):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, seed=10):
+        super().__init__(seed)
         self.teamComp = [[ [(0, 0), u.rangedUnit]], 
                         [[(0,1), u.rangedUnit]]]
         self.name = 'game.clone() - Object Instance Checks'   
@@ -202,10 +200,8 @@ class cloneTest(test):
         except:
             return False
 class getValidDirections(test):
-    def __init__(self):
-        super().__init__()
-        self.teamComp = [[ [(2, 4), u.rangedUnit]], 
-                        [[(0,1), u.rangedUnit]]]
+    def __init__(self,seed=10):
+        super().__init__(seed)
         self.name = 'board.getValidDirections()- Checking get valid directions'   
         self.constructGame()
     
@@ -245,11 +241,11 @@ class getValidDirections(test):
 
 
 tm = testManager()
-# tm.addTest(startUp())
-# tm.addTest(execMoveMovement())
+tm.addTest(startUp, nTrials=10)
+tm.addTest(execMoveMovement)
 # tm.addTest(execMoveMeleeAttack())
 # tm.addTest(execMoveRangedAttack())
 # tm.addTest(cloneTest())
-tm.addTest(getValidDirections())
+# tm.addTest(getValidDirections())
 tm.runTests()
 

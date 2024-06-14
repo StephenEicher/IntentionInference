@@ -4,6 +4,7 @@ import random
 import numpy as np
 
 # from mcts.searcher.mcts import MCTS
+
 class Agent(metaclass=abc.ABCMeta):
     def __init__(self, name, agentIndex, team, game = None, pygame = None):       
         self.name = name
@@ -16,6 +17,11 @@ class Agent(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def selectAction(self):
         pass
+
+
+class RandomAgent(Agent):
+    def selectAction(self, game, actionSpace, debugStr=None):
+        return random.choice(actionSpace)
 
 class HumanAgent(Agent):
     selectedUnit = None
@@ -30,7 +36,7 @@ class HumanAgent(Agent):
             self.selectedUnit = selectedUnit
             return selectedUnit
         else:
-            return self.selectUnit(waitingUnits)
+            return None
     
     def selectAction(self, game, actionSpace, debugStr=None):
         action = self.selectActionRecursive(game, actionSpace)
@@ -60,7 +66,11 @@ class HumanAgent(Agent):
         else:
             if self.selectedUnit.ID not in sortedAbilities.keys() and self.selectedUnit.ID not in sortedMoves.keys():
                 unit = self.selectUnit(waitingUnits)
-            unit = self.selectedUnit
+                self.selectedUnit = unit
+            else:
+                unit = self.selectedUnit
+        if unit is None:
+            return None
         validAbilities = sortedAbilities[unit.ID]
         validMoveDirections = np.array(sortedMoves[unit.ID])
         if unit.canMove is False and unit.canAct is False:
