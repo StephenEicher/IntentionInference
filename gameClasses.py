@@ -39,6 +39,7 @@ class GameManager():
             self.pgQueue = queue.Queue(maxsize = 1)          
         else:
             self.board = b.Board(8, 8, self, None)
+            self.pgQueue = None
         self.allUnits = {}
         self.initializeTeams(teamComp)
         self.allAgents = []
@@ -46,6 +47,7 @@ class GameManager():
         self.currentAgent = self.allAgents[self.agentTurnIndex]
         self.nTurns = 0
         self.winner = None
+
 
     def fprint(self, string):
         if self.verbose:
@@ -61,23 +63,19 @@ class GameManager():
         cloned_game.allUnits = {}
         
         for unit in self.p1.team:
-            newUnit = copy.deepcopy(unit)
-            newUnit.game = cloned_game
-            newUnit.board = cloned_game.board
+            newUnit = unit.clone()
             team0.append(newUnit)
-            self.allUnits[newUnit.ID] = newUnit
+            cloned_game.allUnits[newUnit.ID] = newUnit
         
         for unit in self.p2.team:
-            newUnit = copy.deepcopy(unit)
-            newUnit.game = cloned_game
-            newUnit.board = cloned_game.board
+            newUnit = unit.clone()
             team1.append(newUnit)
-            self.allUnits[newUnit.ID] = newUnit
+            cloned_game.allUnits[newUnit.ID] = newUnit
         self.allUnits = Map(self.allUnits)
-        # cloned_game.p1 = ac.RandomAgent(self.p1.name, 0, team0, self, None)
-        # cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, self, None)
-        cloned_game.p1 = self.p1Class(self.p1.name, 0, team0, cloned_game, None)
-        cloned_game.p2 = self.p2Class(self.p2.name, 1, team1, cloned_game, None)
+
+        cloned_game.p1 = self.p1Class(self.p1.name, 0, team0)
+        cloned_game.p2 = self.p2Class(self.p2.name, 1, team1)
+
         cloned_game.allAgents = [cloned_game.p1, cloned_game.p2]
         cloned_game.inclPygame = False
         cloned_game.gameOver = self.gameOver
@@ -97,7 +95,8 @@ class GameManager():
             self.pygameThread = threading.Thread(target=self.pygameUI.pygameLoop)
             self.pygameThread.daemon = True
             self.pygameThread.start()
-            time.sleep(0.1)
+            while self.pygameUI.run == False:
+                time.sleep(0.01)
         self.gameLoop()
         #self.queryAgentForMove()
 
@@ -130,7 +129,7 @@ class GameManager():
             return executedTurnStillActive
 
     def gameOverCheck(self):
-        """Check if the game is over- if so, assign winner and call quit()"""
+        """Check if the game is over- if so, assign winner"""
         if len(self.p1.team) == 0 or len(self.p2.team) == 0:
             self.gameOver = True
         if self.gameOver:
@@ -140,23 +139,29 @@ class GameManager():
             else:
                 self.fprint(f"\n{self.p1.name} wins")
                 self.winner = 0
-
+        
+    def terminateGameLoop(self):
+        #This is just to get past the waiting for input portion in the game loop
+        if self.pgQueue is not None:
+            self.pgQueue.put(None) 
+        
     def quit(self):
         """Quit and return winner. If pygame, then join thread."""
+        self.gameOver = True
         if self.inclPygame:
-            self.pygameUI.run = False
-            self.gameOver = True
             self.pygameUI.quit()
-            
+            del self.pygameUI
             try:
                 self.pygameThread.join()
             except:
-                    pass
+                pass
         if self.winner is not None:
             return self.winner
+        self.terminateGameLoop()
         
     def gameLoop(self):
         """Alternate querying agents for turn"""
+        self.gameLoopComplete = False
         while self.gameOver is False:
             self.currentAgent = self.allAgents[self.agentTurnIndex]
             self.fprint(f"\n-------- {self.currentAgent.name}'s turn --------")
@@ -170,8 +175,7 @@ class GameManager():
                     break
                 currentTurnActive = self.executeMove(action)
             currentTurnActive = True
-        self.quit()
-
+        print("Game Loop Complete!")
 
 
 
@@ -279,8 +283,8 @@ class GameManager():
             agentIndex+=1
             teams.append(curTeam)
         self.allUnits = Map(self.allUnits)
-        self.p1 = self.p1Class('P1', 0, teams[0], self, self.pygameUI)
-        self.p2 = self.p2Class('P2', 1, teams[1], self, self.pygameUI)
+        self.p1 = self.p1Class('P1', 0, teams[0])
+        self.p2 = self.p2Class('P2', 1, teams[1])
 
 
 if __name__ == '__main__':
@@ -293,7 +297,7 @@ if __name__ == '__main__':
     team2 =  [(6,6, u.meleeUnit),]
 
     teamComp = [team1, team2]
-    a = GameManager(ac.HumanAgent, ac.RandomAgent, teamComp, True)
+    a = GameManager(ac.HumanAgent, ac.RandomAgent, teamComp, inclPygame = True, seed=10)
     a.start()
-    # b = a.clone()
+    b = a.clone()
     # b.start()

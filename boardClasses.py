@@ -9,7 +9,6 @@ class Board:
     def __init__(self, maxY, maxX, game):
         self.maxY = maxY
         self.maxX = maxX
-        self.maxPoint = (maxX, maxY)
         self.game = game
         self.units_map = np.zeros([maxX, maxY])
         row_indices, col_indices = np.meshgrid(np.arange(self.maxX), np.arange(self.maxY), indexing='ij')
@@ -21,6 +20,8 @@ class Board:
         cloned_board.maxX = self.maxY
         cloned_board.maxY = self.maxX
         cloned_board.game = game
+        self.units_map = np.array(self.units_map)
+        self.obs_map = np.array(self.obs_map)
         return cloned_board
 
 

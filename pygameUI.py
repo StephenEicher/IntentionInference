@@ -28,7 +28,7 @@ class Pygame:
         self.actionDictAwaitingTarget = None
         self.spriteGroup = pygame.sprite.Group()
         self.obstacleGroup = pygame.sprite.Group()
-        self.run = True
+        self.run = False
         
         uiElements = {
             "select_hover": pygame.image.load(r".\sprites\select_target_hover.PNG"),
@@ -50,7 +50,7 @@ class Pygame:
         self.turnInfoButton.topright = (self.screen.get_width(), 0)
         self.rightPanelCenterX = self.screen.get_width()  - 0.5*(self.screen.get_width() - self.boardBoundsPx[0])
         self.botPanelCenterY = self.screen.get_height() - 0.5 * (self.screen.get_height() - self.boardBoundsPx[1])
-
+        self.run = True
 
     def pygameLoop(self):
         self.startup()
@@ -63,6 +63,7 @@ class Pygame:
                 if event.type == pygame.QUIT:
                     self.game.fprint("Quit event detected")
                     self.run = False
+                    self.game.quit()
 
                 if self.getInput:
                     if self.getTarget:
@@ -125,14 +126,15 @@ class Pygame:
             clock.tick(30)
             if self.game.gameOver:
                 self.run = False
-        self.game.gameOver = True    
-        self.quit()
+        
 
     def quit(self):
+        self.run = False
+        self.game.gameOver = True
         pygame.display.quit()
         pygame.quit()
-        self.game.gameOver = True
-        self.game.pgQueue.put(None) #This is just to get past the waiting for input portion in the game loop
+
+        
 
     def trackMouseAndDisplayMove(self, mousePos):
         self.prevRects = []
@@ -188,7 +190,7 @@ class Pygame:
                     self.unitButtons.append((buttonRect, unit))
             except:
                 self.game.fprint('error in drawing select units...')
-                if not self.game.gameOver:
+                if not self.game.gameOver and self.run:
                     self.drawSelectUnit(unitRefs)
 
     def drawButtons(self, validAbilities, unit):

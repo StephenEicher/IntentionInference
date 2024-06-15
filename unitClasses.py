@@ -34,38 +34,28 @@ class Unit:
             self.sprite = sc.UnitSprite(self, image)
         else:
             self.sprite = None
-    def __deepcopy__(self, memo):
-        # Create a new instance of Unit without calling __init__
-        cloned_unit = self.__class__.__new__(self.__class__)
-        # Add the new instance to the memo dictionary
-        memo[id(self)] = cloned_unit
+    def clone(self):
+        # 
+        cloned_unit = Unit.__new__(Unit)
 
         # Deepcopy each attribute
-        cloned_unit.agentIndex = copy.deepcopy(self.agentIndex, memo)
-        cloned_unit.ID = copy.deepcopy(self.ID, memo)
-        cloned_unit.unitSymbol = copy.deepcopy(self.unitSymbol, memo)
-        cloned_unit.position = copy.deepcopy(self.position, memo)
+        cloned_unit.agentIndex = self.agentIndex
+        cloned_unit.ID = self.ID
+        cloned_unit.position = self.position
         
-        cloned_unit.Alive = copy.deepcopy(self.Alive, memo)
-        cloned_unit.Avail = copy.deepcopy(self.Avail, memo)
-        cloned_unit.canMove = copy.deepcopy(self.canMove, memo)
-        cloned_unit.canAct = copy.deepcopy(self.canAct, memo)
+        cloned_unit.Alive = self.Alive
+        cloned_unit.Avail = self.Avail
+        cloned_unit.canMove = self.canMove
+        cloned_unit.canAct = self.canAct
 
-        cloned_unit.HP = copy.deepcopy(self.HP, memo)
-        cloned_unit.movement = copy.deepcopy(self.movement, memo)
-        cloned_unit.momentum = copy.deepcopy(self.momentum, memo)
-        cloned_unit.massConstant = copy.deepcopy(self.massConstant, memo)
-        cloned_unit.jump = copy.deepcopy(self.jump, memo)
-        cloned_unit.actionPoints = copy.deepcopy(self.actionPoints, memo)
+        cloned_unit.HP = self.HP
+        cloned_unit.movement = self.movement
+        cloned_unit.actionPoints = self.actionPoints
 
-        cloned_unit.currentHP = copy.deepcopy(self.currentHP, memo)
-        cloned_unit.currentMovement = copy.deepcopy(self.currentMovement, memo)
-        cloned_unit.currentMomentum = copy.deepcopy(self.currentMomentum, memo)
-        cloned_unit.currentJump = copy.deepcopy(self.currentJump, memo)
-        cloned_unit.currentActionPoints = copy.deepcopy(self.currentActionPoints, memo)
-        cloned_unit.unitAbilities = copy.deepcopy(self.unitAbilities, memo)
-        # Do not copy the sprite
-        cloned_unit.sprite = None
+        cloned_unit.currentHP = self.currentHP
+        cloned_unit.currentMovement = self.currentMovement
+        cloned_unit.currentActionPoints = self.currentActionPoints
+        cloned_unit.unitAbilities = self.unitAbilities
 
         return cloned_unit
 

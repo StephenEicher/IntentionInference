@@ -6,13 +6,10 @@ import numpy as np
 # from mcts.searcher.mcts import MCTS
 
 class Agent(metaclass=abc.ABCMeta):
-    def __init__(self, name, agentIndex, team, game = None, pygame = None):       
+    def __init__(self, name, agentIndex, team):       
         self.name = name
         self.agentIndex = agentIndex
         self.team = team
-
-        self.game = game
-        self.pygameUI = pygame
         self.inputReady = False
     @abc.abstractmethod
     def selectAction(self):
@@ -25,12 +22,12 @@ class RandomAgent(Agent):
 
 class HumanAgent(Agent):
     selectedUnit = None
-    def selectUnit(self, waitingUnits):
-        self.pygameUI.drawButtons({}, None)
+    def selectUnit(self, game, waitingUnits):
+        game.pygameUI.drawButtons({}, None)
         
-        self.pygameUI.getInput = True
+        game.pygameUI.getInput = True
         time.sleep(0.1)
-        unitTuple = self.game.pgQueue.get()
+        unitTuple = game.pgQueue.get()
         if unitTuple is not None:
             unitID, _, selectedUnit = unitTuple
             self.selectedUnit = selectedUnit
@@ -59,13 +56,13 @@ class HumanAgent(Agent):
             else:
                 sortedMoves[ID].append(info)
         waitingUnits = list(waitingUnits)
-        self.pygameUI.drawSelectUnit(waitingUnits)
+        game.pygameUI.drawSelectUnit(waitingUnits)
 
         if self.selectedUnit is None:
-            unit = self.selectUnit(waitingUnits)
+            unit = self.selectUnit(game, waitingUnits)
         else:
             if self.selectedUnit.ID not in sortedAbilities.keys() and self.selectedUnit.ID not in sortedMoves.keys():
-                unit = self.selectUnit(waitingUnits)
+                unit = self.selectUnit(game, waitingUnits)
                 self.selectedUnit = unit
             else:
                 unit = self.selectedUnit
@@ -78,24 +75,24 @@ class HumanAgent(Agent):
             unit.Avail = False
             return None
         if unit.canMove or unit.canAct:
-            self.pygameUI.getInput = True
+            game.pygameUI.getInput = True
         
         
-        self.pygameUI.validDirections = validMoveDirections
+        game.pygameUI.validDirections = validMoveDirections
         
-        self.pygameUI.drawButtons(validAbilities, unit)
-        action = self.game.pgQueue.get()
+        game.pygameUI.drawButtons(validAbilities, unit)
+        action = game.pgQueue.get()
         
         if action is not None:
             _, actionType, info = action
             if actionType == "unit":
                 self.selectedUnit = info
-                self.pygameUI.getTarget = False
+                game.pygameUI.getTarget = False
                 action = self.selectActionRecursive(game, actionSpace)
 
 
-            self.pygameUI.getInput = False
-            self.pygameUI.getTarget = False
+            game.pygameUI.getInput = False
+            game.pygameUI.getTarget = False
             return action
         else:
             return None

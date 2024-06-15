@@ -32,11 +32,11 @@ class unarmedStrike(baseAbility):
         self.range = 1
         self.name = 'Unarmed Strike'
         self.targeted = True
+        self.dmg = -1
+        self.ap = -1
     def activate(self):
-        dmg = -1
-        ap = -1
-        self.changeHealth(self.target, dmg)
-        self.changeAP(self.source, ap)
+        self.changeHealth(self.target, self.dmg)
+        self.changeAP(self.source, self.ap)
     def isValidToCast(self, board):
         if self.alignedRowOrCol():
             if not self.obstacleInPath(board):
@@ -50,11 +50,11 @@ class rangedStrike(baseAbility):
         self.range = 3
         self.name = 'Ranged Strike'
         self.targeted = True
+        self.dmg = -1
+        self.ap = -1
     def activate(self):
-        dmg = -1
-        ap = -1
-        self.changeHealth(self.target, dmg)
-        self.changeAP(self.source, ap)
+        self.changeHealth(self.target, self.dmg)
+        self.changeAP(self.source, self.ap)
         return self.alignedRowOrCol()
     def isValidToCast(self, board):
         if self.alignedRowOrCol():
