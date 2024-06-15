@@ -4,6 +4,8 @@ import unitClasses as u
 import time
 import random
 import abilityClasses as abC
+import timeit
+import numpy as np
 class testManager:
     def __init__(self):       
         self.failedTests = []
@@ -155,8 +157,10 @@ class execMoveRangedAttack(execMoveMeleeAttack):
 class cloneTest(test):
     def __init__(self, seed=10):
         super().__init__(seed)
-        self.teamComp = [[ [(0, 0), u.rangedUnit]], 
-                        [[(0,1), u.rangedUnit]]]
+        team1 = [(0, 0, u.meleeUnit),]
+        team2 =  [(0,1, u.meleeUnit),]
+        teamComp = [team1, team2]
+        self.teamComp = teamComp
         self.name = 'game.clone() - Object Instance Checks'   
         self.constructGame()   
     def execute(self):
@@ -164,20 +168,14 @@ class cloneTest(test):
             clone = self.game.clone()
             assert self.game is not clone
             assert clone.board is not self.game.board
-            assert clone.board.instOM is not self.game.board.instOM
-            # assert clone.board.instOM == self.game.instOM
-            assert clone.board.instUM is not self.game.board.instUM
-            # assert clone.board.instUM == self.game.board.instUM
-            assert clone.board.instZM is not self.game.board.instZM
-            # assert clone.board.instZM == self.game.instZM
-            assert clone.board.gameObjectDict is not self.game.board.gameObjectDict
-            # assert clone.board.gameObjectDict == self.game.board.gameObjectDict
-            assert clone.board.GOT is not self.game.board.GOT
-            # assert clone.board.GOT == self.game.board.GOT
-            for unit in self.game.allUnits:
-                compUnit = clone.getUnitByID(unit.ID)
+            assert clone.board.units_map is not self.game.board.units_map
+            assert clone.board.obs_map is not self.game.board.obs_map
+            assert self.game == clone
+            assert self.game.board == clone.board
+            for unit in self.game.allUnits.values():
+                compUnit = clone.allUnits[unit.ID]
                 assert unit is not compUnit
-                assert unit.ID == compUnit.ID
+                assert unit == compUnit
                 u1 = self.storeUnitInfo(unit)
                 u2 = self.storeUnitInfo(compUnit)
                 delta = self.compareUnitInfo(u1, u2)
@@ -223,13 +221,92 @@ class getValidDirections(test):
         except:
             return False
 
+class cloneBenchmark(test):
+    def __init__(self, seed=10):
+        super().__init__(seed)
+        team1 = [(0, 0, u.meleeUnit),]
+        team2 =  [(0,1, u.meleeUnit),]
+        teamComp = [team1, team2]
+        self.teamComp = teamComp
+        self.name = 'game.clone() - Clone Benchmark'   
+        self.constructGame()   
+    def execute(self):
+        testSetup = """
+from gameClasses import GameManager
+import unitClasses as u
+import agentClasses as ac
+team1 = [(5, 5, u.meleeUnit), (5, 6, u.meleeUnit)]
+team2 = [(6, 6, u.meleeUnit)]
+teamComp = [team1, team2]
+g = GameManager(ac.HumanAgent, ac.RandomAgent, teamComp, inclPygame=True, seed=10)
+"""
+        testCode = """clone = g.clone()"""
+        times = timeit.timeit(setup=testSetup, stmt=testCode, number=1000)
+        # printing minimum exec. time
+        print('Min Clone Time: {}'.format(min(times)))
+        return True
 
+class cloneBenchmark(test):
+    def __init__(self, seed=10):
+        super().__init__(seed)
+        team1 = [(0, 0, u.meleeUnit),]
+        team2 =  [(0,1, u.meleeUnit),]
+        teamComp = [team1, team2]
+        self.teamComp = teamComp
+        self.name = 'Clone Benchmark'   
+        self.constructGame()   
+    def execute(self):
+        testSetup = """
+from gameClasses import GameManager
+import unitClasses as u
+import agentClasses as ac
+team1 = [(5, 5, u.meleeUnit), (5, 6, u.meleeUnit)]
+team2 = [(6, 6, u.meleeUnit)]
+teamComp = [team1, team2]
+g = GameManager(ac.HumanAgent, ac.RandomAgent, teamComp, inclPygame=True, seed=10)
+"""
+        testCode = """clone = g.clone()"""
+        time = timeit.timeit(setup=testSetup, stmt=testCode, number=1000)
+        meanTime = 1E6 * time/1000
+        meanTime = np.round(meanTime, 4)
+        print(f'Mean Time to Clone: {meanTime} (us)' )
+        return True
+class moveBenchmark(test):
+    def __init__(self, seed=10):
+        super().__init__(seed)
+        team1 = [(0, 0, u.meleeUnit),]
+        team2 =  [(0,1, u.meleeUnit),]
+        teamComp = [team1, team2]
+        self.teamComp = teamComp
+        self.name = 'Execute Move Benchmark'   
+        self.constructGame()   
+    def execute(self):
+        testSetup = """
+from gameClasses import GameManager
+import unitClasses as u
+import agentClasses as ac
+import random
+team1 = [(1, 1, u.meleeUnit), (3, 3, u.meleeUnit)]
+team2 = [(6, 6, u.meleeUnit)]
+teamComp = [team1, team2]
+original = GameManager(ac.RandomAgent, ac.RandomAgent, teamComp, inclPygame=True, seed=10)
+g = original.clone()
+"""
+        testCode = """actionSpace = g.getCurrentStateActions(g)
+g.executeMove(random.choice(actionSpace))"""
+        time = timeit.timeit(setup=testSetup, stmt=testCode, number=1000)
+        meanTime = 1E6 * time/1000
+        meanTime = np.round(meanTime, 4)
+        print(f'Mean Time to Exec Move: {meanTime} us' )
+        return True
 
 tm = testManager()
 tm.addTest(execMoveMovement, 10)
 tm.addTest(execMoveMeleeAttack)
 tm.addTest(execMoveRangedAttack)
-tm.addTest(getValidDirections)
-# tm.addTest(cloneTest())
+# tm.addTest(getValidDirections)
+tm.addTest(cloneTest)
+tm.addTest(cloneBenchmark)
+tm.addTest(moveBenchmark)
 tm.runTests()
 

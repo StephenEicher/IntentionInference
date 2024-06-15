@@ -20,14 +20,20 @@ class Board:
         cloned_board.maxX = self.maxY
         cloned_board.maxY = self.maxX
         cloned_board.game = game
-        self.units_map = np.array(self.units_map)
-        self.obs_map = np.array(self.obs_map)
+        cloned_board.units_map = np.array(self.units_map)
+        cloned_board.obs_map = np.array(self.obs_map)
+        cloned_board.coord_map = np.array(self.coord_map)
         return cloned_board
 
 
 
-
-
+    def __eq__(self, other):
+        if isinstance(other, Board):
+            if not np.array_equal(self.units_map, other.units_map):
+                return False
+            if not np.array_equal(self.obs_map, other.obs_map):
+                return False
+            return True
 
     def initializeOMap(self):
         generatedObsMap = nc.OMap(self.maxY, self.maxX, self)

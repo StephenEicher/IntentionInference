@@ -38,7 +38,7 @@ class GameManager():
             self.board = b.Board(maxX, maxY, self)  
             self.pgQueue = queue.Queue(maxsize = 1)          
         else:
-            self.board = b.Board(8, 8, self, None)
+            self.board = b.Board(8, 8, self)
             self.pgQueue = None
         self.allUnits = {}
         self.initializeTeams(teamComp)
@@ -47,6 +47,7 @@ class GameManager():
         self.currentAgent = self.allAgents[self.agentTurnIndex]
         self.nTurns = 0
         self.winner = None
+        self.gameLoopComplete = False
 
 
     def fprint(self, string):
@@ -57,7 +58,7 @@ class GameManager():
         cloned_game = GameManager.__new__(GameManager)
         cloned_game.agentTurnIndex = self.agentTurnIndex
         cloned_game.board = self.board.clone(cloned_game)
-        self.pygameUI = None
+        cloned_game.pygameUI = None
         team0 = []
         team1 = []
         cloned_game.allUnits = {}
@@ -71,7 +72,7 @@ class GameManager():
             newUnit = unit.clone()
             team1.append(newUnit)
             cloned_game.allUnits[newUnit.ID] = newUnit
-        self.allUnits = Map(self.allUnits)
+        cloned_game.allUnits = Map(cloned_game.allUnits)
 
         cloned_game.p1 = self.p1Class(self.p1.name, 0, team0)
         cloned_game.p2 = self.p2Class(self.p2.name, 1, team1)
@@ -86,6 +87,7 @@ class GameManager():
         cloned_game.winner = self.winner
         cloned_game.verbose = False
         cloned_game.nTurns = self.nTurns
+        cloned_game.pgQueue = None
         
         return cloned_game
 
@@ -139,29 +141,33 @@ class GameManager():
             else:
                 self.fprint(f"\n{self.p1.name} wins")
                 self.winner = 0
+            self.quit()
         
     def terminateGameLoop(self):
         #This is just to get past the waiting for input portion in the game loop
         if self.pgQueue is not None:
             self.pgQueue.put(None) 
+        self.gameLoopComplete = True
         
     def quit(self):
         """Quit and return winner. If pygame, then join thread."""
         self.gameOver = True
         if self.inclPygame:
             self.pygameUI.quit()
+            time.sleep(0.01)
             del self.pygameUI
             try:
                 self.pygameThread.join()
             except:
                 pass
+        self.terminateGameLoop()
         if self.winner is not None:
             return self.winner
-        self.terminateGameLoop()
+        
         
     def gameLoop(self):
         """Alternate querying agents for turn"""
-        self.gameLoopComplete = False
+        
         while self.gameOver is False:
             self.currentAgent = self.allAgents[self.agentTurnIndex]
             self.fprint(f"\n-------- {self.currentAgent.name}'s turn --------")
@@ -175,6 +181,9 @@ class GameManager():
                     break
                 currentTurnActive = self.executeMove(action)
             currentTurnActive = True
+
+        while self.gameLoopComplete == False:
+            time.sleep(0.01)
         print("Game Loop Complete!")
 
 
@@ -236,8 +245,16 @@ class GameManager():
     
     def __eq__(self, other):
         if isinstance(other, GameManager):
-            return (self.constructCompVars() == other.constructCompVars())
-        return False       
+            for unit in self.allUnits.values():
+                compUnit = other.allUnits.get(unit.ID, None)
+                if compUnit is None:
+                    return False
+                else:
+                    if compUnit != unit:
+                        return False
+            if self.board != other.board:
+                return False
+        return True
        
     def constructCompVars(self):
         IDList = []
@@ -298,6 +315,7 @@ if __name__ == '__main__':
 
     teamComp = [team1, team2]
     a = GameManager(ac.HumanAgent, ac.RandomAgent, teamComp, inclPygame = True, seed=10)
-    a.start()
     b = a.clone()
+    a.start()
+   
     # b.start()

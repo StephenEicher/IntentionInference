@@ -36,7 +36,7 @@ class Unit:
             self.sprite = None
     def clone(self):
         # 
-        cloned_unit = Unit.__new__(Unit)
+        cloned_unit = self.__class__.__new__(self.__class__)
 
         # Deepcopy each attribute
         cloned_unit.agentIndex = self.agentIndex
@@ -56,7 +56,7 @@ class Unit:
         cloned_unit.currentMovement = self.currentMovement
         cloned_unit.currentActionPoints = self.currentActionPoints
         cloned_unit.unitAbilities = self.unitAbilities
-
+        cloned_unit.sprite = None
         return cloned_unit
 
     def abilities(self):
@@ -69,7 +69,21 @@ class Unit:
             self.canAct = True
             self.currentMovement = self.movement
             self.currentActionPoints = self.actionPoints
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            if (
+                isinstance(other, self.__class__) and
+                self.ID == other.ID and
+                self.currentHP == other.currentHP and
+                self.currentActionPoints == other.currentActionPoints and
+                np.array_equal(self.position, other.position) and
+                self.Avail == other.Avail and
+                self.currentMovement == other.currentMovement and
+                self.agentIndex == other.agentIndex
+            ):
+                return True
 
+        return False
 
 class meleeUnit(Unit):
     def __init__(self, agentIndex, unitID, position):

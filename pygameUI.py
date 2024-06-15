@@ -62,7 +62,6 @@ class Pygame:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.game.fprint("Quit event detected")
-                    self.run = False
                     self.game.quit()
 
                 if self.getInput:
@@ -124,15 +123,12 @@ class Pygame:
 
             self.updateScreen()
             clock.tick(30)
-            if self.game.gameOver:
-                self.run = False
-        
+        pygame.display.quit()
+        pygame.quit()
 
     def quit(self):
         self.run = False
-        self.game.gameOver = True
-        pygame.display.quit()
-        pygame.quit()
+
 
         
 
