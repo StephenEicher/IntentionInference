@@ -1,238 +1,162 @@
-# Author: Till Zemann
-# License: MIT License
+"""This tutorial shows how to train an MATD3 agent on the simple speaker listener multi-particle environment.
 
-from __future__ import annotations
+Authors: Michael (https://github.com/mikepratt1), Nickua (https://github.com/nicku-a)
+"""
 
-from collections import defaultdict
+import os
 
-import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-from matplotlib.patches import Patch
-from tqdm import tqdm
+import torch
+from pettingzoo.mpe import simple_speaker_listener_v4
+from tqdm import trange
 
-import gymnasium as gym
+from agilerl.components.multi_agent_replay_buffer import MultiAgentReplayBuffer
+from agilerl.hpo.mutation import Mutations
+from agilerl.hpo.tournament import TournamentSelection
+from agilerl.utils.utils import create_population
+from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
 
+if __name__ == "__main__":
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("===== AgileRL Online Multi-Agent Demo =====")
 
-# Let's start by creating the blackjack environment.
-# Note: We are going to follow the rules from Sutton & Barto.
-# Other versions of the game can be found below for you to experiment.
+    # Define the network configuration
+    NET_CONFIG = {
+        "arch": "mlp",  # Network architecture
+        "hidden_size": [32, 32],  # Actor hidden size
+    }
 
-env = gym.make("Blackjack-v1", sab=True)
+    # Define the initial hyperparameters
+    INIT_HP = {
+        "POPULATION_SIZE": 4,
+        "ALGO": "MATD3",  # Algorithm
+        # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
+        "CHANNELS_LAST": False,
+        "BATCH_SIZE": 32,  # Batch size
+        "O_U_NOISE": True,  # Ornstein Uhlenbeck action noise
+        "EXPL_NOISE": 0.1,  # Action noise scale
+        "MEAN_NOISE": 0.0,  # Mean action noise
+        "THETA": 0.15,  # Rate of mean reversion in OU noise
+        "DT": 0.01,  # Timestep for OU noise
+        "LR_ACTOR": 0.001,  # Actor learning rate
+        "LR_CRITIC": 0.001,  # Critic learning rate
+        "GAMMA": 0.95,  # Discount factor
+        "MEMORY_SIZE": 100000,  # Max memory buffer size
+        "LEARN_STEP": 100,  # Learning frequency
+        "TAU": 0.01,  # For soft update of target parameters
+        "POLICY_FREQ": 2,  # Policy frequnecy
+    }
 
-# reset the environment to get the first observation
-done = False
-observation, info = env.reset()
+    num_envs = 8
+    # Define the simple speaker listener environment as a parallel environment
+    env = simple_speaker_listener_v4.parallel_env(continuous_actions=True)
+    env = PettingZooVectorizationParallelWrapper(env, n_envs=num_envs)
+    env.reset()
 
-# observation = (16, 9, False)
+    # Configure the multi-agent algo input arguments
+    try:
+        state_dim = [env.observation_space(agent).n for agent in env.agents]
+        one_hot = True
+    except Exception:
+        state_dim = [env.observation_space(agent).shape for agent in env.agents]
+        one_hot = False
+    try:
+        action_dim = [env.action_space(agent).n for agent in env.agents]
+        INIT_HP["DISCRETE_ACTIONS"] = True
+        INIT_HP["MAX_ACTION"] = None
+        INIT_HP["MIN_ACTION"] = None
+    except Exception:
+        action_dim = [env.action_space(agent).shape[0] for agent in env.agents]
+        INIT_HP["DISCRETE_ACTIONS"] = False
+        INIT_HP["MAX_ACTION"] = [env.action_space(agent).high for agent in env.agents]
+        INIT_HP["MIN_ACTION"] = [env.action_space(agent).low for agent in env.agents]
 
-class BlackjackAgent:
-    def __init__(
-        self,
-        learning_rate: float,
-        initial_epsilon: float,
-        epsilon_decay: float,
-        final_epsilon: float,
-        discount_factor: float = 0.95,
-    ):
-        """Initialize a Reinforcement Learning agent with an empty dictionary
-        of state-action values (q_values), a learning rate and an epsilon.
+    # Not applicable to MPE environments, used when images are used for observations (Atari environments)
+    if INIT_HP["CHANNELS_LAST"]:
+        state_dim = [
+            (state_dim[2], state_dim[0], state_dim[1]) for state_dim in state_dim
+        ]
 
-        Args:
-            learning_rate: The learning rate
-            initial_epsilon: The initial epsilon value
-            epsilon_decay: The decay for epsilon
-            final_epsilon: The final epsilon value
-            discount_factor: The discount factor for computing the Q-value
-        """
-        self.q_values = defaultdict(lambda: np.zeros(env.action_space.n))
+    # Append number of agents and agent IDs to the initial hyperparameter dictionary
+    INIT_HP["N_AGENTS"] = env.num_agents
+    INIT_HP["AGENT_IDS"] = env.agents
 
-        self.lr = learning_rate
-        self.discount_factor = discount_factor
-
-        self.epsilon = initial_epsilon
-        self.epsilon_decay = epsilon_decay
-        self.final_epsilon = final_epsilon
-
-        self.training_error = []
-
-    def get_action(self, obs: tuple[int, int, bool]) -> int:
-        """
-        Returns the best action with probability (1 - epsilon)
-        otherwise a random action with probability epsilon to ensure exploration.
-        """
-        # with probability epsilon return a random action to explore the environment
-        if np.random.random() < self.epsilon:
-            return env.action_space.sample()
-
-        # with probability (1 - epsilon) act greedily (exploit)
-        else:
-            return int(np.argmax(self.q_values[obs]))
-
-    def update(
-        self,
-        obs: tuple[int, int, bool],
-        action: int,
-        reward: float,
-        terminated: bool,
-        next_obs: tuple[int, int, bool],
-    ):
-        """Updates the Q-value of an action."""
-        future_q_value = (not terminated) * np.max(self.q_values[next_obs])
-        temporal_difference = (
-            reward + self.discount_factor * future_q_value - self.q_values[obs][action]
-        )
-
-        self.q_values[obs][action] = (
-            self.q_values[obs][action] + self.lr * temporal_difference
-        )
-        self.training_error.append(temporal_difference)
-
-    def decay_epsilon(self):
-        self.epsilon = max(self.final_epsilon, self.epsilon - epsilon_decay)
-
-        # hyperparameters
-learning_rate = 0.01
-n_episodes = 100_000
-start_epsilon = 1.0
-epsilon_decay = start_epsilon / (n_episodes / 2)  # reduce the exploration over time
-final_epsilon = 0.1
-
-agent = BlackjackAgent(
-    learning_rate=learning_rate,
-    initial_epsilon=start_epsilon,
-    epsilon_decay=epsilon_decay,
-    final_epsilon=final_epsilon,
-)
-
-env = gym.wrappers.RecordEpisodeStatistics(env, deque_size=n_episodes)
-for episode in tqdm(range(n_episodes)):
-    obs, info = env.reset()
-    done = False
-
-    # play one episode
-    while not done:
-        action = agent.get_action(obs)
-        next_obs, reward, terminated, truncated, info = env.step(action)
-
-        # update the agent
-        agent.update(obs, action, reward, terminated, next_obs)
-
-        # update if the environment is done and the current obs
-        done = terminated or truncated
-        obs = next_obs
-
-    agent.decay_epsilon()
-
-
-    rolling_length = 500
-fig, axs = plt.subplots(ncols=3, figsize=(12, 5))
-axs[0].set_title("Episode rewards")
-# compute and assign a rolling average of the data to provide a smoother graph
-reward_moving_average = (
-    np.convolve(
-        np.array(env.return_queue).flatten(), np.ones(rolling_length), mode="valid"
-    )
-    / rolling_length
-)
-axs[0].plot(range(len(reward_moving_average)), reward_moving_average)
-axs[1].set_title("Episode lengths")
-length_moving_average = (
-    np.convolve(
-        np.array(env.length_queue).flatten(), np.ones(rolling_length), mode="same"
-    )
-    / rolling_length
-)
-axs[1].plot(range(len(length_moving_average)), length_moving_average)
-axs[2].set_title("Training Error")
-training_error_moving_average = (
-    np.convolve(np.array(agent.training_error), np.ones(rolling_length), mode="same")
-    / rolling_length
-)
-axs[2].plot(range(len(training_error_moving_average)), training_error_moving_average)
-plt.tight_layout()
-plt.show()
-
-
-def create_grids(agent, usable_ace=False):
-    """Create value and policy grid given an agent."""
-    # convert our state-action values to state values
-    # and build a policy dictionary that maps observations to actions
-    state_value = defaultdict(float)
-    policy = defaultdict(int)
-    for obs, action_values in agent.q_values.items():
-        state_value[obs] = float(np.max(action_values))
-        policy[obs] = int(np.argmax(action_values))
-
-    player_count, dealer_count = np.meshgrid(
-        # players count, dealers face-up card
-        np.arange(12, 22),
-        np.arange(1, 11),
+    # Create a population ready for evolutionary hyper-parameter optimisation
+    pop = create_population(
+        INIT_HP["ALGO"],
+        state_dim,
+        action_dim,
+        one_hot,
+        NET_CONFIG,
+        INIT_HP,
+        population_size=INIT_HP["POPULATION_SIZE"],
+        num_envs=num_envs,
+        device=device,
     )
 
-    # create the value grid for plotting
-    value = np.apply_along_axis(
-        lambda obs: state_value[(obs[0], obs[1], usable_ace)],
-        axis=2,
-        arr=np.dstack([player_count, dealer_count]),
+    # Configure the multi-agent replay buffer
+    field_names = ["state", "action", "reward", "next_state", "done"]
+    memory = MultiAgentReplayBuffer(
+        INIT_HP["MEMORY_SIZE"],
+        field_names=field_names,
+        agent_ids=INIT_HP["AGENT_IDS"],
+        device=device,
     )
-    value_grid = player_count, dealer_count, value
 
-    # create the policy grid for plotting
-    policy_grid = np.apply_along_axis(
-        lambda obs: policy[(obs[0], obs[1], usable_ace)],
-        axis=2,
-        arr=np.dstack([player_count, dealer_count]),
+    # Instantiate a tournament selection object (used for HPO)
+    tournament = TournamentSelection(
+        tournament_size=2,  # Tournament selection size
+        elitism=True,  # Elitism in tournament selection
+        population_size=INIT_HP["POPULATION_SIZE"],  # Population size
+        eval_loop=1,  # Evaluate using last N fitness scores
     )
-    return value_grid, policy_grid
 
-
-def create_plots(value_grid, policy_grid, title: str):
-    """Creates a plot using a value and policy grid."""
-    # create a new figure with 2 subplots (left: state values, right: policy)
-    player_count, dealer_count, value = value_grid
-    fig = plt.figure(figsize=plt.figaspect(0.4))
-    fig.suptitle(title, fontsize=16)
-
-    # plot the state values
-    ax1 = fig.add_subplot(1, 2, 1, projection="3d")
-    ax1.plot_surface(
-        player_count,
-        dealer_count,
-        value,
-        rstride=1,
-        cstride=1,
-        cmap="viridis",
-        edgecolor="none",
+    # Instantiate a mutations object (used for HPO)
+    mutations = Mutations(
+        algo=INIT_HP["ALGO"],
+        no_mutation=0.2,  # Probability of no mutation
+        architecture=0.2,  # Probability of architecture mutation
+        new_layer_prob=0.2,  # Probability of new layer mutation
+        parameters=0.2,  # Probability of parameter mutation
+        activation=0,  # Probability of activation function mutation
+        rl_hp=0.2,  # Probability of RL hyperparameter mutation
+        rl_hp_selection=[
+            "lr",
+            "learn_step",
+            "batch_size",
+        ],  # RL hyperparams selected for mutation
+        mutation_sd=0.1,  # Mutation strength
+        agent_ids=INIT_HP["AGENT_IDS"],
+        arch=NET_CONFIG["arch"],
+        rand_seed=1,
+        device=device,
     )
-    plt.xticks(range(12, 22), range(12, 22))
-    plt.yticks(range(1, 11), ["A"] + list(range(2, 11)))
-    ax1.set_title(f"State values: {title}")
-    ax1.set_xlabel("Player sum")
-    ax1.set_ylabel("Dealer showing")
-    ax1.zaxis.set_rotate_label(False)
-    ax1.set_zlabel("Value", fontsize=14, rotation=90)
-    ax1.view_init(20, 220)
 
-    # plot the policy
-    fig.add_subplot(1, 2, 2)
-    ax2 = sns.heatmap(policy_grid, linewidth=0, annot=True, cmap="Accent_r", cbar=False)
-    ax2.set_title(f"Policy: {title}")
-    ax2.set_xlabel("Player sum")
-    ax2.set_ylabel("Dealer showing")
-    ax2.set_xticklabels(range(12, 22))
-    ax2.set_yticklabels(["A"] + list(range(2, 11)), fontsize=12)
+    from agilerl.training.train_multi_agent import train_multi_agent
+    import gymnasium as gym
+    import torch
 
-    # add a legend
-    legend_elements = [
-        Patch(facecolor="lightgreen", edgecolor="black", label="Hit"),
-        Patch(facecolor="grey", edgecolor="black", label="Stick"),
-    ]
-    ax2.legend(handles=legend_elements, bbox_to_anchor=(1.3, 1))
-    return fig
+    trained_pop, pop_fitnesses = train_multi_agent(
+        env=env,  # Pettingzoo-style environment
+        env_name='simple_speaker_listener_v4',  # Environment name
+        algo="MATD3",  # Algorithm
+        pop=pop,  # Population of agents
+        memory=memory,  # Replay buffer
+        INIT_HP=INIT_HP,  # IINIT_HP dictionary
+        MUT_P=None,  # MUTATION_PARAMS dictionary
+        net_config=NET_CONFIG,  # Network configuration
+        swap_channels=INIT_HP['CHANNELS_LAST'],  # Swap image channel from last to first
+        max_steps=200000,  # Max number of training steps
+        evo_steps=10000,  # Evolution frequency
+        eval_steps=None,  # Number of steps in evaluation episode
+        eval_loop=1,  # Number of evaluation episodes
+        learning_delay=0,  # Steps before starting learning
+        target=200.,  # Target score for early stopping
+        tournament=tournament,  # Tournament selection object
+        mutation=mutations,  # Mutations object
+        wb=False,  # Weights and Biases tracking
+        save_elite=True,
+        elite_path="./Test_MATD3"
+    )
 
-
-# state values & policy with usable ace (ace counts as 11)
-value_grid, policy_grid = create_grids(agent, usable_ace=True)
-fig1 = create_plots(value_grid, policy_grid, title="With usable ace")
-plt.show()
+    print('Fin')

@@ -2,7 +2,7 @@ import numpy as np
 from  opensimplex import OpenSimplex
 import random
 from scipy.ndimage import gaussian_filter, zoom
-import spriteClasses as sc
+import SpriteClasses as sc
 import gameObjectClasses as go
 
 class Noise:

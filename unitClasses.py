@@ -1,5 +1,5 @@
 import boardClasses as b
-import spriteClasses as sc
+import SpriteClasses as sc
 import copy
 from immutables import Map
 import abilityClasses as a

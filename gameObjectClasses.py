@@ -1,4 +1,4 @@
-import spriteClasses as sc
+import SpriteClasses as sc
 import copy
 class GameObject:
     """

@@ -7,7 +7,8 @@ import sys
 import numpy as np
 import copy
 import queue
-import spriteClasses as sc
+import SpriteClasses as sc
+import os
 
 class Pygame:
     def __init__(self, game, maxX, maxY):
@@ -30,9 +31,14 @@ class Pygame:
         self.obstacleGroup = pygame.sprite.Group()
         self.run = False
         
+        # uiElements = {
+        #     "select_hover": pygame.image.load(r".\sprites\select_target_hover.PNG"),
+        #     "select_confirm": pygame.image.load(r".\sprites\select_target_confirm.PNG")
+        # }
+        base_dir = os.path.dirname(__file__)
         uiElements = {
-            "select_hover": pygame.image.load(r".\sprites\select_target_hover.PNG"),
-            "select_confirm": pygame.image.load(r".\sprites\select_target_confirm.PNG")
+            "select_hover": pygame.image.load(os.path.join(base_dir, "sprites", "select_target_hover.PNG")),
+            "select_confirm": pygame.image.load(os.path.join(base_dir, "sprites", "select_target_confirm.PNG"))
         }
         self.uiElementsScaled = {}
         for name, surface in uiElements.items():

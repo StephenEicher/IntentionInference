@@ -6,14 +6,14 @@ import numpy as np
 from  opensimplex import OpenSimplex
 import matplotlib.pyplot as plt
 import time
-import agentClasses as ac
+import AgentClasses as ac
 import copy
 import unitClasses as u
 import boardClasses as b
 import gameObjectClasses as go
-import spriteClasses as sc
+import SpriteClasses as sc
 from immutables import Map
-from mcts.base.base import BaseState, BaseAction
+#from mcts.base.base import BaseState, BaseAction
 import sys
 import pygameUI as rp
 
