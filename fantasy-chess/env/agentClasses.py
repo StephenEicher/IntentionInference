@@ -20,6 +20,10 @@ class RandomAgent(Agent):
     def selectAction(self, game, actionSpace, debugStr=None):
         return random.choice(actionSpace)
 
+class DummyAgent(Agent):
+    def selectAction(self, game, actionSpace, debugStr=None):
+        return None
+
 class HumanAgent(Agent):
     selectedUnit = None
     def selectUnit(self, game, waitingUnits):

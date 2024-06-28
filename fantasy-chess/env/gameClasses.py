@@ -120,7 +120,7 @@ class GameManager():
                 self.currentAgent = self.allAgents[self.agentTurnIndex]       
                 self.gameOverCheck()
             return executedTurnStillActive
-
+    
     def gameOverCheck(self):
         """Check if the game is over- if so, assign winner"""
         if len(self.p1.team) == 0 or len(self.p2.team) == 0:

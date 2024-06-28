@@ -14,7 +14,8 @@ class Board:
         row_indices, col_indices = np.meshgrid(np.arange(self.maxX), np.arange(self.maxY), indexing='ij')
         self.coord_map = np.stack((row_indices, col_indices), axis=-1)
         self.obs_map = self.initializeOMap()
-
+        self.linear_map = np.arange(self.obs_map.shape[0]*self.obs_map.shape[1])
+        self.linear_map = self.linear_map.reshape(self.obs_map.shape)
     def clone(self, game):
         cloned_board = Board.__new__(Board)
         cloned_board.maxX = self.maxY
