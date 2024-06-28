@@ -55,7 +55,7 @@ if __name__ == "__main__":
     agent_ids = env.agents
 
     # # Load the saved agent
-    path = "./Reinforcement Learning/Benchmark_Agent.pt"
+    path = "./Reinforcement Learning/Agents/Benchmark_Agent.pt"
     matd3 = MATD3.load(path, device)
 
     # path = "./Test.pt"
@@ -134,8 +134,8 @@ if __name__ == "__main__":
     env.close()
 
     # Save the gif to specified path
-    gif_path = "./Reinfrocement Learning/videos/"
+    gif_path = "./Reinforcement Learning/Videos"
     os.makedirs(gif_path, exist_ok=True)
     imageio.mimwrite(
-        os.path.join("./videos/", "speaker_listener.gif"), frames, duration=10
+        os.path.join(gif_path + "/", "speaker_listener.gif"), frames, duration=10
     )

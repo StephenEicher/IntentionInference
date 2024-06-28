@@ -35,10 +35,10 @@ class Pygame:
         #     "select_hover": pygame.image.load(r".\sprites\select_target_hover.PNG"),
         #     "select_confirm": pygame.image.load(r".\sprites\select_target_confirm.PNG")
         # }
-        base_dir = os.path.dirname(__file__)
+        base_dir = "./fantasy-chess/env/sprites/"
         uiElements = {
-            "select_hover": pygame.image.load(os.path.join(base_dir, "sprites", "select_target_hover.PNG")),
-            "select_confirm": pygame.image.load(os.path.join(base_dir, "sprites", "select_target_confirm.PNG"))
+            "select_hover": pygame.image.load(base_dir + "select_target_hover.png"),
+            "select_confirm": pygame.image.load(base_dir + "select_target_confirm.png")
         }
         self.uiElementsScaled = {}
         for name, surface in uiElements.items():

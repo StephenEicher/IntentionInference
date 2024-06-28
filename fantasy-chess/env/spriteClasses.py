@@ -4,14 +4,14 @@ class Sprites:
     def __init__(self):
         spritePath = "./fantasy-chess/env/sprites/"
         spritesDict = {
-            "Moo": pygame.image.load(spritePath + "sprite_moo.PNG"),
-            "Haku": pygame.image.load(spritePath + "sprite_haku.PNG"),
-            "Moo_ranged" : pygame.image.load(spritePath + "ranged_unit.PNG"),
-            "Moo_melee" : pygame.image.load(spritePath + "melee_unit.PNG"),
-            "Moo_melee_grey" : pygame.image.load(spritePath + "melee_unit_grey.PNG"),
-            "Moo_ranged_grey" : pygame.image.load(spritePath + "ranged_unit_grey.PNG"),
-            "Charlie" : pygame.image.load(spritePath + "sprite_charlie.PNG"),
-            "obstacle" : pygame.image.load(spritePath + "sprite_obstacle.PNG")
+            "Moo": pygame.image.load(spritePath + "sprite_moo.png"),
+            "Haku": pygame.image.load(spritePath + "sprite_haku.png"),
+            "Moo_ranged" : pygame.image.load(spritePath + "ranged_unit.png"),
+            "Moo_melee" : pygame.image.load(spritePath + "melee_unit.png"),
+            "Moo_melee_grey" : pygame.image.load(spritePath + "melee_unit_grey.png"),
+            "Moo_ranged_grey" : pygame.image.load(spritePath + "ranged_unit_grey.png"),
+            "Charlie" : pygame.image.load(spritePath + "sprite_charlie.png"),
+            "obstacle" : pygame.image.load(spritePath + "sprite_obstacle.png")
         }
         
         self.spritesDictScaled = {}
