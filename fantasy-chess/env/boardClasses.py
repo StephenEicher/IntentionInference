@@ -53,7 +53,10 @@ class Board:
         unit_map_adj = self.units_map[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
         obs_map_adj = self.obs_map[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
         dirs = coord_map_adj[unit_map_adj + obs_map_adj == 0]
-        return dirs
+        moveMask = np.array([unit_map_adj + obs_map_adj == 0]).flatten()
+        moveMask = np.delete(moveMask, 4)
+        moveMask = moveMask.astype(dtype=np.int8)
+        return dirs, moveMask
     
 
     
@@ -72,21 +75,32 @@ class Board:
     def getValidAbilities(self, unit):
         validAbilities = []
         candidateAbilityClasses = unit.unitAbilities
+
+        targetSet = np.delete(self.game.initUnitIDs,self.game.initUnitIDs == unit.ID)
+
+        targetMask = np.empty(0)
         for abilityClass in candidateAbilityClasses:
             ability = abilityClass(unit)
-            # candidateIDs = self.getUnitsInRadius(unit.position, ability.range)
             candidateIDs = self.getUnitsInRadius(unit.position, ability.range, unit.ID)
+            if ability.targeted:
+                maskSegment = 0*targetSet
+            else:
+                maskSegment = np.array(1)
+            
             for ID in candidateIDs:
                 candidate = self.game.allUnits[ID]
                 if ability.targeted:
                     ability.setTarget(candidate)
                     if ability.isValidToCast(self):
                         validAbilities.append((abilityClass, candidate.ID))
+                        maskSegment[targetSet == ID] = 1
+
                 else:
                     if ability.isValidToCast(self): 
                         validAbilities.append(abilityClass, None)
-        
-        return validAbilities
+            targetMask = np.concatenate((targetMask, maskSegment))
+            
+        return validAbilities, targetMask
 
     
     def updateBoard(self, actionTuple):

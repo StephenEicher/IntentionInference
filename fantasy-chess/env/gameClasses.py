@@ -7,6 +7,7 @@ import unitClasses as u
 import boardClasses as b
 from immutables import Map
 import pygameUI as rp
+import numpy as np
 
 class GameManager():
 
@@ -120,7 +121,7 @@ class GameManager():
                 self.currentAgent = self.allAgents[self.agentTurnIndex]       
                 self.gameOverCheck()
             return executedTurnStillActive
-    
+
     def gameOverCheck(self):
         """Check if the game is over- if so, assign winner"""
         if len(self.p1.team) == 0 or len(self.p2.team) == 0:
@@ -196,7 +197,6 @@ class GameManager():
 
     def getCurrentStateActions(self, state):
         """ For the current state, returns action space. Action Format: (unitID, type, info) """
-
         agent = state.allAgents[state.agentTurnIndex]
         waitingUnits = []
         actionSpace = []
@@ -206,15 +206,32 @@ class GameManager():
 
         for curUnit in waitingUnits:
             if curUnit.canMove:
-                moveTargs = state.board.getValidMoveTargets(curUnit.position)
+                moveTargs, _ = state.board.getValidMoveTargets(curUnit.position)
                 for target in moveTargs:
                     actionSpace.append((curUnit.ID, 'move', target))
             if curUnit.canAct:
-                validAbilities = state.board.getValidAbilities(curUnit)
+                validAbilities, _ = state.board.getValidAbilities(curUnit)
                 for ability in validAbilities:
                     actionSpace.append((curUnit.ID, 'ability', ability))
             actionSpace.append((curUnit.ID, 'ability', (-1, None)))
         return actionSpace
+    
+    def getCurrentUnitActions(self, state, unitID):
+        actionSpace = []
+        curUnit = self.allUnits[unitID]
+        if curUnit.canMove:
+            moveTargs, moveMask = state.board.getValidMoveTargets(curUnit.position)
+            for target in moveTargs:
+                actionSpace.append((curUnit.ID, 'move', target))
+        if curUnit.canAct:
+            validAbilities, abilityMask = state.board.getValidAbilities(curUnit)
+            for ability in validAbilities:
+                actionSpace.append((curUnit.ID, 'ability', ability))
+            actionSpace.append((curUnit.ID, 'ability', (-1, None)))
+            abilityMask = np.concatenate((abilityMask, np.array([1])))
+        actionMask = np.concatenate((moveMask, abilityMask))
+        return actionSpace, actionMask
+    
 
     def disposeUnit(self, unitToDispose):
         posessingAgent = self.allAgents[unitToDispose.agentIndex]
@@ -291,6 +308,7 @@ class GameManager():
             agentIndex+=1
             teams.append(curTeam)
         self.allUnits = Map(self.allUnits)
+        self.initUnitIDs = np.sort(np.array(self.board.units_map[self.board.units_map != 0]))
         self.p1 = self.p1Class('P1', 0, teams[0])
         self.p2 = self.p2Class('P2', 1, teams[1])
 
