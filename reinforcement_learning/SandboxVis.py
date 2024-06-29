@@ -134,7 +134,7 @@ if __name__ == "__main__":
     env.close()
 
     # Save the gif to specified path
-    gif_path = "./Reinforcement Learning/Videos"
+    gif_path = "./reinforcement_learning/Videos"
     os.makedirs(gif_path, exist_ok=True)
     imageio.mimwrite(
         os.path.join(gif_path + "/", "speaker_listener.gif"), frames, duration=10

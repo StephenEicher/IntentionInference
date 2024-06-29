@@ -1,14 +1,20 @@
-import gameClasses
-import agentClasses as ac
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+from fantasy_chess.env import gameClasses
+from fantasy_chess.env import agentClasses as ac
 from pettingzoo import ParallelEnv
-import unitClasses as u
+from fantasy_chess.env import unitClasses as u
 import numpy as np
 from copy import copy
 from gymnasium.spaces import Discrete, MultiDiscrete
+from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
 import functools
 
 
-class fantasy_chess(ParallelEnv):
+
+class parallel_env(ParallelEnv):
 
     metadata = {
         "name" : "fantasy_chess"
@@ -20,7 +26,8 @@ class fantasy_chess(ParallelEnv):
         self.game = None
         if opponent_class is None:
             self.opp = ac.RandomAgent
-        self.opp = None
+        else:
+            self.opp = None
         team1 = [(1, 1, u.meleeUnit), (1, 2, u.rangedUnit)]
         team2 =  [(6,6, u.meleeUnit),]
         self.nUnits = 3
@@ -35,7 +42,7 @@ class fantasy_chess(ParallelEnv):
 
     def reset(self, seed=None, options=None):
         self.agents = copy(self.possible_agents)
-        self.game = self.gmClass(ac.DummyAgent, self.opp, self.teamComp, inclPyGame = False, seed=42)
+        self.game = self.gmClass(ac.DummyAgent, self.opp, self.teamComp, inclPygame=False, seed=42)
         #Lets move this to the game manager
 
         obs = self.genObservations(self.game)
@@ -104,8 +111,10 @@ class fantasy_chess(ParallelEnv):
                 unitPos.append(linearPosition(unitID))
                 unitHP.append(unit.currentHP)
         obs = {}
+        unitPos = np.array(unitPos).flatten()
+        unitHP = np.array(unitHP).flatten()
         for agent in self.agents:
-            obs[agent] = np.concatenate(unitPos + unitHP)
+            obs[agent] = np.concatenate((unitPos, unitHP))
         return obs
     
     def genActions(self, game):
@@ -131,3 +140,5 @@ class fantasy_chess(ParallelEnv):
         return Discrete(11)
     
 
+env = parallel_env()
+env = PettingZooVectorizationParallelWrapper(env, n_envs=5)

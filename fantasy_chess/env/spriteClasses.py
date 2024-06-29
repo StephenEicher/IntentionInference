@@ -1,8 +1,14 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+
 import pygame
-from config import config
+from fantasy_chess.env import config as c
+
 class Sprites:
     def __init__(self):
-        spritePath = "./fantasy-chess/env/sprites/"
+        spritePath = "./fantasy_chess/env/sprites/"
         spritesDict = {
             "Moo": pygame.image.load(spritePath + "sprite_moo.png"),
             "Haku": pygame.image.load(spritePath + "sprite_haku.png"),
@@ -16,7 +22,7 @@ class Sprites:
         
         self.spritesDictScaled = {}
         for name, surface in spritesDict.items():
-            self.spritesDictScaled[name] = pygame.transform.scale(surface, (config.widthFactor, config.heightFactor))
+            self.spritesDictScaled[name] = pygame.transform.scale(surface, (c.config.widthFactor, c.config.heightFactor))
 
 class UnitSprite(pygame.sprite.Sprite):
     def __init__(self, parent, image):
@@ -31,8 +37,8 @@ class UnitSprite(pygame.sprite.Sprite):
         self.rect.topleft = (rectTopLeft)
 
     def convertToRect(self, position):
-        rectX = position[1] * config.widthFactor
-        rectY = position[0] * config.heightFactor
+        rectX = position[1] * c.config.widthFactor
+        rectY = position[0] * c.config.heightFactor
 
         return (rectX, rectY)
     

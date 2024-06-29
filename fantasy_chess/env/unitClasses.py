@@ -1,8 +1,12 @@
-import boardClasses as b
-import spriteClasses as sc
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+from fantasy_chess.env import boardClasses as b
+from fantasy_chess.env import spriteClasses as sc
 import copy
 from immutables import Map
-import abilityClasses as a
+from fantasy_chess.env import abilityClasses as a
 import numpy as np
 class Unit:
     def __init__(self, agentIndex, unitID, position, image=None):

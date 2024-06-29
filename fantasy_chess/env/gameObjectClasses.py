@@ -1,4 +1,9 @@
-import spriteClasses as sc
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+
+from fantasy_chess.env import spriteClasses as sc
 import copy
 class GameObject:
     """

@@ -1,5 +1,9 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 import numpy as np
-import noiseClasses as nc
+from fantasy_chess.env import noiseClasses as nc
 
 
 

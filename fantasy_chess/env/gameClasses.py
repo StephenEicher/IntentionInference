@@ -1,12 +1,17 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+
 import queue
 import threading
 import random
 import time
-import agentClasses as ac
-import unitClasses as u
-import boardClasses as b
+from fantasy_chess.env import agentClasses as ac
+from fantasy_chess.env import unitClasses as u
+from fantasy_chess.env import boardClasses as b
 from immutables import Map
-import pygameUI as rp
+from fantasy_chess.env import pygameUI as rp
 import numpy as np
 
 class GameManager():
@@ -300,7 +305,7 @@ class GameManager():
                 x, y, unitClass = entry
                 newUnit = unitClass(agentIndex, unitIndex, (x, y))
                 curTeam.append(newUnit)
-                if self.pygameUI:
+                if self.inclPygame:
                     self.pygameUI.spriteGroup.add(newUnit.sprite)
                 unitIndex+=1
                 self.board.units_map[x, y] = newUnit.ID

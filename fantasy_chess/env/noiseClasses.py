@@ -1,9 +1,14 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+
 import numpy as np
 from  opensimplex import OpenSimplex
 import random
 from scipy.ndimage import gaussian_filter, zoom
-import spriteClasses as sc
-import gameObjectClasses as go
+from fantasy_chess.env import spriteClasses as sc
+from fantasy_chess.env import gameObjectClasses as go
 
 class Noise:
     def __init__(self, maxY, maxX):
@@ -97,7 +102,8 @@ class OMap(Noise):
         rows, cols = coordArrays
         obstacleCoords = list(zip(rows, cols))
         temp = sc.Sprites()
-        for i in range(len(obstacleCoords)):
-            row, col = obstacleCoords[i]
-            newObstacle = go.Obstacles(None, (row, col), 1, temp.spritesDictScaled["obstacle"])
-            self.board.game.pygameUI.obstacleGroup.add(newObstacle.sprite)
+        if self.board.game.inclPygame:
+            for i in range(len(obstacleCoords)):
+                row, col = obstacleCoords[i]
+                newObstacle = go.Obstacles(None, (row, col), 1, temp.spritesDictScaled["obstacle"])
+                self.board.game.pygameUI.obstacleGroup.add(newObstacle.sprite)

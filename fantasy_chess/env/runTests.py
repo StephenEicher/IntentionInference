@@ -1,9 +1,14 @@
-import gameClasses as g
-import agentClasses as agC
-import unitClasses as u
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
+
+from fantasy_chess.env import gameClasses as g
+from fantasy_chess.env import agentClasses as agC
+from fantasy_chess.env import unitClasses as u
 import time
 import random
-import abilityClasses as abC
+from fantasy_chess.env import abilityClasses as abC
 import timeit
 import numpy as np
 class testManager:

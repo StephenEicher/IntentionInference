@@ -1,13 +1,17 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 import pygame
 import time
-import unitClasses as u
-import config as c
+from fantasy_chess.env import unitClasses as u
+from fantasy_chess.env import config as c
 import threading
 import sys
 import numpy as np
 import copy
 import queue
-import spriteClasses as sc
+from fantasy_chess.env import spriteClasses as sc
 import os
 
 class Pygame:
@@ -35,7 +39,7 @@ class Pygame:
         #     "select_hover": pygame.image.load(r".\sprites\select_target_hover.PNG"),
         #     "select_confirm": pygame.image.load(r".\sprites\select_target_confirm.PNG")
         # }
-        base_dir = "./fantasy-chess/env/sprites/"
+        base_dir = "./fantasy_chess/env/sprites/"
         uiElements = {
             "select_hover": pygame.image.load(base_dir + "select_target_hover.png"),
             "select_confirm": pygame.image.load(base_dir + "select_target_confirm.png")
