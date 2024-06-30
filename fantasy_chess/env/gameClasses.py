@@ -228,12 +228,17 @@ class GameManager():
             moveTargs, moveMask = state.board.getValidMoveTargets(curUnit.position)
             for target in moveTargs:
                 actionSpace.append((curUnit.ID, 'move', target))
+        else:
+            moveMask = np.zeros(8)
         if curUnit.canAct:
             validAbilities, abilityMask = state.board.getValidAbilities(curUnit)
             for ability in validAbilities:
                 actionSpace.append((curUnit.ID, 'ability', ability))
-            actionSpace.append((curUnit.ID, 'ability', (-1, None)))
-            abilityMask = np.concatenate((abilityMask, np.array([1])))
+        else:
+            abilityMask = np.zeros(2)
+        actionSpace.append((curUnit.ID, 'ability', (-1, None)))
+        abilityMask = np.concatenate((abilityMask, np.array([1])))
+
         actionMask = np.concatenate((moveMask, abilityMask))
         return actionSpace, actionMask
     
@@ -303,7 +308,7 @@ class GameManager():
             curTeam = []
             for entry in team:
                 x, y, unitClass = entry
-                newUnit = unitClass(agentIndex, unitIndex, (x, y))
+                newUnit = unitClass(agentIndex, unitIndex, (x, y), self.inclPygame)
                 curTeam.append(newUnit)
                 if self.inclPygame:
                     self.pygameUI.spriteGroup.add(newUnit.sprite)
@@ -324,7 +329,7 @@ if __name__ == '__main__':
     # team2 =  [(6,6, u.meleeUnit),
     #         (6, 7, u.rangedUnit)]
     
-    team1 = [(5, 5, u.meleeUnit), (5, 6, u.meleeUnit)]
+    team1 = [(5, 5, u.meleeUnit), (5, 6, u.rangedUnit)]
     team2 =  [(6,6, u.meleeUnit),]
 
     teamComp = [team1, team2]

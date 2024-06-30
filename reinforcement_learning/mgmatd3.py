@@ -12,8 +12,8 @@ from agilerl.networks.evolvable_cnn import EvolvableCNN
 from agilerl.networks.evolvable_mlp import EvolvableMLP
 from agilerl.utils.algo_utils import unwrap_optimizer
 from agilerl.wrappers.make_evolvable import MakeEvolvable
-from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
-
+# from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
+from reinforcement_learning.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
 
 class MGMATD3:
     """The MATD3 algorithm class. MATD3 paper: https://arxiv.org/abs/1910.01465
@@ -440,7 +440,7 @@ class MGMATD3:
             actors = self.actors
             state_dims = self.state_dims
         else:
-            agent_ids = [agent for agent in agent_mask.keys() if agent_mask[agent]]
+            agent_ids = [agent for agent in agent_mask.keys() if agent_mask[agent] is not None]
             state_dims = [
                 state_dim
                 for state_dim, mask_flag in zip(self.state_dims, agent_mask.keys())
@@ -451,12 +451,12 @@ class MGMATD3:
                 for agent, action_dim in zip(self.agent_ids, self.action_dims)
             }
             states = {
-                agent: states[agent] for agent in agent_mask.keys() if agent_mask[agent]
+                agent: states[agent] for agent in agent_mask.keys() if agent_mask[agent] is not None
             }
             actors = [
                 actor
                 for agent, actor in zip(agent_mask.keys(), self.actors)
-                if agent_mask[agent]
+                if agent_mask[agent] is not None
             ]
 
         # Convert states to a list of torch tensors
@@ -895,6 +895,8 @@ class MGMATD3:
                         action = cont_actions
                     if not is_vectorised:
                         action = {agent: act[0] for agent, act in action.items()}
+
+                    
                     state, reward, done, trunc, info = env.step(action)
                     scores += np.sum(
                         np.array(list(reward.values())).transpose(), axis=-1

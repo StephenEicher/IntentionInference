@@ -9,8 +9,8 @@ from tqdm import trange
 
 from agilerl.components.replay_data import ReplayDataset
 from agilerl.components.sampler import Sampler
-from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
-
+# from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
+from reinforcement_learning.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
 
 def train_multi_agent(
     env,
@@ -252,7 +252,8 @@ def train_multi_agent(
 
             for idx_step in range(evo_steps // num_envs):
                 # Get next action from agent
-                agent_mask = info["agent_mask"] if "agent_mask" in info.keys() else None
+                # agent_mask = info["agent_mask"] if "agent_mask" in info.keys() else None
+                agent_mask = info
                 env_defined_actions = (
                     info["env_defined_actions"]
                     if "env_defined_actions" in info.keys()

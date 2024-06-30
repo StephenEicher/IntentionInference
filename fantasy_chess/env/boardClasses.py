@@ -15,9 +15,15 @@ class Board:
         self.maxX = maxX
         self.game = game
         self.units_map = np.zeros([maxX, maxY])
+        
+
         row_indices, col_indices = np.meshgrid(np.arange(self.maxX), np.arange(self.maxY), indexing='ij')
         self.coord_map = np.stack((row_indices, col_indices), axis=-1)
+        self.coord_map_padded =  np.pad(self.coord_map, pad_width=1, mode='constant', constant_values=0)
+
         self.obs_map = self.initializeOMap()
+        self.obs_map_padded =  np.pad(self.obs_map, pad_width=1, mode='constant', constant_values=1)
+        
         self.linear_map = np.arange(self.obs_map.shape[0]*self.obs_map.shape[1])
         self.linear_map = self.linear_map.reshape(self.obs_map.shape)
     def clone(self, game):
@@ -57,16 +63,29 @@ class Board:
         unit_map_adj = self.units_map[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
         obs_map_adj = self.obs_map[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
         dirs = coord_map_adj[unit_map_adj + obs_map_adj == 0]
-        moveMask = np.array([unit_map_adj + obs_map_adj == 0]).flatten()
+
+
+        return dirs, self.getMoveMask(center)
+    
+    def getMoveMask(self, center):
+        x, y = center
+        self.units_map_padded = np.pad(self.units_map, pad_width=1, mode='constant', constant_values=0)
+        # Adjust the coordinates to account for padding
+        x += 1
+        y += 1
+        xBounds = (x-1, x+2)
+        yBounds = (y-1, y+2)
+        unit_map_adj = self.units_map_padded[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
+        obs_map_adj = self.obs_map_padded[xBounds[0]:xBounds[1], yBounds[0]:yBounds[1]]
+
+        moveMask = (unit_map_adj + obs_map_adj == 0).flatten()
         moveMask = np.delete(moveMask, 4)
         moveMask = moveMask.astype(dtype=np.int8)
-        return dirs, moveMask
-    
-
+        return moveMask
     
     def getUnitsInRadius(self, center, radius, excludeUnit=None):
         x, y = center
-
+        
         # Check if there are any units in adjacent tiles
         xBounds = (np.max([0, x-radius]), np.min([x + radius+1, self.maxX]))
         yBounds = (np.max([0, y-radius]), np.min([y + radius+1, self.maxY]))
@@ -123,7 +142,7 @@ class Board:
         self.units_map[finalPosition[0], finalPosition[1]] = unitID
         unit.position = finalPosition
 
-        if self.game.pygameUI:
+        if self.game.inclPygame:
             unit.sprite.rect.topleft = unit.sprite.convertToRect(finalPosition)
         unit.currentMovement -= 1
 

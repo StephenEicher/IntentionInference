@@ -90,11 +90,14 @@ class Unit:
         return False
 
 class meleeUnit(Unit):
-    def __init__(self, agentIndex, unitID, position):
-        if agentIndex == 0:
-            image = sc.Sprites().spritesDictScaled['Moo_melee']
+    def __init__(self, agentIndex, unitID, position, inclPygame=False):
+        if inclPygame:
+                if agentIndex == 0:
+                    image = sc.Sprites().spritesDictScaled['Moo_melee']
+                else:
+                    image = sc.Sprites().spritesDictScaled['Moo_melee_grey']
         else:
-            image = sc.Sprites().spritesDictScaled['Moo_melee_grey']
+            image = None
         super().__init__(agentIndex, unitID, position, image)
         self.unitSymbol = "M"
         self.movement = 3
@@ -103,18 +106,21 @@ class meleeUnit(Unit):
         self.currentHP = self.HP
         
 class rangedUnit(Unit):
-    def __init__(self, agentIndex, unitID, position):
-        if agentIndex == 0:
-            image = sc.Sprites().spritesDictScaled['Moo_ranged']
+    def __init__(self, agentIndex, unitID, position, inclPygame=False):
+        if inclPygame:
+            if agentIndex == 0:
+                image = sc.Sprites().spritesDictScaled['Moo_ranged']
+            else:
+                image = sc.Sprites().spritesDictScaled['Moo_ranged_grey']
         else:
-            image = sc.Sprites().spritesDictScaled['Moo_ranged_grey']
+            image = None
         super().__init__(agentIndex, unitID, position, image)
         self.unitSymbol = "R"
         self.movement = 2
         self.currentMovement = self.movement
         self.HP = 2 
         self.currentHP = self.HP
-        self.unitAbilities.append(a.rangedStrike)
+        self.unitAbilities = [a.rangedStrike]
 
 
 

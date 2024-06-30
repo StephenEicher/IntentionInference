@@ -8,13 +8,14 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from fantasy_chess.env import fs_env as fc
-from agilerl.components.multi_agent_replay_buffer import MultiAgentReplayBuffer
+from reinforcement_learning.MABuffer import MultiAgentReplayBuffer
 from agilerl.hpo.mutation import Mutations
 from agilerl.hpo.tournament import TournamentSelection
 from agilerl.networks.evolvable_mlp import EvolvableMLP
 from agilerl.training.train_multi_agent import train_multi_agent
 from agilerl.utils.utils import create_population
-from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
+from reinforcement_learning.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
+# from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
 from reinforcement_learning import createAgentPop as rl
 import trainMultiAgent as tma
 

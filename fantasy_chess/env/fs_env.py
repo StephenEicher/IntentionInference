@@ -42,21 +42,20 @@ class parallel_env(ParallelEnv):
 
     def reset(self, seed=None, options=None):
         self.agents = copy(self.possible_agents)
-        self.game = self.gmClass(ac.DummyAgent, self.opp, self.teamComp, inclPygame=False, seed=42)
+        self.game = self.gmClass(ac.DummyAgent, self.opp, self.teamComp, inclPygame=False, seed=42, verbose=False)
         #Lets move this to the game manager
 
-        obs = self.genObservations(self.game)
+        observations = self.genObservations(self.game)
         gameActions, actionMask = self.genActions(self.game)
-        observations = {}
-        for agent in self.agents:
-            observations[agent] = {"observation" : obs[agent], "action_mask" : actionMask[agent]}
-        infos = {a: {} for a in self.agents}
+        # infos = {a: {'agent_mask' : actionMask[a]} for a in self.agents}
+        infos = actionMask
+
         return observations, infos
     
     def step(self, actions):
         terminations = {a: False for a in self.agents}
         rewards = {a: 0 for a in self.agents}
-
+        agentGameActions = {}
         for agent in actions.keys():
             if self.game.gameOver:
                 break
@@ -64,21 +63,38 @@ class parallel_env(ParallelEnv):
             if unit is not None:
                 actionID = actions[agent]
                 gameActions, actionMask = self.genActions(self.game)
-                gameActionID = np.sum(actionMask[:actionID])
-                gameAction = gameActions[gameActionID]
+                curMask = actionMask[agent]
+                gameActionID =  np.sum(curMask[:actionID]).astype(int)
+                curActions = gameActions[agent]
+                gameAction = curActions[gameActionID]
+                agentGameActions[agent] = gameAction
                 self.game.executeMove(gameAction)
-            else:
-                terminations[agent] = True
-                rewards[agent] = -5
+
+
+        while not isinstance(self.game.currentAgent, ac.DummyAgent) and not self.game.gameOver:
+            allAgentActions = self.game.getCurrentStateActions(self.game)
+            action = self.game.currentAgent.selectAction(self.game, allAgentActions, 'gameLoop')
+            self.game.executeMove(action)
 
         if self.game.gameOver:
             terminations = {a: True for a in self.agents}
             if self.game.winner == 0:
-                rewards = {a: 10 for a in self.agents}
+                rewards = {a: 100 for a in self.agents}
             else:
-                rewards = {a: -10 for a in self.agents}
+                rewards = {a: -100 for a in self.agents}
         else:
-            rewards = {"melee" : -0.1, "ranged": -0.1}
+            for agent in self.agents:
+                unit = self.game.allUnits.get(self.agentUnit[agent], None)
+                gameAction = agentGameActions.get(agent, None)
+                if unit is None:
+                    terminations[agent] = True
+                    rewards[agent] = -25    
+                else:
+                    _, actionType, actionInfo = gameAction
+                    if actionType == "ability" and actionInfo[0] != -1:
+                        rewards[agent] = 5
+                    else:
+                        rewards[agent] = -0.1
         
 
         truncations = {a: False for a in self.agents}
@@ -86,12 +102,9 @@ class parallel_env(ParallelEnv):
             truncations = {a: True for a in self.agents}
         
         gameActions, actionMask = self.genActions(self.game)
-        obs = self.genObservations(self.game)
-        observations = {}
-        for agent in self.agents:
-            observations[agent] = {"observation" : obs[agent], "action_mask" : actionMask[agent]}
-        infos = {a: {} for a in self.agents}
-
+        observations = self.genObservations(self.game)
+        # infos = {a: {} for a in self.agents}
+        infos = actionMask
         return observations, rewards, terminations, truncations, infos
 
     def genObservations(self, game):
@@ -104,9 +117,8 @@ class parallel_env(ParallelEnv):
             unit = game.allUnits.get(unitID, None)
             if unit is None:
                 #If unit has died
-                self.units[id] = 0
-                unitPos.append(np.max(game.board.linear_map)+1)
-                unitHP.append(0)
+                unitPos.append(np.array([np.max(game.board.linear_map)+1]))
+                unitHP.append(np.array(0))
             else:
                 unitPos.append(linearPosition(unitID))
                 unitHP.append(unit.currentHP)
@@ -123,7 +135,7 @@ class parallel_env(ParallelEnv):
         for agent in self.possible_agents:
             unit = game.allUnits.get(self.agentUnit[agent], None)
             if unit is None:
-                actionMask[agent] = None
+                actionMask[agent] = np.zeros(11)
             else:
                 unitActions, unitMask = game.getCurrentUnitActions(game, unit.ID)
                 actionMask[agent] = unitMask
