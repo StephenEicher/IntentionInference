@@ -169,7 +169,7 @@ def main(INIT_HP, MUTATION_PARAMS, NET_CONFIG, DISTRIBUTED_TRAINING, use_net=Fal
         mutation=mutations,
         accelerator=accelerator,
         save_elite=True,
-        elite_path = './fs'
+        elite_path = './reinforcement_learning/Agents/fs'
     )
 
     if str(device) == "cuda":

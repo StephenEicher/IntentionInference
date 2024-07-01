@@ -88,7 +88,7 @@ class GameManager():
         
         return cloned_game
 
-    def start(self):
+    def startPGVis(self):
         """Launch game user interface through pygame by starting pygame loop on a different thread"""
         if self.inclPygame:
             self.pygameThread = threading.Thread(target=self.pygameUI.pygameLoop)
@@ -96,6 +96,9 @@ class GameManager():
             self.pygameThread.start()
             while self.pygameUI.run == False:
                 time.sleep(0.01)
+
+    def start(self):
+        self.startPGVis()
         self.gameLoop()
         #self.queryAgentForMove()
 

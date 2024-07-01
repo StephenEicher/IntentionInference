@@ -1,7 +1,7 @@
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
-
+import random
 from fantasy_chess.env import gameClasses
 from fantasy_chess.env import agentClasses as ac
 from pettingzoo import ParallelEnv
@@ -29,8 +29,8 @@ class parallel_env(ParallelEnv):
         else:
             self.opp = None
         team1 = [(1, 1, u.meleeUnit), (1, 2, u.rangedUnit)]
-        team2 =  [(6,6, u.meleeUnit),]
-        self.nUnits = 3
+        team2 =  [(6,6, u.meleeUnit)]
+        self.nUnits = 4
         teamComp = [team1, team2]
         self.agentUnit = {
             "melee" : 1,
@@ -40,9 +40,14 @@ class parallel_env(ParallelEnv):
         
         
 
-    def reset(self, seed=None, options=None):
+    def reset(self, seed=None, options=False):
         self.agents = copy(self.possible_agents)
-        self.game = self.gmClass(ac.DummyAgent, self.opp, self.teamComp, inclPygame=False, seed=42, verbose=False)
+        yValues =  random.sample(range(0, 7), 3)
+        team1 = [(random.randint(0, 5), yValues[0], u.meleeUnit), (random.randint(0, 5), yValues[1], u.rangedUnit)]
+        team2 =  [(random.randint(2, 6), yValues[2], u.meleeUnit)]
+        teamComp = [team1, team2]
+        self.teamComp = teamComp
+        self.game = self.gmClass(ac.DummyAgent, self.opp, self.teamComp, inclPygame=options, verbose=False)
         #Lets move this to the game manager
 
         observations = self.genObservations(self.game)
@@ -56,6 +61,13 @@ class parallel_env(ParallelEnv):
         terminations = {a: False for a in self.agents}
         rewards = {a: 0 for a in self.agents}
         agentGameActions = {}
+        deltaHP = {}
+
+        for agent in self.agents:
+            unit = self.game.allUnits.get(self.agentUnit[agent], None)
+            if unit is not None:
+                deltaHP[agent] = unit.currentHP
+
         for agent in actions.keys():
             if self.game.gameOver:
                 break
@@ -94,7 +106,10 @@ class parallel_env(ParallelEnv):
                     if actionType == "ability" and actionInfo[0] != -1:
                         rewards[agent] = 5
                     else:
-                        rewards[agent] = -0.1
+                        rewards[agent] = -0.25
+                    deltaHP[agent] = deltaHP[agent] - unit.currentHP
+                    if deltaHP[agent] != 0:
+                        rewards[agent] = rewards[agent] - 10
         
 
         truncations = {a: False for a in self.agents}

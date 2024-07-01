@@ -7,6 +7,8 @@ from pettingzoo.mpe import simple_speaker_listener_v4
 from PIL import Image, ImageDraw
 from agilerl.algorithms.maddpg import MADDPG
 from agilerl.algorithms.matd3 import MATD3
+from PIL import Image
+import glob
 
 # Define function to return image
 def _label_with_episode_number(frame, episode_num):
