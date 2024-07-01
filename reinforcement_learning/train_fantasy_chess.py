@@ -8,16 +8,16 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from fantasy_chess.env import fs_env as fc
-from reinforcement_learning.MABuffer import MultiAgentReplayBuffer
+from reinforcement_learning.agilerl.multi_agent_replay_buffer import MultiAgentReplayBuffer
 from agilerl.hpo.mutation import Mutations
 from agilerl.hpo.tournament import TournamentSelection
 from agilerl.networks.evolvable_mlp import EvolvableMLP
 from agilerl.training.train_multi_agent import train_multi_agent
 from agilerl.utils.utils import create_population
-from reinforcement_learning.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
+from reinforcement_learning.agilerl.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
 # from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
-from reinforcement_learning import createAgentPop as rl
-import trainMultiAgent as tma
+from reinforcement_learning.agilerl import utils as rl
+import reinforcement_learning.agilerl.train_multi_agent as tma
 
 # !Note: If you are running this demo without having installed agilerl,
 # uncomment and place the following above agilerl imports:

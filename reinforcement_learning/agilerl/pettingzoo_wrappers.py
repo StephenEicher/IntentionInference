@@ -3,9 +3,9 @@ from __future__ import annotations
 import gymnasium.spaces
 import numpy as np
 from gymnasium.utils import seeding
-from reinforcement_learning.env import ActionType, AgentID, ObsType, ParallelEnv
+from reinforcement_learning.agilerl.env import ActionType, AgentID, ObsType, ParallelEnv
 
-from reinforcement_learning.multiprocessing_env import SubprocVecEnv
+from reinforcement_learning.agilerl.multiprocessing_env import SubprocVecEnv
 
 
 class PettingZooAutoResetParallelWrapper(ParallelEnv):

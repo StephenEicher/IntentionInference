@@ -10,7 +10,7 @@ from tqdm import trange
 from agilerl.components.replay_data import ReplayDataset
 from agilerl.components.sampler import Sampler
 # from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
-from reinforcement_learning.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
+from reinforcement_learning.agilerl.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
 
 def train_multi_agent(
     env,

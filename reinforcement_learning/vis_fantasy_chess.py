@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from PIL import Image
 import glob
 from fantasy_chess.env import fs_env as fc
-from reinforcement_learning.mgmatd3 import MGMATD3
+from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
 
 if __name__ == "__main__":
     path = "./reinforcement_learning/Agents/fs.pt"

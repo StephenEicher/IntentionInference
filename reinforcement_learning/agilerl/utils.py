@@ -13,7 +13,7 @@ from agilerl.algorithms.neural_ucb_bandit import NeuralUCB
 from agilerl.algorithms.ppo import PPO
 from agilerl.algorithms.td3 import TD3
 from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
-from reinforcement_learning.mgmatd3 import MGMATD3
+from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
 
 def make_vect_envs(env_name, num_envs=1):
     """Returns async-vectorized gym environments.

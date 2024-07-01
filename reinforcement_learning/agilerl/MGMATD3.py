@@ -7,13 +7,16 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from agilerl.networks.evolvable_cnn import EvolvableCNN
 from agilerl.networks.evolvable_mlp import EvolvableMLP
 from agilerl.utils.algo_utils import unwrap_optimizer
 from agilerl.wrappers.make_evolvable import MakeEvolvable
 # from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
-from reinforcement_learning.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
+from reinforcement_learning.agilerl.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
 
 class MGMATD3:
     """The MATD3 algorithm class. MATD3 paper: https://arxiv.org/abs/1910.01465
