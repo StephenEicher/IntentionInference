@@ -77,5 +77,6 @@ INIT_HP = config["INIT_HP"]
 MUTATION_PARAMS = config["MUTATION_PARAMS"]
 NET_CONFIG = config["NET_CONFIG"]
 opp = ac.StaticAgent('Static Agent')
-OUTPATH = "./reinforcement_learning/Agents/fs.pt"
-t.train(distRewardFn, opp, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH)
+OUTPATH = "./reinforcement_learning/Agents/fs_new.pt"
+baseAgent = "./reinforcement_learning/Agents/fs.pt"
+t.train(distRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)

@@ -18,13 +18,13 @@ from reinforcement_learning.agilerl.pettingzoo_wrappers import PettingZooVectori
 # from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
 from reinforcement_learning.agilerl import utils as rl
 import reinforcement_learning.agilerl.train_multi_agent as tma
-
+from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
 # !Note: If you are running this demo without having installed agilerl,
 # uncomment and place the following above agilerl imports:
 
 
 
-def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, use_net=False):
+def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=None, use_net=False):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("============ Beginning Training! ============")
     accelerator = None
@@ -134,20 +134,26 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH
         actor = None
         critic = None
 
-    agent_pop = rl.create_population(
-        algo=INIT_HP["ALGO"],
-        state_dim=state_dims,
-        action_dim=action_dims,
-        one_hot=one_hot,
-        net_config=NET_CONFIG,
-        INIT_HP=INIT_HP,
-        actor_network=actor,
-        critic_network=critic,
-        population_size=INIT_HP["POP_SIZE"],
-        num_envs=INIT_HP["NUM_ENVS"],
-        device=device,
-        accelerator=accelerator,
-    )
+    if baseAgent is None:
+        agent_pop = rl.create_population(
+            algo=INIT_HP["ALGO"],
+            state_dim=state_dims,
+            action_dim=action_dims,
+            one_hot=one_hot,
+            net_config=NET_CONFIG,
+            INIT_HP=INIT_HP,
+            actor_network=actor,
+            critic_network=critic,
+            population_size=INIT_HP["POP_SIZE"],
+            num_envs=INIT_HP["NUM_ENVS"],
+            device=device,
+            accelerator=accelerator,
+        )
+    else:
+        agent_pop = []
+        for idx in range(INIT_HP["POP_SIZE"]):
+            agent = MGMATD3.load(baseAgent, device)
+            agent_pop.append(agent)
 
     tma.train_multi_agent(
         env,
