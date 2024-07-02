@@ -8,13 +8,16 @@ from PIL import Image
 import glob
 from fantasy_chess import fc_env as fc
 from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
+import fantasy_chess.env.agentClasses as ac
+
+from trainWithRL import distRewardFn
 
 if __name__ == "__main__":
-    path = "./reinforcement_learning/Agents/fs.pt"
+    path = "./reinforcement_learning/Agents/fs_new.pt"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     
-    env = fc.parallel_env()
+    env = fc.parallel_env(distRewardFn, ac.StaticAgent("Static"))
     state, info = env.reset(options=True)
     env.game.startPGVis()
     

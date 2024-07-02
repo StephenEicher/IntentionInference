@@ -70,13 +70,14 @@ def rewardFn(env, postGame, preUnits, postUnits):
     return rewards
 
 
-
-with open("./reinforcement_learning/Configs/fc_matd3.yaml") as file:
-        config = yaml.safe_load(file)
-INIT_HP = config["INIT_HP"]
-MUTATION_PARAMS = config["MUTATION_PARAMS"]
-NET_CONFIG = config["NET_CONFIG"]
-opp = ac.StaticAgent('Static Agent')
-OUTPATH = "./reinforcement_learning/Agents/fs_new.pt"
-baseAgent = "./reinforcement_learning/Agents/fs.pt"
-t.train(distRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
+if __name__ == "__main__":
+    with open("./reinforcement_learning/Configs/fc_matd3.yaml") as file:
+            config = yaml.safe_load(file)
+    INIT_HP = config["INIT_HP"]
+    MUTATION_PARAMS = config["MUTATION_PARAMS"]
+    NET_CONFIG = config["NET_CONFIG"]
+    opp = ac.StaticAgent('Static Agent')
+    OUTPATH = "./reinforcement_learning/Agents/fs_new.pt"
+    baseAgent = "./reinforcement_learning/Agents/fs.pt"
+    # t.train(distRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
+    t.train(distRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH)
