@@ -16,7 +16,7 @@ import numpy as np
 
 class GameManager():
 
-    def __init__(self, p1Class, p2Class, teamComp, inclPygame = True, seed=random.randint(0, 999999), verbose=True):
+    def __init__(self, p1, p2, teamComp, inclPygame = True, seed=random.randint(0, 999999), verbose=True):
         random.seed(seed)
         self.verbose = verbose
         self.agentTurnIndex = 0
@@ -25,8 +25,8 @@ class GameManager():
         # self.gameLoopEvent = threading.Event()
         self.currentAgent = None
         self.inputReady = False
-        self.p1Class = p1Class
-        self.p2Class = p2Class
+        self.p1 = p1
+        self.p2 = p2
         if self.inclPygame:
             self.fprint('Including pygame...')
             maxX = 8
@@ -71,16 +71,16 @@ class GameManager():
             cloned_game.allUnits[newUnit.ID] = newUnit
         cloned_game.allUnits = Map(cloned_game.allUnits)
 
-        cloned_game.p1 = self.p1Class(self.p1.name, 0, team0)
-        cloned_game.p2 = self.p2Class(self.p2.name, 1, team1)
+        # cloned_game.p1 = self.p1Class(self.p1.name, 0, team0)
+        # cloned_game.p2 = self.p2Class(self.p2.name, 1, team1)
 
         cloned_game.allAgents = [cloned_game.p1, cloned_game.p2]
         cloned_game.inclPygame = False
         cloned_game.gameOver = self.gameOver
         cloned_game.currentAgent = cloned_game.allAgents[cloned_game.agentTurnIndex]
 
-        cloned_game.p1Class = self.p1Class
-        cloned_game.p2Class = self.p2Class
+        # cloned_game.p1Class = self.p1Class
+        # cloned_game.p2Class = self.p2Class
         cloned_game.winner = self.winner
         cloned_game.verbose = False
         cloned_game.nTurns = self.nTurns
@@ -245,6 +245,60 @@ class GameManager():
         actionMask = np.concatenate((moveMask, abilityMask))
         return actionSpace, actionMask
     
+    def getUnitRelations(self, unitID):
+        unit = self.allUnits[unitID]
+        myAgentIndex  = unit.agentIndex
+        friendly = []
+        enemy = []
+        for curUnitID in self.allUnits.keys():
+            curUnit = self.allUnits[curUnitID]
+            if curUnitID is not unitID:
+                if curUnit.agentIndex == myAgentIndex:
+                    friendly.append(curUnitID)
+                else:
+                    enemy.append(curUnitID)
+        return (friendly, enemy)
+        
+    def genObservationsDict(self, agentUnits):
+        obs = {}
+        for agent in agentUnits.keys():
+            channels = []
+            agentUnitID = agentUnits[agent]
+            unit = self.allUnits.get(agentUnitID, None)
+            if unit is not None: 
+                c0 = unit.currentHP * (self.board.units_map == agentUnitID)
+                channels.append(c0)
+                c1 = self.board.obs_map
+                channels.append(c1)
+                friendly, opponent = self.getUnitRelations(agentUnitID)
+                c2 = 0*self.board.units_map
+                c3 = 0*self.board.units_map
+                for opp in opponent:
+                    c2 = c2 + self.board.units_map == opp
+
+                for friend in friendly:
+                    c3 = c3 + self.board.units_map == friend
+
+                channels.append(c2)
+                channels.append(c3)
+                obs[agent] = np.array(channels).astype(np.int8)
+            else:
+                obs[agent] = np.zeros((4, 8, 8), dtype=np.int8)
+        return obs
+    
+    def genActionsDict(self, agentUnits):
+        actionMask = {}
+        gameActions = {}
+        for agent in agentUnits.keys():
+            unit = self.allUnits.get(agentUnits[agent], None)
+            if unit is None:
+                actionMask[agent] = np.zeros(11)
+            else:
+                unitActions, unitMask = self.getCurrentUnitActions(self, unit.ID)
+                actionMask[agent] = unitMask
+                gameActions[agent] = unitActions
+        return gameActions, actionMask
+    
 
     def disposeUnit(self, unitToDispose):
         posessingAgent = self.allAgents[unitToDispose.agentIndex]
@@ -322,8 +376,8 @@ class GameManager():
             teams.append(curTeam)
         self.allUnits = Map(self.allUnits)
         self.initUnitIDs = np.sort(np.array(self.board.units_map[self.board.units_map != 0]))
-        self.p1 = self.p1Class('P1', 0, teams[0])
-        self.p2 = self.p2Class('P2', 1, teams[1])
+        self.p1.init(0, teams[0])
+        self.p2.init(1, teams[1])
 
 
 if __name__ == '__main__':
@@ -336,8 +390,17 @@ if __name__ == '__main__':
     team2 =  [(6,6, u.meleeUnit),]
 
     teamComp = [team1, team2]
-    a = GameManager(ac.HumanAgent, ac.RandomAgent, teamComp, inclPygame = True, seed=10)
-    b = a.clone()
+
+    # from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
+    # import torch
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # path = "./reinforcement_learning/Agents/fs.pt"
+    # agent = MGMATD3.load(path, device)
+    # p2 = ac.RLAgent('P2', agent, ["melee", "ranged"])
+    p2 = ac.StaticAgent('P2')
+    p1 = ac.HumanAgent('P1')
+    a = GameManager(p1, p2, teamComp, inclPygame = True, seed=10)
+    
     a.start()
-   
+   # b = a.clone()
     # b.start()

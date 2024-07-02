@@ -1,28 +1,99 @@
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
+
 import abc
 import time
 import random
 import numpy as np
+from fantasy_chess.env import unitClasses as u
 
 # from mcts.searcher.mcts import MCTS
 
 class Agent(metaclass=abc.ABCMeta):
-    def __init__(self, name, agentIndex, team):       
+    agentIndex = None
+    team = None
+
+    def __init__(self, name):       
         self.name = name
-        self.agentIndex = agentIndex
-        self.team = team
-        self.inputReady = False
+
     @abc.abstractmethod
     def selectAction(self):
         pass
+    def init(self, agentIndex, team):
+        self.team = team
+        self.agentIndex = agentIndex
 
 
 class RandomAgent(Agent):
+    #Selects move at random
     def selectAction(self, game, actionSpace, debugStr=None):
         return random.choice(actionSpace)
 
 class DummyAgent(Agent):
     def selectAction(self, game, actionSpace, debugStr=None):
         return None
+    
+class StaticAgent(Agent):
+    #Always selects end turn
+    def selectAction(self, game, actionSpace, debugStr=None):
+        for action in actionSpace:
+            selectedUnitID, actionType, info = action
+            if actionType == "ability":
+                abilityClass, targetID = info
+                if abilityClass == -1:
+                    choice = action
+                    break
+        return choice
+
+class RLAgent(Agent):
+    agent = None
+    agentUnitDict = None
+    possibleAgents = None
+    def __init__(self, name, agent, possibleAgents):
+        self.name = name
+        self.agent = agent
+        self.possibleAgents = possibleAgents
+
+        
+    def init(self, agentIndex, team):
+        self.team = team
+        self.agentIndex = agentIndex
+        self.agentUnitDict = {}
+        for agent in self.possibleAgents:
+            self.agentUnitDict[agent] = -1
+            for unit in self.team:
+                if agent == "melee" and isinstance(unit, u.meleeUnit):
+                    self.agentUnitDict[agent] = unit.ID
+                    break
+                elif agent == "ranged" and isinstance(unit, u.rangedUnit):
+                    self.agentUnitDict[agent] = unit.ID
+                    break
+
+
+    def selectAction(self, game, actionSpace, debugStr=None):  
+        state = game.genObservationsDict(self.agentUnitDict)
+        gameActions, agent_mask = game.genActionsDict(self.agentUnitDict)
+        cont_actions, discrete_actions = self.agent.get_action(
+            state,
+            training=False,
+            agent_mask = agent_mask,
+            env_defined_actions=None,
+        ) 
+        actions = discrete_actions
+        for key in actions.keys():
+            actions[key] = actions[key][0]
+        for agent in actions.keys():
+            if game.gameOver:
+                return None
+            unit = game.allUnits.get(self.agentUnitDict[agent], None)
+            if unit is not None:
+                actionID = actions[agent]
+                curMask = agent_mask[agent]
+                gameActionID =  np.sum(curMask[:actionID]).astype(int)
+                curActions = gameActions[agent]
+                gameAction = curActions[gameActionID]
+                return gameAction
 
 
 class HumanAgent(Agent):

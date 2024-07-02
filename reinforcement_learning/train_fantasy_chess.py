@@ -7,7 +7,7 @@ import yaml
 import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-from fantasy_chess.env import fs_env as fc
+from fantasy_chess import fc_env as fc
 from reinforcement_learning.agilerl.multi_agent_replay_buffer import MultiAgentReplayBuffer
 from agilerl.hpo.mutation import Mutations
 from agilerl.hpo.tournament import TournamentSelection
@@ -24,16 +24,16 @@ import reinforcement_learning.agilerl.train_multi_agent as tma
 
 
 
-def main(INIT_HP, MUTATION_PARAMS, NET_CONFIG, DISTRIBUTED_TRAINING, use_net=False):
+def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, use_net=False):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("============ AgileRL Multi-agent benchmarking ============")
+    print("============ Beginning Training! ============")
     accelerator = None
     print(f"DEVICE: {device}")
 
     # env = importlib.import_module(f"{INIT_HP['ENV_NAME']}").parallel_env(
     #     max_cycles=25, continuous_actions=True
     # )
-    env = fc.parallel_env()
+    env = fc.parallel_env(rewardFn, opponentClass)
     env.reset()
     env = PettingZooVectorizationParallelWrapper(env, n_envs=INIT_HP["NUM_ENVS"])
     env.reset()
@@ -169,18 +169,8 @@ def main(INIT_HP, MUTATION_PARAMS, NET_CONFIG, DISTRIBUTED_TRAINING, use_net=Fal
         mutation=mutations,
         accelerator=accelerator,
         save_elite=True,
-        elite_path = './reinforcement_learning/Agents/fs'
+        elite_path = OUTPATH
     )
 
     if str(device) == "cuda":
         torch.cuda.empty_cache()
-
-
-if __name__ == "__main__":
-    with open("./reinforcement_learning/Configs/fc_matd3.yaml") as file:
-        config = yaml.safe_load(file)
-    INIT_HP = config["INIT_HP"]
-    MUTATION_PARAMS = config["MUTATION_PARAMS"]
-    NET_CONFIG = config["NET_CONFIG"]
-    DISTRIBUTED_TRAINING = config["DISTRIBUTED_TRAINING"]
-    main(INIT_HP, MUTATION_PARAMS, NET_CONFIG, DISTRIBUTED_TRAINING, use_net=False)
