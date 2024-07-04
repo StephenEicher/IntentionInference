@@ -2,7 +2,7 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
-
+import pygame as pg
 import queue
 import threading
 import random
@@ -16,7 +16,7 @@ import numpy as np
 
 class GameManager():
 
-    def __init__(self, p1, p2, teamComp, inclPygame = True, seed=random.randint(0, 999999), verbose=True):
+    def __init__(self, p1, p2, teamComp, inclPygame = True, seed=random.randint(0, 999999), verbose=True, framePath = None):
         random.seed(seed)
         self.verbose = verbose
         self.agentTurnIndex = 0
@@ -27,6 +27,8 @@ class GameManager():
         self.inputReady = False
         self.p1 = p1
         self.p2 = p2
+        self.framePath = framePath
+        self.frameCount = 0
         if self.inclPygame:
             self.fprint('Including pygame...')
             maxX = 8
@@ -101,16 +103,23 @@ class GameManager():
         self.startPGVis()
         self.gameLoop()
         #self.queryAgentForMove()
+    def saveFrame(self):
+        if self.framePath is not None:            
+            pg.image.save(self.pygameUI.screen, self.framePath + '/' + f'{self.frameCount:04d}' + '.png')
+            self.frameCount = self.frameCount + 1
 
     def executeMove(self, action):
         self.gameOverCheck()
+
         if not self.gameOver:
             self.nTurns = self.nTurns + 1
             changeTurnAgent = True
             selectedUnitID, actionType, info = action
             # selectedUnit = self.getUnitByID(selectedUnitID)
             selectedUnit = self.allUnits[selectedUnitID]
+            self.saveFrame()
             self.board.updateBoard(action)
+            self.saveFrame()
             self.fprint(f"\nCurrent unit: {selectedUnitID}")
             self.fprint("===================================")
             self.fprint(f"Current movement: {selectedUnit.currentMovement}\nCurrent action points: {selectedUnit.currentActionPoints}")
@@ -153,11 +162,14 @@ class GameManager():
         """Quit and return winner. If pygame, then join thread."""
         self.gameOver = True
         if self.inclPygame:
-            self.pygameUI.quit()
-            time.sleep(0.01)
-            del self.pygameUI
             try:
-                self.pygameThread.join()
+                self.pygameUI.quit()
+                time.sleep(0.01)
+                del self.pygameUI
+                try:
+                    self.pygameThread.join()
+                except:
+                    pass
             except:
                 pass
         self.terminateGameLoop()

@@ -12,15 +12,20 @@ import fantasy_chess.env.agentClasses as ac
 import fantasy_chess.env.gameClasses as g
 import fantasy_chess.env.unitClasses as u
 from trainWithRL import distRewardFn
+from PIL import Image
+import glob
+import shutil
 
 if __name__ == "__main__":
-    path = "./reinforcement_learning/Agents/fs_new.pt"
+    path = "./reinforcement_learning/Agents/fc_0.pt"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-
-
-
+    framePath = './reinforcement_learning/Videos/Frames/'
+    try:
+        shutil.rmtree(framePath)
+    except:
+        pass
     
     # env = fc.parallel_env(distRewardFn, ac.StaticAgent("Static"))
     # state, info = env.reset(options=True)
@@ -32,11 +37,31 @@ if __name__ == "__main__":
 
     teamComp = [team1, team2]
 
+    if not os.path.exists(framePath):
+        os.makedirs(framePath)
+
     p1 = ac.RLAgent('P1', matd3, ["melee", "ranged"])
     p2 = ac.StaticAgent('P2')
-    a = g.GameManager(p1, p2, teamComp, inclPygame = True, seed=10)
+    a = g.GameManager(p1, p2, teamComp, inclPygame = True, seed=10, framePath=framePath)
     
     a.start()
+    crop_box = (0, 0, 220, 220)
+    frames = [f for f in sorted(os.listdir(framePath)) if f.endswith('.png')]
+    # Create a list to hold the images
+    images = []
+    for frame in frames:
+        img_path = os.path.join(framePath, frame)
+        images.append(Image.open(img_path).crop(crop_box))
+    # Save as a GIF
+    output_path = './reinforcement_learning/Videos/FC.gif'
+    images[0].save(
+        output_path,
+        save_all=True,
+        append_images=images[1:],
+        duration=50,  # Duration between frames in milliseconds
+        loop=0  # Number of loops, 0 means infinite
+    )
+    
 
 
     # maxSteps = 50

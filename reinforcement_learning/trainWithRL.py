@@ -78,7 +78,7 @@ if __name__ == "__main__":
     MUTATION_PARAMS = config["MUTATION_PARAMS"]
     NET_CONFIG = config["NET_CONFIG"]
     opp = ac.StaticAgent('Static Agent')
-    OUTPATH = "./reinforcement_learning/Agents/fc_0.pt"
+    OUTPATH = "./reinforcement_learning/Agents/fc_test.pt"
     baseAgent = "./reinforcement_learning/Agents/fs.pt"
     # t.train(distRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
     t.train(distRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH)
