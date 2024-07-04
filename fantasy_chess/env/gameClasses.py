@@ -180,6 +180,7 @@ class GameManager():
                 if action is None:
                     break
                 currentTurnActive = self.executeMove(action)
+                time.sleep(0.15)
             currentTurnActive = True
 
         while self.gameLoopComplete == False:
@@ -239,8 +240,13 @@ class GameManager():
                 actionSpace.append((curUnit.ID, 'ability', ability))
         else:
             abilityMask = np.zeros(2)
-        actionSpace.append((curUnit.ID, 'ability', (-1, None)))
-        abilityMask = np.concatenate((abilityMask, np.array([1])))
+        
+        
+        if curUnit.Avail:
+            actionSpace.append((curUnit.ID, 'ability', (-1, None)))
+            abilityMask = np.concatenate((abilityMask, np.array([1])))
+        else:
+            abilityMask = np.concatenate((abilityMask, np.array([0])))
 
         actionMask = np.concatenate((moveMask, abilityMask))
         return actionSpace, actionMask
@@ -292,10 +298,13 @@ class GameManager():
         for agent in agentUnits.keys():
             unit = self.allUnits.get(agentUnits[agent], None)
             if unit is None:
-                actionMask[agent] = np.zeros(11)
+                actionMask[agent] = np.zeros(12)
             else:
                 unitActions, unitMask = self.getCurrentUnitActions(self, unit.ID)
-                actionMask[agent] = unitMask
+                if unitMask.any():
+                    actionMask[agent] = np.concatenate((unitMask, np.array([0])))
+                else:
+                    actionMask[agent] = np.concatenate((unitMask, np.array([1])))
                 gameActions[agent] = unitActions
         return gameActions, actionMask
     

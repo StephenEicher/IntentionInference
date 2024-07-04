@@ -251,9 +251,21 @@ def train_multi_agent(
                     }
 
             for idx_step in range(evo_steps // num_envs):
-                # Get next action from agent
+                #Get next action from agent
+                # agent_mask = {a: [] for a in info.keys()}
+                # action_mask = {a: [] for a in info.keys()}
+                # for key in info.keys():
+                #     for idx, entry in enumerate(info[key]):
+                #         agent_mask[key].append(entry['agent_mask'])
+                #         action_mask[key].append(entry['action_mask'])  
+                # for key in info.keys():
+                #     agent_mask[key] = np.array(agent_mask[key]) 
+                #     action_mask[key] = np.array(action_mask[key])                     
+
                 # agent_mask = info["agent_mask"] if "agent_mask" in info.keys() else None
-                agent_mask = info
+                # action_mask = info
+                action_mask = info
+                # agent_mask = None
                 env_defined_actions = (
                     info["env_defined_actions"]
                     if "env_defined_actions" in info.keys()
@@ -262,14 +274,15 @@ def train_multi_agent(
                 cont_actions, discrete_action = agent.get_action(
                     states=state,
                     training=True,
-                    agent_mask=agent_mask,
+                    agent_mask=None,
                     env_defined_actions=env_defined_actions,
+                    action_mask = action_mask
                 )
                 if agent.discrete_actions:
                     action = discrete_action
                 else:
                     action = cont_actions
-
+                
                 if not is_vectorised:
                     action = {agent: act[0] for agent, act in action.items()}
                     cont_actions = {

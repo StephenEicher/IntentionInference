@@ -422,7 +422,7 @@ class MGMATD3:
         )
 
     def get_action(
-        self, states, training=True, agent_mask=None, env_defined_actions=None
+        self, states, training=True, agent_mask=None, env_defined_actions=None, action_mask = None
     ):
         """Returns the next action to take in the environment.
         Epsilon is the probability of taking a random action, used for exploration.
@@ -438,12 +438,21 @@ class MGMATD3:
         :type env_defined_actions: Dict[str, np.array]
         """
         # Get agents, states and actions we want to take actions for at this timestep according to agent_mask
+        # if action_mask is None:
+        #     action_mask = agent_mask
         if agent_mask is None:
             agent_ids = self.agent_ids
             actors = self.actors
             state_dims = self.state_dims
         else:
-            agent_ids = [agent for agent in agent_mask.keys() if agent_mask[agent] is not None]
+            # N = len(next(iter(agent_mask.values())))
+            # agent_ids = [[] for _ in range(N)]
+            # for key, bool_list in agent_mask.items():
+            #     for index, value in enumerate(bool_list):
+            #         if value:
+            #             agent_ids[index].append(key)
+            agent_ids = [agent for agent in agent_mask.keys() if agent_mask[agent]]
+            # agent_ids = [agent for agent in agent_mask.keys() if agent_mask[agent].any()]
             state_dims = [
                 state_dim
                 for state_dim, mask_flag in zip(self.state_dims, agent_mask.keys())
@@ -453,19 +462,28 @@ class MGMATD3:
                 agent: action_dim
                 for agent, action_dim in zip(self.agent_ids, self.action_dims)
             }
+            # states = {
+            #     agent: states[agent] for agent in agent_mask.keys() if agent_mask[agent].any()
+            # }
             states = {
-                agent: states[agent] for agent in agent_mask.keys() if agent_mask[agent] is not None
+                agent: states[agent] for agent in agent_mask.keys() if agent_mask[agent]
             }
+            # actors = [
+            #     actor
+            #     for agent, actor in zip(agent_mask.keys(), self.actors)
+            #     if agent_mask[agent].any()
+            # ]
             actors = [
                 actor
                 for agent, actor in zip(agent_mask.keys(), self.actors)
-                if agent_mask[agent] is not None
+                if agent_mask[agent]
             ]
-
         # Convert states to a list of torch tensors
         states = [torch.from_numpy(state).float() for state in states.values()]
         # states = [float(state) for state in states.values()]
         # Configure accelerator
+        if len(agent_ids) == 1:
+            print('investigate')
         if self.accelerator is None:
             states = [state.to(self.device) for state in states]
 
@@ -513,7 +531,9 @@ class MGMATD3:
                     action = (action + self.action_noise(idx)).clip(
                         self.min_action[idx][0], self.max_action[idx][0]
                     )
-            action_dict[agent_id] = action
+            inv_mask = 1 - action_mask[agent_id]
+            masked_action_values = np.ma.array(action, mask=inv_mask)
+            action_dict[agent_id] = masked_action_values
 
         if self.discrete_actions:
             discrete_action_dict = {}
@@ -521,6 +541,8 @@ class MGMATD3:
                 if self.one_hot:
                     discrete_action_dict[agent] = action.argmax(axis=-1)
                 else:
+                    # discrete_action_dict[agent] = np.argmax(action, axis=-1)
+                    # discrete_action_dict[agent][np.invert(agent_mask[agent])] = 0
                     discrete_action_dict[agent] = action.argmax(axis=-1)
         else:
             discrete_action_dict = None
@@ -881,6 +903,7 @@ class MGMATD3:
                     agent_mask = (
                         info["agent_mask"] if "agent_mask" in info.keys() else None
                     )
+                    action_mask = info
                     env_defined_actions = (
                         info["env_defined_actions"]
                         if "env_defined_actions" in info.keys()
@@ -889,8 +912,9 @@ class MGMATD3:
                     cont_actions, discrete_action = self.get_action(
                         state,
                         training=False,
-                        agent_mask=agent_mask,
+                        agent_mask=None,
                         env_defined_actions=env_defined_actions,
+                        action_mask = action_mask
                     )
                     if self.discrete_actions:
                         action = discrete_action

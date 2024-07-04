@@ -24,7 +24,7 @@ INIT_HP:
     TOURN_SIZE: 2              # Tournament size
     ELITISM: true              # Elitism in tournament selection
     POP_SIZE: 4                # Population size
-    EVO_STEPS: 1000          # Evolution frequency
+    EVO_STEPS: 10_000          # Evolution frequency
     EVAL_STEPS: 50             # Evaluation steps
     EVAL_LOOP: 5               # Evaluation episodes
     LEARNING_DELAY: 0          # Steps before learning

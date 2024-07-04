@@ -156,6 +156,8 @@ class Board:
         if abilityClass == -1:
             #-1 is code for end turn
             unit.Avail = False
+            unit.canMove = False
+            unit.canAct = False
         else:
             ability = abilityClass(unit)
             if targetID is not None:

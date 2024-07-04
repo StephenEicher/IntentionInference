@@ -21,11 +21,9 @@ def distRewardFn(env, postGame, agentGameActions, preUnits, postUnits):
             else:
                 unitID = unit.ID
                 deltaHP = preUnits[unitID].currentHP - postUnits[unitID].currentHP
-                gameAction = agentGameActions.get(agent, None)
-                _, actionType, actionInfo = gameAction
-                #Punish for losing HP
                 if deltaHP != 0:
-                    rewards[agent] = rewards[agent] - 10
+                        rewards[agent] = rewards[agent] - 10
+                #Punish for losing HP
                 friendlies, enemies = postGame.getUnitRelations(unitID)
                 distance = 99999
                 for enemyID in enemies:
@@ -34,10 +32,13 @@ def distRewardFn(env, postGame, agentGameActions, preUnits, postUnits):
                 #Punish for distance away from enemy
                 rewards[agent] = rewards[agent] - distance
                 #Reward for using an ability that isn't end turn
-                if actionType == "ability" and actionInfo[0] != -1:
-                    rewards[agent] = rewards[agent] + 5  
-                else:
-                    rewards[agent] = rewards[agent] - 1
+                gameAction = agentGameActions.get(agent, None)
+                if gameAction is not None:
+                    _, actionType, actionInfo = gameAction
+                    if actionType == "ability" and actionInfo[0] != -1:
+                        rewards[agent] = rewards[agent] + 5  
+                    else:
+                        rewards[agent] = rewards[agent] - 1
     return rewards
 
 

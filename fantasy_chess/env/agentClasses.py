@@ -73,23 +73,25 @@ class RLAgent(Agent):
 
     def selectAction(self, game, actionSpace, debugStr=None):  
         state = game.genObservationsDict(self.agentUnitDict)
-        gameActions, agent_mask = game.genActionsDict(self.agentUnitDict)
+        gameActions, action_mask = game.genActionsDict(self.agentUnitDict)
         cont_actions, discrete_actions = self.agent.get_action(
             state,
             training=False,
-            agent_mask = agent_mask,
+            agent_mask = None,
             env_defined_actions=None,
+            action_mask = action_mask
         ) 
         actions = discrete_actions
         for key in actions.keys():
-            actions[key] = actions[key][0]
+            if actions[key] is not None:
+                actions[key] = actions[key][0]
         for agent in actions.keys():
             if game.gameOver:
                 return None
             unit = game.allUnits.get(self.agentUnitDict[agent], None)
-            if unit is not None:
-                actionID = actions[agent]
-                curMask = agent_mask[agent]
+            actionID = actions[agent]
+            if unit is not None and actionID is not None:
+                curMask = action_mask[agent]
                 gameActionID =  np.sum(curMask[:actionID]).astype(int)
                 curActions = gameActions[agent]
                 gameAction = curActions[gameActionID]

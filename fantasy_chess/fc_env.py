@@ -51,9 +51,11 @@ class parallel_env(ParallelEnv):
 
         observations = observations = self.game.genObservationsDict(self.agentUnitDict)
         gameActions, actionMask = self.game.genActionsDict(self.agentUnitDict)
-        # infos = {a: {'agent_mask' : actionMask[a]} for a in self.agents}
+        # infos = {a: {} for a in self.agents}
+        # for a in self.agents:
+        #     infos[a]['action_mask'] = actionMask[a]
+        #     infos[a]['agent_mask'] = np.invert(actionMask[a].astype(bool).all())
         infos = actionMask
-
         return observations, infos
     
     def step(self, actions):
@@ -68,15 +70,18 @@ class parallel_env(ParallelEnv):
             if self.game.gameOver:
                 break
             unit = self.game.allUnits.get(self.agentUnitDict[agent], None)
-            if unit is not None:
-                actionID = actions[agent]
-                gameActions, actionMask = self.game.genActionsDict(self.agentUnitDict)
-                curMask = actionMask[agent]
-                gameActionID =  np.sum(curMask[:actionID]).astype(int)
-                curActions = gameActions[agent]
-                gameAction = curActions[gameActionID]
-                agentGameActions[agent] = gameAction
-                self.game.executeMove(gameAction)
+            actionID = actions[agent]
+            if unit is not None and actionID != 11:
+                try:
+                    gameActions, actionMask = self.game.genActionsDict(self.agentUnitDict)
+                    curMask = actionMask[agent]
+                    gameActionID =  np.sum(curMask[:actionID]).astype(int)
+                    curActions = gameActions[agent]
+                    gameAction = curActions[gameActionID]
+                    agentGameActions[agent] = gameAction
+                    self.game.executeMove(gameAction)
+                except:
+                    print('Im lazy')
 
 
         while not isinstance(self.game.currentAgent, ac.DummyAgent) and not self.game.gameOver:
@@ -103,7 +108,12 @@ class parallel_env(ParallelEnv):
         gameActions, actionMask = self.game.genActionsDict(self.agentUnitDict)
         observations = self.game.genObservationsDict(self.agentUnitDict)
         # infos = {a: {} for a in self.agents}
+
+        # for a in self.agents:
+        #     infos[a]['action_mask'] = actionMask[a]
+        #     infos[a]['agent_mask'] = np.invert(actionMask[a].astype(bool).all())
         infos = actionMask
+
         return observations, rewards, terminations, truncations, infos
 
 
@@ -124,5 +134,5 @@ class parallel_env(ParallelEnv):
         return obs_space
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent):
-        return Discrete(11)
+        return Discrete(12)
     
