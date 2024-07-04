@@ -90,7 +90,7 @@ class RLAgent(Agent):
                 return None
             unit = game.allUnits.get(self.agentUnitDict[agent], None)
             actionID = actions[agent]
-            if unit is not None and actionID is not None:
+            if unit is not None and actionID != 11:
                 curMask = action_mask[agent]
                 gameActionID =  np.sum(curMask[:actionID]).astype(int)
                 curActions = gameActions[agent]

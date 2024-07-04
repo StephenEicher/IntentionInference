@@ -46,7 +46,7 @@ class parallel_env(ParallelEnv):
         team2 =  [(random.randint(2, 6), yValues[2], u.meleeUnit)]
         teamComp = [team1, team2]
         self.teamComp = teamComp
-        self.game = self.gmClass(ac.DummyAgent('Learning Agent'), self.opp, self.teamComp, inclPygame=options, verbose=False)
+        self.game = self.gmClass(ac.DummyAgent('Learning Agent'), self.opp, self.teamComp, inclPygame=options, verbose=False, seed=random.randint(0, 999999))
         #Lets move this to the game manager
 
         observations = observations = self.game.genObservationsDict(self.agentUnitDict)
@@ -72,16 +72,13 @@ class parallel_env(ParallelEnv):
             unit = self.game.allUnits.get(self.agentUnitDict[agent], None)
             actionID = actions[agent]
             if unit is not None and actionID != 11:
-                try:
-                    gameActions, actionMask = self.game.genActionsDict(self.agentUnitDict)
-                    curMask = actionMask[agent]
-                    gameActionID =  np.sum(curMask[:actionID]).astype(int)
-                    curActions = gameActions[agent]
-                    gameAction = curActions[gameActionID]
-                    agentGameActions[agent] = gameAction
-                    self.game.executeMove(gameAction)
-                except:
-                    print('Im lazy')
+                gameActions, actionMask = self.game.genActionsDict(self.agentUnitDict)
+                curMask = actionMask[agent]
+                gameActionID =  np.sum(curMask[:actionID]).astype(int)
+                curActions = gameActions[agent]
+                gameAction = curActions[gameActionID]
+                agentGameActions[agent] = gameAction
+                self.game.executeMove(gameAction)
 
 
         while not isinstance(self.game.currentAgent, ac.DummyAgent) and not self.game.gameOver:
