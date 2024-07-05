@@ -15,12 +15,19 @@ def minDistRewardFn(env, postGame, agentGameActions, preUnits, postUnits):
         else:
             unitID = unit.ID
             friendlies, enemies = postGame.getUnitRelations(unitID)
-            distance = 99999
+            distance = 8
             for enemyID in enemies:
                 enemy = postGame.allUnits[enemyID]
                 distance = np.min([distance, np.linalg.norm(enemy.position - unit.position)])
             #Punish for distance away from enemy
-            rewards[agent] = rewards[agent] - distance+3
+            rewards[agent] = rewards[agent] + 3 - distance
+            gameAction = agentGameActions.get(agent, None)
+            if gameAction is not None:
+                _, actionType, actionInfo = gameAction
+                if actionType == "ability" and actionInfo[0] == -1:
+                    if postUnits[unitID].currentMovement > 0:
+                        rewards[agent] = rewards[agent] - 5
+            
     return rewards
 
 def completeRewardFn(env, postGame, agentGameActions, preUnits, postUnits):

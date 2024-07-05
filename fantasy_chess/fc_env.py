@@ -44,6 +44,9 @@ class parallel_env(ParallelEnv):
         yValues =  random.sample(range(0, 7), 3)
         team1 = [(random.randint(0, 5), yValues[0], u.meleeUnit), (random.randint(0, 5), yValues[1], u.rangedUnit)]
         team2 =  [(random.randint(2, 6), yValues[2], u.meleeUnit)]
+        # team1 = [(1, 1, u.meleeUnit), (1, 2, u.rangedUnit)]
+        # team2 =  [(6,6, u.meleeUnit)]
+
         teamComp = [team1, team2]
         self.teamComp = teamComp
         self.game = self.gmClass(ac.DummyAgent('Learning Agent'), self.opp, self.teamComp, inclPygame=options, verbose=False, seed=random.randint(0, 999999), noObstacles=True)
@@ -99,7 +102,7 @@ class parallel_env(ParallelEnv):
                     terminations[agent] = True
         rewards = self.rewardFn(self, self.game, agentGameActions,preUnits, postUnits)
         truncations = {a: False for a in self.agents}
-        if self.game.nTurns > 50:
+        if self.game.nTurns > 5:
             truncations = {a: True for a in self.agents}
         
         gameActions, actionMask = self.game.genActionsDict(self.agentUnitDict)
