@@ -11,7 +11,7 @@ INIT_HP:
     MEAN_NOISE: 0.             # Mean action noise
     THETA: 0.15                # Rate of mean reversion in OU noise
     DT: 0.01                   # Timestep for OU noise
-    BATCH_SIZE: 2048           # Batch size
+    BATCH_SIZE: 1024           # Batch size
     LR_ACTOR: 0.001            # Actor learning rate
     LR_CRITIC: 0.01            # Critic earning rate
     MAX_STEPS: 2_000_000       # Max no. steps
@@ -23,10 +23,10 @@ INIT_HP:
     TAU: 0.01                  # For soft update of target parameters
     TOURN_SIZE: 2              # Tournament size
     ELITISM: true              # Elitism in tournament selection
-    POP_SIZE: 4                # Population size
+    POP_SIZE: 16               # Population size
     EVO_STEPS: 10_000          # Evolution frequency
     EVAL_STEPS: 50             # Evaluation steps
-    EVAL_LOOP: 5               # Evaluation episodes
+    EVAL_LOOP: 10               # Evaluation episodes
     LEARNING_DELAY: 0          # Steps before learning
 
 MUTATION_PARAMS:

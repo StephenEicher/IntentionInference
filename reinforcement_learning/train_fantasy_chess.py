@@ -26,6 +26,7 @@ from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
 
 def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=None, use_net=False):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = "cpu"
     print("============ Beginning Training! ============")
     accelerator = None
     print(f"DEVICE: {device}")
