@@ -11,11 +11,11 @@ from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
 import fantasy_chess.env.agentClasses as ac
 import fantasy_chess.env.gameClasses as g
 import fantasy_chess.env.unitClasses as u
-from trainWithRL import distRewardFn
 from PIL import Image
 import glob
 import shutil
 import random
+import numpy as np
 
 if __name__ == "__main__":
     path = "./reinforcement_learning/Agents/fc_0.pt"
@@ -33,9 +33,13 @@ if __name__ == "__main__":
     # env.game.startPGVis()
     
     matd3 = MGMATD3.load(path, device)
-    yValues =  random.sample(range(0, 7), 3)
-    team1 = [(random.randint(0, 5), yValues[0], u.meleeUnit), (random.randint(0, 5), yValues[1], u.rangedUnit)]
-    team2 =  [(random.randint(2, 6), yValues[2], u.meleeUnit)]
+    # yValues =  random.sample(range(0, 7), 3)
+    # team1 = [(random.randint(0, 5), yValues[0], u.meleeUnit), (random.randint(0, 5), yValues[1], u.rangedUnit)]
+    # team2 =  [(random.randint(2, 6), yValues[2], u.meleeUnit)]
+
+    team1 = [(0, 0, u.meleeUnit), (7,7, u.rangedUnit)]
+    team2 =  [(3, 3, u.meleeUnit)]
+
     teamComp = [team1, team2]
 
     if not os.path.exists(framePath):
@@ -43,8 +47,7 @@ if __name__ == "__main__":
 
     p1 = ac.RLAgent('P1', matd3, ["melee", "ranged"])
     p2 = ac.StaticAgent('P2')
-    a = g.GameManager(p1, p2, teamComp, inclPygame = True, framePath=framePath)
-    
+    a = g.GameManager(p1, p2, teamComp, inclPygame = True, framePath=framePath, noObstacles=True)
     a.start()
     crop_box = (0, 0, 220, 220)
     frames = [f for f in sorted(os.listdir(framePath)) if f.endswith('.png')]

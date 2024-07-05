@@ -10,7 +10,7 @@ from fantasy_chess.env import noiseClasses as nc
 
 
 class Board:
-    def __init__(self, maxY, maxX, game):
+    def __init__(self, maxY, maxX, game, noObstacles=False):
         self.maxY = maxY
         self.maxX = maxX
         self.game = game
@@ -21,7 +21,7 @@ class Board:
         self.coord_map = np.stack((row_indices, col_indices), axis=-1)
         self.coord_map_padded =  np.pad(self.coord_map, pad_width=1, mode='constant', constant_values=0)
 
-        self.obs_map = self.initializeOMap()
+        self.obs_map = self.initializeOMap(noObstacles)
         self.obs_map_padded =  np.pad(self.obs_map, pad_width=1, mode='constant', constant_values=1)
         
         self.linear_map = np.arange(self.obs_map.shape[0]*self.obs_map.shape[1])
@@ -46,9 +46,12 @@ class Board:
                 return False
             return True
 
-    def initializeOMap(self):
-        generatedObsMap = nc.OMap(self.maxY, self.maxX, self)
-        return generatedObsMap.map
+    def initializeOMap(self, noObstacles=False):
+        if noObstacles:
+            generatedObsMap = np.zeros((self.maxY, self.maxX))
+        else:
+            generatedObsMap = nc.OMap(self.maxY, self.maxX, self).map
+        return generatedObsMap
         # self.drawMap(self.instOM.map)
 
 

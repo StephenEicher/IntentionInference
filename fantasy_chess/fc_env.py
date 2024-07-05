@@ -46,7 +46,7 @@ class parallel_env(ParallelEnv):
         team2 =  [(random.randint(2, 6), yValues[2], u.meleeUnit)]
         teamComp = [team1, team2]
         self.teamComp = teamComp
-        self.game = self.gmClass(ac.DummyAgent('Learning Agent'), self.opp, self.teamComp, inclPygame=options, verbose=False, seed=random.randint(0, 999999))
+        self.game = self.gmClass(ac.DummyAgent('Learning Agent'), self.opp, self.teamComp, inclPygame=options, verbose=False, seed=random.randint(0, 999999), noObstacles=True)
         #Lets move this to the game manager
 
         observations = observations = self.game.genObservationsDict(self.agentUnitDict)

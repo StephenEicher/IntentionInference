@@ -16,7 +16,7 @@ import numpy as np
 
 class GameManager():
 
-    def __init__(self, p1, p2, teamComp, inclPygame = True, seed=random.randint(0, 999999), verbose=True, framePath = None):
+    def __init__(self, p1, p2, teamComp, inclPygame = True, seed=random.randint(0, 999999), verbose=True, framePath = None, noObstacles = False):
         random.seed(seed)
         self.verbose = verbose
         self.agentTurnIndex = 0
@@ -34,10 +34,10 @@ class GameManager():
             maxX = 8
             maxY = 8
             self.pygameUI = rp.Pygame(self, maxX, maxY)            
-            self.board = b.Board(maxX, maxY, self)  
+            self.board = b.Board(maxX, maxY, self, noObstacles)  
             self.pgQueue = queue.Queue(maxsize = 1)          
         else:
-            self.board = b.Board(8, 8, self)
+            self.board = b.Board(8, 8, self, noObstacles)
             self.pgQueue = None
         self.allUnits = {}
         self.initializeTeams(teamComp)

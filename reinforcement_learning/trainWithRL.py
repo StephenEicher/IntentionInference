@@ -6,7 +6,24 @@ import fantasy_chess.env.agentClasses as ac
 import reinforcement_learning.train_fantasy_chess as t
 import numpy as np
 
-def distRewardFn(env, postGame, agentGameActions, preUnits, postUnits):
+def minDistRewardFn(env, postGame, agentGameActions, preUnits, postUnits):
+    rewards = {a: 0 for a in env.agents}
+    for agent in env.agents:
+        unit = postUnits.get(env.agentUnitDict[agent], None)
+        if unit is None:
+            rewards[agent] = -100    
+        else:
+            unitID = unit.ID
+            friendlies, enemies = postGame.getUnitRelations(unitID)
+            distance = 99999
+            for enemyID in enemies:
+                enemy = postGame.allUnits[enemyID]
+                distance = np.min([distance, np.linalg.norm(enemy.position - unit.position)])
+            #Punish for distance away from enemy
+            rewards[agent] = rewards[agent] - distance+3
+    return rewards
+
+def completeRewardFn(env, postGame, agentGameActions, preUnits, postUnits):
     rewards = {a: 0 for a in env.agents}
     if postGame.gameOver:
         if postGame.winner == 0:
@@ -40,7 +57,6 @@ def distRewardFn(env, postGame, agentGameActions, preUnits, postUnits):
                     else:
                         rewards[agent] = rewards[agent] - 1
     return rewards
-
 
 
 
@@ -81,4 +97,4 @@ if __name__ == "__main__":
     OUTPATH = "./reinforcement_learning/Agents/fc_0.pt"
     baseAgent = "./reinforcement_learning/Agents/fc_0.pt"
     # t.train(distRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
-    t.train(distRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH)
+    t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH)
