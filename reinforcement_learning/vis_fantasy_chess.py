@@ -33,9 +33,15 @@ if __name__ == "__main__":
     # env.game.startPGVis()
     
     matd3 = MGMATD3.load(path, device)
-    yValues =  random.sample(range(0, 7), 3)
-    team1 = [(random.randint(0, 5), yValues[0], u.meleeUnit), (random.randint(0, 5), yValues[1], u.rangedUnit)]
-    team2 =  [(random.randint(2, 6), yValues[2], u.meleeUnit)]
+    # Define grid dimensions
+    grid_size = 8
+    # Generate all possible coordinates in the grid
+    all_coordinates = [(x, y) for x in range(grid_size) for y in range(grid_size)]
+    # Randomly sample three unique coordinates
+    coords = random.sample(all_coordinates, 3)
+
+    team1 = [(coords[0][0], coords[0][1], u.meleeUnit), (coords[1][0], coords[1][1], u.rangedUnit)]
+    team2 =  [(coords[2][0], coords[2][1], u.meleeUnit)]
 
     # team1 = [(0, 0, u.meleeUnit), (7,7, u.rangedUnit)]
     # team2 =  [(3, 3, u.meleeUnit)]
