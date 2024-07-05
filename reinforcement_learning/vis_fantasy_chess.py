@@ -33,12 +33,12 @@ if __name__ == "__main__":
     # env.game.startPGVis()
     
     matd3 = MGMATD3.load(path, device)
-    # yValues =  random.sample(range(0, 7), 3)
-    # team1 = [(random.randint(0, 5), yValues[0], u.meleeUnit), (random.randint(0, 5), yValues[1], u.rangedUnit)]
-    # team2 =  [(random.randint(2, 6), yValues[2], u.meleeUnit)]
+    yValues =  random.sample(range(0, 7), 3)
+    team1 = [(random.randint(0, 5), yValues[0], u.meleeUnit), (random.randint(0, 5), yValues[1], u.rangedUnit)]
+    team2 =  [(random.randint(2, 6), yValues[2], u.meleeUnit)]
 
-    team1 = [(0, 0, u.meleeUnit), (7,7, u.rangedUnit)]
-    team2 =  [(3, 3, u.meleeUnit)]
+    # team1 = [(0, 0, u.meleeUnit), (7,7, u.rangedUnit)]
+    # team2 =  [(3, 3, u.meleeUnit)]
 
     teamComp = [team1, team2]
 
