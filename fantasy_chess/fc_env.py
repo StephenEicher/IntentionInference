@@ -49,7 +49,7 @@ class parallel_env(ParallelEnv):
 
         team1 = [(coords[0][0], coords[0][1], u.meleeUnit), (coords[1][0], coords[1][1], u.rangedUnit)]
         # team1 = [(coords[0][0], coords[0][1], u.meleeUnit)]
-        team2 =  [(coords[2][0], coords[2][1], u.meleeUnit)]
+        team2 =  [(4, 4, u.meleeUnit)]
 
         teamComp = [team1, team2]
         self.teamComp = teamComp
