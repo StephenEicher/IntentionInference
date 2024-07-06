@@ -96,7 +96,7 @@ def rewardFn(env, postGame, preUnits, postUnits):
 
 if __name__ == "__main__":
     with open("./reinforcement_learning/Configs/fc_matd3.yaml") as file:
-            config = yaml.safe_load(file)
+            config = yaml.safe_load(file) 
     INIT_HP = config["INIT_HP"]
     MUTATION_PARAMS = config["MUTATION_PARAMS"]
     NET_CONFIG = config["NET_CONFIG"]

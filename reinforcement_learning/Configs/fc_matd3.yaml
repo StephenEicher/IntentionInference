@@ -26,7 +26,7 @@ INIT_HP:
     POP_SIZE: 6               # Population size
     EVO_STEPS: 10_000          # Evolution frequency
     EVAL_STEPS: 50             # Evaluation steps
-    EVAL_LOOP: 10               # Evaluation episodes
+    EVAL_LOOP: 3               # Evaluation episodes
     LEARNING_DELAY: 0          # Steps before learning
 
 MUTATION_PARAMS:
