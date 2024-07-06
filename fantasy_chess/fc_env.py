@@ -48,11 +48,13 @@ class parallel_env(ParallelEnv):
         coords = random.sample(all_coordinates, 3)
 
         team1 = [(coords[0][0], coords[0][1], u.meleeUnit), (coords[1][0], coords[1][1], u.rangedUnit)]
+        # team1 = [(coords[0][0], coords[0][1], u.meleeUnit)]
         team2 =  [(coords[2][0], coords[2][1], u.meleeUnit)]
 
         teamComp = [team1, team2]
         self.teamComp = teamComp
         self.game = self.gmClass(ac.DummyAgent('Learning Agent'), self.opp, self.teamComp, inclPygame=options, verbose=False, seed=random.randint(0, 999999), noObstacles=True)
+        self.game.disposeUnit(self.game.allUnits[2])
         #Lets move this to the game manager
 
         observations = observations = self.game.genObservationsDict(self.agentUnitDict)
