@@ -59,8 +59,8 @@ MUTATION_PARAMS:
 
 NET_CONFIG:
     arch: cnn
-    hidden_size: [32, 32]
-    channel_size: [32, 32]
+    hidden_size: [16, 16]
+    channel_size: [4, 4]
     kernel_size: [3,3]
     stride_size: [2, 2]
     normalize: True
