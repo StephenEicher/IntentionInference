@@ -11,7 +11,7 @@ def minDistRewardFn(env, postGame, agentGameActions, preUnits, postUnits):
     for agent in env.agents:
         unit = postUnits.get(env.agentUnitDict[agent], None)
         if unit is None:
-            rewards[agent] = 0    
+            rewards[agent] = -100    
         else:
             unitID = unit.ID
             friendlies, enemies = postGame.getUnitRelations(unitID)
@@ -103,5 +103,5 @@ if __name__ == "__main__":
     opp = ac.StaticAgent('Static Agent')
     OUTPATH = "./reinforcement_learning/Agents/fc_0.pt"
     baseAgent = "./reinforcement_learning/Agents/fc_0.pt"
-    # t.train(distRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
+    # t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
     t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH)
