@@ -47,7 +47,9 @@ class GameManager():
         self.nTurns = 0
         self.winner = None
         self.gameLoopComplete = False
-
+        self.obsQueue = queue.Queue(3)
+        self.lookBack = 4
+        self.memoryLayers = {}
 
     def fprint(self, string):
         if self.verbose:
@@ -283,7 +285,7 @@ class GameManager():
             channels = []
             agentUnitID = agentUnits[agent]
             unit = self.allUnits.get(agentUnitID, None)
-            if unit is not None: 
+            if unit is not None:
                 c0 = unit.currentHP * (self.board.units_map == agentUnitID)
                 channels.append(c0)
                 c1 = self.board.obs_map
@@ -302,8 +304,20 @@ class GameManager():
                 obs[agent] = np.array(channels).astype(np.int8)
             else:
                 obs[agent] = np.zeros((4, 8, 8), dtype=np.int8)
+
         return obs
-    
+
+    def genAggregatedObsDict(self, agentUnits):
+        aggObs = {}
+        obs = self.genObservationsDict(agentUnits)
+        for agent in agentUnits.keys():
+            agentUnitID = agentUnits[agent]
+            unit = self.allUnits.get(agentUnitID, None)
+            if self.memoryLayers.get(agent, None) is None:
+                self.memoryLayers[agent] = np.zeros(((self.lookBack*4),8,8))
+            outbound = np.vstack((obs[agent], self.memoryLayers[agent]))
+            self.memoryLayers[agent] = np.delete(outbound, np.arange(-4,0), axis=0)
+
     def genActionsDict(self, agentUnits):
         actionMask = {}
         gameActions = {}
@@ -420,8 +434,15 @@ if __name__ == '__main__':
     # p2 = ac.RLAgent('P2', agent, ["melee", "ranged"])
     p2 = ac.StaticAgent('P2')
     p1 = ac.HumanAgent('P1')
-    a = GameManager(p1, p2, teamComp, inclPygame = True, seed=10)
-    
-    a.start()
+    a = GameManager(p1, p2, teamComp, inclPygame = False, seed=10)
+
+    agentUnitDict = {
+            "melee" : 1,
+            "ranged" : 2,
+    }
+
+    a.genAggregatedObsDict(agentUnitDict)
+    pass
+    # a.start()
    # b = a.clone()
     # b.start()
