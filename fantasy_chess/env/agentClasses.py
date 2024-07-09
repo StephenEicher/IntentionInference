@@ -50,10 +50,15 @@ class RLAgent(Agent):
     agent = None
     agentUnitDict = None
     possibleAgents = None
-    def __init__(self, name, agent, possibleAgents):
+    prevActionDict = None
+    prevUnits = None
+
+    def __init__(self, name, agent, possibleAgents, rewardFn):
         self.name = name
         self.agent = agent
         self.possibleAgents = possibleAgents
+        self.agents = possibleAgents
+        self.rewardFn = rewardFn
 
         
     def init(self, agentIndex, team):
@@ -73,6 +78,7 @@ class RLAgent(Agent):
 
     def selectAction(self, game, actionSpace, debugStr=None):  
         state = game.genObservationsDict(self.agentUnitDict)
+        
         gameActions, action_mask = game.genActionsDict(self.agentUnitDict)
         cont_actions, discrete_actions = self.agent.get_action(
             state,
@@ -81,6 +87,14 @@ class RLAgent(Agent):
             env_defined_actions=None,
             action_mask = action_mask
         ) 
+        postUnits = {}
+        for key in game.allUnits:
+            postUnits[key] = game.allUnits[key].clone()
+        if self.prevActionDict is not None:
+            rewards = self.rewardFn(self, game, self.prevActionDict, self.preUnits, postUnits)
+            for key in self.prevActionDict.keys():
+                print(rewards[key])
+        self.preUnits = postUnits
         actions = discrete_actions
         for key in actions.keys():
             if actions[key] is not None:
@@ -95,6 +109,8 @@ class RLAgent(Agent):
                 gameActionID =  np.sum(curMask[:actionID]).astype(int)
                 curActions = gameActions[agent]
                 gameAction = curActions[gameActionID]
+                self.prevActionDict = {}
+                self.prevActionDict[agent] = gameAction
                 return gameAction
 
 

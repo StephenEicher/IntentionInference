@@ -20,7 +20,7 @@ def minDistRewardFn(env, postGame, agentGameActions, preUnits, postUnits):
                 enemy = postGame.allUnits[enemyID]
                 distance = np.min([distance, np.linalg.norm(enemy.position - unit.position)])
             #Punish for distance away from enemy
-            rewards[agent] = rewards[agent] + 3 - distance
+            rewards[agent] = rewards[agent] - 3*distance
             gameAction = agentGameActions.get(agent, None)
             if gameAction is not None:
                 _, actionType, actionInfo = gameAction
@@ -96,12 +96,12 @@ def rewardFn(env, postGame, preUnits, postUnits):
 
 if __name__ == "__main__":
     with open("./reinforcement_learning/Configs/fc_matd3.yaml") as file:
-            config = yaml.safe_load(file)
+            config = yaml.safe_load(file)  
     INIT_HP = config["INIT_HP"]
     MUTATION_PARAMS = config["MUTATION_PARAMS"]
     NET_CONFIG = config["NET_CONFIG"]
     opp = ac.StaticAgent('Static Agent')
     OUTPATH = "./reinforcement_learning/Agents/fc_0.pt"
     baseAgent = "./reinforcement_learning/Agents/fc_0.pt"
-    # t.train(distRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
+    # t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
     t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH)

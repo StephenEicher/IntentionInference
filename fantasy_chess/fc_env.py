@@ -44,11 +44,13 @@ class parallel_env(ParallelEnv):
         grid_size = 8
         # Generate all possible coordinates in the grid
         all_coordinates = [(x, y) for x in range(grid_size) for y in range(grid_size)]
+        all_coordinates.remove((4, 4))
         # Randomly sample three unique coordinates
         coords = random.sample(all_coordinates, 3)
 
-        team1 = [(coords[0][0], coords[0][1], u.meleeUnit), (coords[1][0], coords[1][1], u.rangedUnit)]
-        team2 =  [(coords[2][0], coords[2][1], u.meleeUnit)]
+        team1 = [(0, 0, u.meleeUnit), (7, 0, u.rangedUnit)]
+        # team1 = [(coords[0][0], coords[0][1], u.meleeUnit)]
+        team2 =  [(4, 7, u.meleeUnit)]
 
         teamComp = [team1, team2]
         self.teamComp = teamComp

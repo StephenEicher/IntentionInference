@@ -285,8 +285,8 @@ class GameManager():
             channels = []
             agentUnitID = agentUnits[agent]
             unit = self.allUnits.get(agentUnitID, None)
-            if unit is not None:
-                c0 = unit.currentHP * (self.board.units_map == agentUnitID)
+            if unit is not None: 
+                c0 = (self.board.units_map == agentUnitID).astype(np.int8)
                 channels.append(c0)
                 c1 = self.board.obs_map
                 channels.append(c1)
@@ -294,10 +294,10 @@ class GameManager():
                 c2 = 0*self.board.units_map
                 c3 = 0*self.board.units_map
                 for opp in opponent:
-                    c2 = c2 + self.board.units_map == opp
+                    c2 = c2 + (self.board.units_map == opp).astype(np.int8)
 
                 for friend in friendly:
-                    c3 = c3 + self.board.units_map == friend
+                    c3 = c3 + (self.board.units_map == friend).astype(np.int8)
 
                 channels.append(c2)
                 channels.append(c3)

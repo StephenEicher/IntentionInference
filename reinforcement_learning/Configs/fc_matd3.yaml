@@ -14,19 +14,19 @@ INIT_HP:
     BATCH_SIZE: 512           # Batch size
     LR_ACTOR: 0.001            # Actor learning rate
     LR_CRITIC: 0.01            # Critic earning rate
-    MAX_STEPS: 2_000_000       # Max no. steps
+    MAX_STEPS: 500_000       # Max no. steps
     TARGET_SCORE: 10          # Early training stop at avg score of last 100 episodes
     GAMMA: 0.95                # Discount factor
-    MEMORY_SIZE: 1_000_000     # Max memory buffer size
+    MEMORY_SIZE: 500_000     # Max memory buffer size
     POLICY_FREQ: 2             # Policy update frequency
     LEARN_STEP: 100            # Learning frequency
     TAU: 0.01                  # For soft update of target parameters
     TOURN_SIZE: 2              # Tournament size
     ELITISM: true              # Elitism in tournament selection
-    POP_SIZE: 10               # Population size
+    POP_SIZE: 6               # Population size
     EVO_STEPS: 10_000          # Evolution frequency
     EVAL_STEPS: 50             # Evaluation steps
-    EVAL_LOOP: 10               # Evaluation episodes
+    EVAL_LOOP: 3               # Evaluation episodes
     LEARNING_DELAY: 0          # Steps before learning
 
 MUTATION_PARAMS:
@@ -60,7 +60,7 @@ MUTATION_PARAMS:
 NET_CONFIG:
     arch: cnn
     hidden_size: [32, 32]
-    channel_size: [32, 32]
+    channel_size: [4, 4]
     kernel_size: [3,3]
     stride_size: [2, 2]
     normalize: True
