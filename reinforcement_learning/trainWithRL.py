@@ -103,7 +103,8 @@ if __name__ == "__main__":
     MUTATION_PARAMS = config["MUTATION_PARAMS"]
     NET_CONFIG = config["NET_CONFIG"]
     opp = ac.StaticAgent('Static Agent')
-    OUTPATH = "./reinforcement_learning/Agents/fc_0.pt"
-    baseAgent = "./reinforcement_learning/Agents/fc_0.pt"
-    t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
-    # t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH)
+    ELITE_PATH = "./reinforcement_learning/Agents/fc_0.pt"
+    CHECKPOINT_PATH = "./reinforcement_learning/Agents/Checkpoints/"
+    POP_PATH = "./reinforcement_learning/Agents/Checkpoints/"
+    t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_PATH, CHECKPOINT_PATH, POP_PATH=POP_PATH)
+    # t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_PATH, CHECKPOINT_PATH)

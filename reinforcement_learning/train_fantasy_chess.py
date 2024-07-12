@@ -24,7 +24,7 @@ from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
 
 
 
-def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=None, use_net=False):
+def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_PATH, CHECKPOINT_PATH,POP_PATH=None, use_net=False):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # device = "cpu"
     print("============ Beginning Training! ============")
@@ -135,7 +135,7 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH
         actor = None
         critic = None
 
-    if baseAgent is None:
+    if POP_PATH is None:
         agent_pop = rl.create_population(
             algo=INIT_HP["ALGO"],
             state_dim=state_dims,
@@ -152,15 +152,17 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH
         )
     else:
         agent_pop = []
-        for idx in range(INIT_HP["POP_SIZE"]):
-            agent = MGMATD3.load(baseAgent, device)
-            agent.load_checkpoint(baseAgent)
-            agent_pop.append(agent)
-        INIT_HP["BATCH_SIZE"] = agent.batch_size
-        INIT_HP["LR_ACTOR"] = agent.lr_actor
-        INIT_HP["LR_CRITIC"] = agent.lr_critic
-
-
+        for root, dirs, files in os.walk(POP_PATH):
+            for file in files:
+                agent = MGMATD3.load(os.path.join(root, file), device)
+                agent.load_checkpoint(os.path.join(root, file))
+                agent_pop.append(agent)
+        # INIT_HP["BATCH_SIZE"] = agent.batch_size
+        # INIT_HP["LR_ACTOR"] = agent.lr_actor
+        # INIT_HP["LR_CRITIC"] = agent.lr_critic
+    if not os.path.isdir(CHECKPOINT_PATH):
+        os.mkdir(CHECKPOINT_PATH)
+    
     tma.train_multi_agent(
         env,
         INIT_HP["ENV_NAME"],
@@ -181,7 +183,10 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH
         mutation=mutations,
         accelerator=accelerator,
         save_elite=True,
-        elite_path = OUTPATH
+        elite_path = ELITE_PATH,
+        checkpoint=10000,
+        checkpoint_path=CHECKPOINT_PATH,
+        overwrite_checkpoints=True
     )
 
     if str(device) == "cuda":

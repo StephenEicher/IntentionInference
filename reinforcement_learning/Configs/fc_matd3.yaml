@@ -14,7 +14,7 @@ INIT_HP:
     BATCH_SIZE: 1024           # Batch size
     LR_ACTOR: 0.001            # Actor learning rate
     LR_CRITIC: 0.01            # Critic earning rate
-    MAX_STEPS: 300_000       # Max no. steps
+    MAX_STEPS: 40_000       # Max no. steps
     TARGET_SCORE: 10          # Early training stop at avg score of last 100 episodes
     GAMMA: 0.95                # Discount factor
     MEMORY_SIZE: 500_000     # Max memory buffer size
