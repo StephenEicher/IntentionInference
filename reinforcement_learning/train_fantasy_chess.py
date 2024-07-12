@@ -154,7 +154,7 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH
         agent_pop = []
         for idx in range(INIT_HP["POP_SIZE"]):
             agent = MGMATD3.load(baseAgent, device)
-            agent.steps = [0]
+            agent.load_checkpoint(baseAgent)
             agent_pop.append(agent)
         INIT_HP["BATCH_SIZE"] = agent.batch_size
         INIT_HP["LR_ACTOR"] = agent.lr_actor

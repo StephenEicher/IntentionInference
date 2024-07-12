@@ -105,5 +105,5 @@ if __name__ == "__main__":
     opp = ac.StaticAgent('Static Agent')
     OUTPATH = "./reinforcement_learning/Agents/fc_0.pt"
     baseAgent = "./reinforcement_learning/Agents/fc_0.pt"
-    # t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
-    t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH)
+    t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH, baseAgent=baseAgent)
+    # t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH)
