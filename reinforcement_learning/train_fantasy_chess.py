@@ -184,7 +184,7 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_P
         accelerator=accelerator,
         save_elite=True,
         elite_path = ELITE_PATH,
-        checkpoint=10000,
+        checkpoint=50000,
         checkpoint_path=CHECKPOINT_PATH,
         overwrite_checkpoints=True
     )

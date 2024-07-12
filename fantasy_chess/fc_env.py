@@ -28,7 +28,7 @@ class parallel_env(ParallelEnv):
         self.opp = opponent_class
         self.rewardFn = reward
         team1 = [(1, 1, u.meleeUnit), (1, 2, u.rangedUnit)]
-        team2 =  [(6,6, u.meleeUnit)]
+        team2 =  [(4,4, u.meleeUnit)]
         self.nUnits = 4
         teamComp = [team1, team2]
         self.agentUnitDict = {
