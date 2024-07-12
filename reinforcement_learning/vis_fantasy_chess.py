@@ -42,8 +42,9 @@ if __name__ == "__main__":
     
     all_coordinates.remove((4, 4))
     coords = random.sample(all_coordinates, 3)
-    team1 = [(0, 0, u.meleeUnit), (0, 1, u.rangedUnit)]
-    team2 =  [(4, 7, u.meleeUnit)]
+    team1 = [(0, 0, u.meleeUnit), (7, 7, u.rangedUnit)]
+    # team1 = [(coords[0][0], coords[0][1], u.meleeUnit)]
+    team2 =  [(4, 4, u.meleeUnit)]
 
     # team1 = [(0, 0, u.meleeUnit), (7,7, u.rangedUnit)]
     # team2 =  [(3, 3, u.meleeUnit)]
@@ -56,6 +57,7 @@ if __name__ == "__main__":
     p1 = ac.RLAgent('P1', matd3, ["melee", "ranged"], minDistRewardFn)
     p2 = ac.StaticAgent('P2')
     a = g.GameManager(p1, p2, teamComp, inclPygame = True, framePath=framePath, noObstacles=True, verbose=False)
+    # a.disposeUnit(a.allUnits[2])
     a.start()
     crop_box = (0, 0, 220, 220)
     frames = [f for f in sorted(os.listdir(framePath)) if f.endswith('.png')]

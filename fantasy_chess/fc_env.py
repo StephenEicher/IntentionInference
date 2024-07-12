@@ -48,9 +48,9 @@ class parallel_env(ParallelEnv):
         # Randomly sample three unique coordinates
         coords = random.sample(all_coordinates, 3)
 
-        team1 = [(0, 0, u.meleeUnit), (7, 0, u.rangedUnit)]
+        team1 = [(0, 0, u.meleeUnit), (7, 7, u.rangedUnit)]
         # team1 = [(coords[0][0], coords[0][1], u.meleeUnit)]
-        team2 =  [(4, 7, u.meleeUnit)]
+        team2 =  [(4, 4, u.meleeUnit)]
 
         teamComp = [team1, team2]
         self.teamComp = teamComp
