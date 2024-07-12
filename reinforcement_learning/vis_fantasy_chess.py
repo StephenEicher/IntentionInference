@@ -42,7 +42,7 @@ if __name__ == "__main__":
     
     all_coordinates.remove((4, 4))
     coords = random.sample(all_coordinates, 3)
-    team1 = [(0, 0, u.meleeUnit), (0, 1, u.rangedUnit)]
+    team1 = [(0, 0, u.meleeUnit), (4, 4, u.rangedUnit)]
     team2 =  [(4, 7, u.meleeUnit)]
 
     # team1 = [(0, 0, u.meleeUnit), (7,7, u.rangedUnit)]

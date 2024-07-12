@@ -154,6 +154,7 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, OUTPATH
         agent_pop = []
         for idx in range(INIT_HP["POP_SIZE"]):
             agent = MGMATD3.load(baseAgent, device)
+            agent.load_checkpoint(baseAgent)
             agent_pop.append(agent)
 
     tma.train_multi_agent(
