@@ -106,5 +106,5 @@ if __name__ == "__main__":
     ELITE_PATH = "./reinforcement_learning/Agents/fc_0.pt"
     CHECKPOINT_PATH = "./reinforcement_learning/Agents/Checkpoints/"
     POP_PATH = "./reinforcement_learning/Agents/Checkpoints/"
-    # t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_PATH, CHECKPOINT_PATH, POP_PATH=POP_PATH)
-    t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_PATH, CHECKPOINT_PATH)
+    t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_PATH, CHECKPOINT_PATH, POP_PATH=POP_PATH)
+    # t.train(minDistRewardFn, opp,INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_PATH, CHECKPOINT_PATH)

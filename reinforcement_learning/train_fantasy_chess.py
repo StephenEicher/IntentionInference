@@ -135,31 +135,28 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_P
         actor = None
         critic = None
 
-    if POP_PATH is None:
-        agent_pop = rl.create_population(
-            algo=INIT_HP["ALGO"],
-            state_dim=state_dims,
-            action_dim=action_dims,
-            one_hot=one_hot,
-            net_config=NET_CONFIG,
-            INIT_HP=INIT_HP,
-            actor_network=actor,
-            critic_network=critic,
-            population_size=INIT_HP["POP_SIZE"],
-            num_envs=INIT_HP["NUM_ENVS"],
-            device=device,
-            accelerator=accelerator,
-        )
-    else:
-        agent_pop = []
-        for root, dirs, files in os.walk(POP_PATH):
-            for file in files:
-                agent = MGMATD3.load(os.path.join(root, file), device)
-                agent.load_checkpoint(os.path.join(root, file))
-                agent_pop.append(agent)
-        # INIT_HP["BATCH_SIZE"] = agent.batch_size
-        # INIT_HP["LR_ACTOR"] = agent.lr_actor
-        # INIT_HP["LR_CRITIC"] = agent.lr_critic
+    
+    agent_pop = rl.create_population(
+        algo=INIT_HP["ALGO"],
+        state_dim=state_dims,
+        action_dim=action_dims,
+        one_hot=one_hot,
+        net_config=NET_CONFIG,
+        INIT_HP=INIT_HP,
+        actor_network=actor,
+        critic_network=critic,
+        population_size=INIT_HP["POP_SIZE"],
+        num_envs=INIT_HP["NUM_ENVS"],
+        device=device,
+        accelerator=accelerator,
+    )
+    if POP_PATH is not None:
+        files = os.listdir(POP_PATH)
+        files = [f for f in files if os.path.isfile(POP_PATH+'/'+f)]
+        for idx, file in enumerate(files):
+            agent = agent_pop[idx]
+            agent.load_checkpoint(os.path.join(POP_PATH, file))
+
     if not os.path.isdir(CHECKPOINT_PATH):
         os.mkdir(CHECKPOINT_PATH)
     
@@ -184,9 +181,9 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_P
         accelerator=accelerator,
         save_elite=True,
         elite_path = ELITE_PATH,
-        checkpoint=50000,
+        checkpoint=30000,
         checkpoint_path=CHECKPOINT_PATH,
-        overwrite_checkpoints=True
+        overwrite_checkpoints=False,
     )
 
     if str(device) == "cuda":
