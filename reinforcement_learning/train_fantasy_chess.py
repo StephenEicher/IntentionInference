@@ -18,7 +18,7 @@ from reinforcement_learning.agilerl.pettingzoo_wrappers import PettingZooVectori
 # from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
 from reinforcement_learning.agilerl import utils as rl
 import reinforcement_learning.agilerl.train_multi_agent as tma
-from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
+from reinforcement_learning.agilerl.MATD3 import MATD3
 # !Note: If you are running this demo without having installed agilerl,
 # uncomment and place the following above agilerl imports:
 
@@ -30,10 +30,6 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_P
     print("============ Beginning Training! ============")
     accelerator = None
     print(f"DEVICE: {device}")
-
-    # env = importlib.import_module(f"{INIT_HP['ENV_NAME']}").parallel_env(
-    #     max_cycles=25, continuous_actions=True
-    # )
     env = fc.parallel_env(rewardFn, opponentClass)
     env.reset()
     env = PettingZooVectorizationParallelWrapper(env, n_envs=INIT_HP["NUM_ENVS"])
@@ -181,7 +177,7 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_P
         accelerator=accelerator,
         save_elite=True,
         elite_path = ELITE_PATH,
-        checkpoint=30000,
+        checkpoint=INIT_HP["CHECKPOINT_FREQ"],
         checkpoint_path=CHECKPOINT_PATH,
         overwrite_checkpoints=False,
     )

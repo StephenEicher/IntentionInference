@@ -7,13 +7,13 @@ from agilerl.algorithms.ddpg import DDPG
 from agilerl.algorithms.dqn import DQN
 from agilerl.algorithms.dqn_rainbow import RainbowDQN
 from agilerl.algorithms.maddpg import MADDPG
-from agilerl.algorithms.matd3 import MATD3
+# from agilerl.algorithms.matd3 import MATD3
 from agilerl.algorithms.neural_ts_bandit import NeuralTS
 from agilerl.algorithms.neural_ucb_bandit import NeuralUCB
 from agilerl.algorithms.ppo import PPO
 from agilerl.algorithms.td3 import TD3
 from agilerl.wrappers.pettingzoo_wrappers import PettingZooVectorizationParallelWrapper
-from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
+from reinforcement_learning.agilerl.MATD3 import MATD3
 
 def make_vect_envs(env_name, num_envs=1):
     """Returns async-vectorized gym environments.
@@ -283,38 +283,6 @@ def create_population(
     elif algo == "MATD3":
         for idx in range(population_size):
             agent = MATD3(
-                state_dims=state_dim,
-                action_dims=action_dim,
-                one_hot=one_hot,
-                n_agents=INIT_HP["N_AGENTS"],
-                agent_ids=INIT_HP["AGENT_IDS"],
-                O_U_noise=INIT_HP["O_U_NOISE"],
-                expl_noise=INIT_HP["EXPL_NOISE"],
-                vect_noise_dim=num_envs,
-                mean_noise=INIT_HP["MEAN_NOISE"],
-                theta=INIT_HP["THETA"],
-                dt=INIT_HP["DT"],
-                index=idx,
-                max_action=INIT_HP["MAX_ACTION"],
-                min_action=INIT_HP["MIN_ACTION"],
-                net_config=net_config,
-                batch_size=INIT_HP["BATCH_SIZE"],
-                lr_actor=INIT_HP["LR_ACTOR"],
-                lr_critic=INIT_HP["LR_CRITIC"],
-                policy_freq=INIT_HP["POLICY_FREQ"],
-                learn_step=INIT_HP["LEARN_STEP"],
-                gamma=INIT_HP["GAMMA"],
-                tau=INIT_HP["TAU"],
-                discrete_actions=INIT_HP["DISCRETE_ACTIONS"],
-                actor_networks=actor_network,
-                critic_networks=critic_network,
-                device=device,
-                accelerator=accelerator,
-            )
-            population.append(agent)
-    elif algo == "MGMATD3":
-        for idx in range(population_size):
-            agent = MGMATD3(
                 state_dims=state_dim,
                 action_dims=action_dim,
                 one_hot=one_hot,

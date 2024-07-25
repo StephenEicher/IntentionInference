@@ -7,11 +7,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 from PIL import Image
 import glob
 from fantasy_chess import fc_env as fc
-from reinforcement_learning.agilerl.MGMATD3 import MGMATD3
+from reinforcement_learning.agilerl.MATD3 import MGMATD3
 import fantasy_chess.env.agentClasses as ac
 import fantasy_chess.env.gameClasses as g
 import fantasy_chess.env.unitClasses as u
-from reinforcement_learning.trainWithRL import minDistRewardFn
+from reinforcement_learning.training_driver import minDistRewardFn
 from PIL import Image
 import glob
 import shutil

@@ -547,10 +547,14 @@ def train_multi_agent(
                     accelerator.wait_for_everyone()
                     if accelerator.is_main_process:
                         for i, agent in enumerate(pop):
+                            if not overwrite_checkpoints:
+                                if not os.path.isdir(f"{save_path}/{agent.steps[-1]}/"):
+                                    os.mkdir(f"{save_path}/{agent.steps[-1]}/")
+
                             current_checkpoint_path = (
                                 f"{save_path}_{i}.pt"
                                 if overwrite_checkpoints
-                                else f"{save_path}_{i}_{agent.steps[-1]}.pt"
+                                else f"{save_path}/{agent.steps[-1]}/_{i}_{agent.steps[-1]}.pt"
                             )
                             agent.save_checkpoint(current_checkpoint_path)
                         print("Saved checkpoint.")
@@ -559,11 +563,13 @@ def train_multi_agent(
                         model.wrap_models()
                     accelerator.wait_for_everyone()
                 else:
+                    if not os.path.isdir(f"{save_path}/{agent.steps[-1]}/"):
+                        os.mkdir(f"{save_path}/{agent.steps[-1]}/")
                     for i, agent in enumerate(pop):
                         current_checkpoint_path = (
                             f"{save_path}_{i}.pt"
                             if overwrite_checkpoints
-                            else f"{save_path}_{i}_{agent.steps[-1]}.pt"
+                            else f"{save_path}/{agent.steps[-1]}/{i}_{agent.steps[-1]}.pt"
                         )
                         agent.save_checkpoint(current_checkpoint_path)
                     print("Saved checkpoint.")

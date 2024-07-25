@@ -2,7 +2,7 @@
 # Define initial hyperparameters
 INIT_HP:
     ENV_NAME: fantasy_chess   # Gym environment name
-    ALGO: MGMATD3                                         # Algorithm
+    ALGO: MATD3                                         # Algorithm
     # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
     CHANNELS_LAST: false
     NUM_ENVS: 16              # No. parallel environments for training
@@ -14,7 +14,7 @@ INIT_HP:
     BATCH_SIZE: 1024           # Batch size
     LR_ACTOR: 0.001            # Actor learning rate
     LR_CRITIC: 0.01            # Critic earning rate
-    MAX_STEPS: 600_000       # Max no. steps
+    MAX_STEPS: 500_000       # Max no. steps
     TARGET_SCORE: 10          # Early training stop at avg score of last 100 episodes
     GAMMA: 0.95                # Discount factor
     MEMORY_SIZE: 500_000     # Max memory buffer size
@@ -28,6 +28,7 @@ INIT_HP:
     EVAL_STEPS: 15             # Evaluation steps
     EVAL_LOOP: 5               # Evaluation episodes
     LEARNING_DELAY: 0          # Steps before learning
+    CHECKPOINT_FREQ: 100_000    # Frequency of checkpoint saving
 
 MUTATION_PARAMS:
     NO_MUT: 0.4                            # No mutation
