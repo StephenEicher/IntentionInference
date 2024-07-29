@@ -132,26 +132,10 @@ def train(rewardFn, opponentClass, INIT_HP, MUTATION_PARAMS, NET_CONFIG, ELITE_P
         critic = None
 
     
-    agent_pop = rl.create_population(
-        algo=INIT_HP["ALGO"],
-        state_dim=state_dims,
-        action_dim=action_dims,
-        one_hot=one_hot,
-        net_config=NET_CONFIG,
-        INIT_HP=INIT_HP,
-        actor_network=actor,
-        critic_network=critic,
-        population_size=INIT_HP["POP_SIZE"],
-        num_envs=INIT_HP["NUM_ENVS"],
-        device=device,
-        accelerator=accelerator,
-    )
     if POP_PATH is not None:
         files = os.listdir(POP_PATH)
         files = [f for f in files if os.path.isfile(POP_PATH+'/'+f)]
-        for idx, file in enumerate(files):
-            agent = agent_pop[idx]
-            agent.load_checkpoint(os.path.join(POP_PATH, file))
+        agent_pop = [MATD3.load(os.path.join(POP_PATH, f)) for f in files]
 
     if not os.path.isdir(CHECKPOINT_PATH):
         os.mkdir(CHECKPOINT_PATH)
