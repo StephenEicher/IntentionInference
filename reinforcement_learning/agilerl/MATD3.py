@@ -1257,8 +1257,8 @@ class MATD3:
                 for critic_target_2 in self.critic_targets_2
             ],
             "critic_1_optimizers_state_dict": [
-                critic_2_optimizer.state_dict()
-                for critic_2_optimizer in self.critic_2_optimizers
+                critic_1_optimizer.state_dict()
+                for critic_1_optimizer in self.critic_1_optimizers
             ],
         }
 
